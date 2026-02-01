@@ -126,10 +126,18 @@ async function loadEmpresas() {
         }
         
         if (usrEmpSelect) {
+            console.log('✓ usr-emp ENCONTRADO!');
+            console.log('  - Elemento:', usrEmpSelect);
+            console.log('  - Pai:', usrEmpSelect.parentElement);
+            console.log('  - Display do pai:', window.getComputedStyle(usrEmpSelect.parentElement).display);
+            console.log('  - Seção ativa:', document.getElementById('usuarios').classList.contains('active'));
+            console.log('  - innerHTML ANTES:', usrEmpSelect.innerHTML);
+            
             usrEmpSelect.innerHTML = opts;
+            
+            console.log('  - innerHTML DEPOIS:', usrEmpSelect.innerHTML.substring(0, 150));
+            console.log('  - options.length:', usrEmpSelect.options.length);
             console.log('✓ usr-emp preenchido com', empresas.length, 'opções');
-            console.log('✓ usr-emp.options.length:', usrEmpSelect.options.length);
-            console.log('✓ usr-emp.innerHTML:', usrEmpSelect.innerHTML.substring(0, 100));
         } else {
             console.warn('✗ usr-emp não encontrado');
         }
