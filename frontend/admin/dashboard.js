@@ -100,10 +100,12 @@ function logout() {
 
 // ===== HELPERS =====
 function authHeaders() {
-    return {
+    const headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${TOKEN}`
     };
+    console.log('Auth Headers:', { Authorization: headers.Authorization ? 'Bearer ...' : 'MISSING' });
+    return headers;
 }
 
 // ===== LOAD CLIENTES SELECT =====

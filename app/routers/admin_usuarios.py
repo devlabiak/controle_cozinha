@@ -2,9 +2,10 @@
 Rotas Admin - Gestão de Usuários SaaS
 """
 
+from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.models import Cliente, User
 from app.security import get_password_hash
@@ -23,7 +24,7 @@ class UsuarioCreate(BaseModel):
 
 class UsuarioResponse(BaseModel):
     id: int
-    cliente_id: int | None
+    cliente_id: Optional[int] = None
     nome: str
     email: str
     is_admin: bool
@@ -36,12 +37,12 @@ class UsuarioResponse(BaseModel):
 class UsuarioClienteResponse(BaseModel):
     """Usuário com lista de clientes associados"""
     id: int
-    cliente_id: int | None
+    cliente_id: Optional[int] = None
     nome: str
     email: str
     is_admin: bool
     ativo: bool
-    clientes_acesso: List['ClienteResponse'] = []
+    clientes_acesso: List[ClienteResponse] = []
 
     class Config:
         from_attributes = True
