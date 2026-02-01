@@ -491,29 +491,25 @@
 
             <!-- ABA: GERENCIAR (APENAS ADMIN) -->
             <div id="tab-gerenciar" class="tab-content">
-                <div class="card">
-                    <h3><i class="fas fa-plus-circle"></i> Cadastrar/Editar Produto</h3>
-                    <form id="form-produto" class="form-grid">
-                        <input type="hidden" id="produto-id">
-                        <div>
-                            <label>Nome *</label>
-                            <input type="text" id="produto-nome" required>
-                        </div>
-                        <div>
-                            <label>Categoria *</label>
+                
+                <!-- 1. CADASTRAR NOVO PRODUTO -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h3 style="color:#667eea;margin-bottom:15px;">
+                        <i class="fas fa-plus-circle"></i> 1. Cadastrar Novo Produto
+                    </h3>
+                    <form id="form-produto">
+                        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:15px;margin-bottom:15px;">
+                            <input type="text" id="produto-nome" placeholder="Nome do produto *" required>
                             <select id="produto-categoria" required>
-                                <option value="">Selecione...</option>
+                                <option value="">Categoria *</option>
                                 <option value="bebidas">Bebidas</option>
                                 <option value="carnes">Carnes</option>
                                 <option value="verduras">Verduras</option>
                                 <option value="temperos">Temperos</option>
                                 <option value="outros">Outros</option>
                             </select>
-                        </div>
-                        <div>
-                            <label>Unidade de Medida *</label>
                             <select id="produto-unidade" required>
-                                <option value="">Selecione...</option>
+                                <option value="">Unidade *</option>
                                 <option value="kg">Quilograma (kg)</option>
                                 <option value="g">Grama (g)</option>
                                 <option value="l">Litro (L)</option>
@@ -521,74 +517,111 @@
                                 <option value="un">Unidade</option>
                             </select>
                         </div>
-                        <div>
-                            <label>Estoque Mínimo</label>
-                            <input type="number" id="produto-estoque-min" step="0.01" min="0" value="0">
-                        </div>
-                        <div>
-                            <label>QR Code / Código de Barras</label>
-                            <input type="text" id="produto-qrcode">
-                        </div>
-                        <div>
-                            <label>Descrição</label>
-                            <textarea id="produto-descricao" rows="3"></textarea>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Salvar Produto</button>
-                            <button type="button" class="btn-secondary" id="btn-cancelar-produto">Cancelar</button>
+                        <button type="submit" class="btn-primary" style="width:100%;">
+                            <i class="fas fa-save"></i> Salvar Produto
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 2. DEFINIR ESTOQUE MÍNIMO -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h3 style="color:#f59e0b;margin-bottom:15px;">
+                        <i class="fas fa-exclamation-triangle"></i> 2. Definir Estoque Mínimo (Alertas)
+                    </h3>
+                    <form id="form-estoque-minimo">
+                        <div style="display:grid;grid-template-columns:3fr 1fr auto;gap:15px;align-items:end;">
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Produto</label>
+                                <select id="minimo-produto" required style="width:100%;">
+                                    <option value="">Selecione um produto...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Quantidade Mínima</label>
+                                <input type="number" id="minimo-quantidade" step="0.01" min="0" required placeholder="Ex: 10">
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-check"></i> Definir
+                            </button>
                         </div>
                     </form>
                 </div>
 
+                <!-- 3. EDITAR PRODUTOS -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h3 style="color:#8b5cf6;margin-bottom:15px;">
+                        <i class="fas fa-edit"></i> 3. Editar Produto
+                    </h3>
+                    <form id="form-editar">
+                        <input type="hidden" id="editar-id">
+                        <div style="display:grid;grid-template-columns:3fr auto;gap:15px;align-items:end;margin-bottom:15px;">
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Selecione o produto para editar</label>
+                                <select id="editar-select" onchange="carregarProdutoEdicao()" required style="width:100%;">
+                                    <option value="">Escolha um produto...</option>
+                                </select>
+                            </div>
+                            <button type="button" onclick="limparFormEdicao()" class="btn-secondary">
+                                <i class="fas fa-times"></i> Limpar
+                            </button>
+                        </div>
+                        <div id="form-editar-campos" style="display:none;">
+                            <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:15px;margin-bottom:15px;">
+                                <input type="text" id="editar-nome" placeholder="Nome do produto *" required>
+                                <select id="editar-categoria" required>
+                                    <option value="">Categoria *</option>
+                                    <option value="bebidas">Bebidas</option>
+                                    <option value="carnes">Carnes</option>
+                                    <option value="verduras">Verduras</option>
+                                    <option value="temperos">Temperos</option>
+                                    <option value="outros">Outros</option>
+                                </select>
+                                <select id="editar-unidade" required>
+                                    <option value="">Unidade *</option>
+                                    <option value="kg">Quilograma (kg)</option>
+                                    <option value="g">Grama (g)</option>
+                                    <option value="l">Litro (L)</option>
+                                    <option value="ml">Mililitro (ml)</option>
+                                    <option value="un">Unidade</option>
+                                </select>
+                            </div>
+                            <div style="display:flex;gap:10px;">
+                                <button type="submit" class="btn-primary" style="flex:1;">
+                                    <i class="fas fa-save"></i> Salvar Alterações
+                                </button>
+                                <button type="button" onclick="deletarProduto()" class="btn-action btn-saida">
+                                    <i class="fas fa-trash"></i> Excluir Produto
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 4. AJUSTAR ESTOQUE -->
                 <div class="card">
-                    <h3><i class="fas fa-exchange-alt"></i> Ajustar Estoque</h3>
-                    <form id="form-ajuste" class="form-grid">
-                        <div>
-                            <label>Produto *</label>
+                    <h3 style="color:#10b981;margin-bottom:15px;">
+                        <i class="fas fa-exchange-alt"></i> 4. Ajustar Estoque Manualmente
+                    </h3>
+                    <form id="form-ajuste">
+                        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:15px;margin-bottom:10px;">
                             <select id="ajuste-produto" required>
-                                <option value="">Selecione um produto...</option>
+                                <option value="">Selecione o produto *</option>
                             </select>
-                        </div>
-                        <div>
-                            <label>Tipo de Movimento *</label>
                             <select id="ajuste-tipo" required>
-                                <option value="">Selecione...</option>
-                                <option value="entrada">Entrada (recebimento)</option>
-                                <option value="saida">Saída (consumo)</option>
-                                <option value="ajuste">Ajuste (correção)</option>
+                                <option value="">Tipo *</option>
+                                <option value="entrada">➕ Entrada</option>
+                                <option value="saida">➖ Saída</option>
+                                <option value="ajuste">🔄 Ajuste</option>
                             </select>
+                            <input type="number" id="ajuste-quantidade" step="0.01" min="0.01" placeholder="Quantidade *" required>
+                            <button type="submit" class="btn-primary" style="width:100%;">
+                                <i class="fas fa-check"></i> Registrar
+                            </button>
                         </div>
-                        <div>
-                            <label>Quantidade *</label>
-                            <input type="number" id="ajuste-quantidade" step="0.01" min="0.01" required>
-                        </div>
-                        <div>
-                            <label>Observação</label>
-                            <textarea id="ajuste-obs" rows="2" placeholder="Ex: Recebimento fornecedor X, Preparação prato Y..."></textarea>
-                        </div>
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary"><i class="fas fa-check"></i> Registrar Movimento</button>
-                        </div>
+                        <textarea id="ajuste-obs" rows="2" placeholder="Observação (opcional): Ex: Recebimento fornecedor, Preparação prato, Correção de inventário..." style="width:100%;"></textarea>
                     </form>
                 </div>
 
-                <div class="card">
-                    <h3><i class="fas fa-list"></i> Produtos Cadastrados</h3>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nome</th>
-                                    <th>Categoria</th>
-                                    <th>Estoque Atual</th>
-                                    <th>Unidade</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-gerenciar"></tbody>
-                        </table>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -631,6 +664,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012130"></script>
+    <script src="index.js?v=202602012200"></script>
 </body>
 </html>

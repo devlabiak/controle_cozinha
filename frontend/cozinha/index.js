@@ -330,115 +330,167 @@ document.getElementById('btn-filter-historico')?.addEventListener('click', loadH
 
 // ==================== ABA: GERENCIAR ====================
 async function loadGerenciar() {
-    await loadProdutosGerenciar();
-    await loadProdutosSelect();
+    await loadProdutosSelects();
 }
 
-async function loadProdutosGerenciar() {
+async function loadProdutosSelects() {
     try {
         const response = await fetch(`/api/tenant/${tenantId}/alimentos`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         const produtos = await response.json();
         
-        const tbody = document.getElementById('tbody-gerenciar');
-        tbody.innerHTML = produtos.map(p => `
-            <tr>
-                <td>${p.nome}</td>
-                <td>${p.categoria || '-'}</td>
-                <td>${p.estoque_atual}</td>
-                <td>${p.unidade_medida}</td>
-                <td>
-                    <button class="btn-sm" onclick="editarProduto(${p.id})"><i class="fas fa-edit"></i></button>
-                    <button class="btn-sm btn-danger" onclick="deletarProduto(${p.id})"><i class="fas fa-trash"></i></button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        showNotification('Erro ao carregar produtos', 'error');
-    }
-}
-
-async function loadProdutosSelect() {
-    try {
-        const response = await fetch(`/api/tenant/${tenantId}/alimentos`, {
-            headers: { 'Authorization': 'Bearer ' + token }
+        // Preenche todos os selects
+        const selects = ['ajuste-produto', 'minimo-produto', 'editar-select'];
+        selects.forEach(selectId => {
+            const select = document.getElementById(selectId);
+            if (select) {
+                select.innerHTML = '<option value="">Selecione um produto...</option>' +
+                    produtos.map(p => `<option value="${p.id}" data-estoque="${p.estoque_atual}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.estoque_minimo || 0}">${p.nome} (${p.estoque_atual} ${p.unidade_medida})</option>`).join('');
+            }
         });
-        const produtos = await response.json();
-        
-        const select = document.getElementById('ajuste-produto');
-        select.innerHTML = '<option value="">Selecione um produto...</option>' +
-            produtos.map(p => `<option value="${p.id}">${p.nome} (${p.estoque_atual} ${p.unidade_medida})</option>`).join('');
     } catch (err) {
+        console.error('Erro ao carregar produtos:', err);
         showNotification('Erro ao carregar produtos', 'error');
     }
 }
 
-// CRUD de Produtos
+// 1. CADASTRAR NOVO PRODUTO
 document.getElementById('form-produto')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const id = document.getElementById('produto-id').value;
-    const dados = {
-        nome: document.getElementById('produto-nome').value,
-        categoria: document.getElementById('produto-categoria').value,
-        unidade_medida: document.getElementById('produto-unidade').value,
-        estoque_minimo: parseFloat(document.getElementById('produto-estoque-min').value) || 0,
-        qrcode: document.getElementById('produto-qrcode').value || null,
-        descricao: document.getElementById('produto-descricao').value || null
-    };
+    const nome = document.getElementById('produto-nome').value;
+    const categoria = document.getElementById('produto-categoria').value;
+    const unidade = document.getElementById('produto-unidade').value;
     
     try {
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `/api/tenant/${tenantId}/alimentos/${id}` : `/api/tenant/${tenantId}/alimentos`;
-        
-        const response = await fetch(url, {
-            method,
+        const response = await fetch(`/api/tenant/${tenantId}/alimentos`, {
+            method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify(dados)
+            body: JSON.stringify({
+                nome: nome,
+                categoria: categoria,
+                unidade_medida: unidade,
+                estoque_atual: 0,
+                estoque_minimo: 0
+            })
         });
         
-        if (response.ok) {
-            showNotification(`Produto ${id ? 'atualizado' : 'cadastrado'} com sucesso!`, 'success');
-            document.getElementById('form-produto').reset();
-            document.getElementById('produto-id').value = '';
-            loadProdutosGerenciar();
-            loadProdutosSelect();
-            loadProdutos();
-        } else {
-            showNotification('Erro ao salvar produto', 'error');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao cadastrar produto');
         }
+        
+        showNotification('Produto cadastrado com sucesso!', 'success');
+        document.getElementById('form-produto').reset();
+        loadProdutos();
+        loadProdutosSelects();
     } catch (err) {
-        showNotification('Erro ao salvar produto', 'error');
+        showNotification(err.message, 'error');
     }
 });
 
-async function editarProduto(id) {
+// 2. DEFINIR ESTOQUE MÍNIMO
+document.getElementById('form-estoque-minimo')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const produtoId = document.getElementById('minimo-produto').value;
+    const quantidade = document.getElementById('minimo-quantidade').value;
+    
     try {
-        const response = await fetch(`/api/tenant/${tenantId}/alimentos/${id}`, {
-            headers: { 'Authorization': 'Bearer ' + token }
+        const response = await fetch(`/api/tenant/${tenantId}/alimentos/${produtoId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                estoque_minimo: parseFloat(quantidade)
+            })
         });
-        const produto = await response.json();
         
-        document.getElementById('produto-id').value = produto.id;
-        document.getElementById('produto-nome').value = produto.nome;
-        document.getElementById('produto-categoria').value = produto.categoria || '';
-        document.getElementById('produto-unidade').value = produto.unidade_medida;
-        document.getElementById('produto-estoque-min').value = produto.estoque_minimo || 0;
-        document.getElementById('produto-qrcode').value = produto.qrcode || '';
-        document.getElementById('produto-descricao').value = produto.descricao || '';
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao atualizar estoque mínimo');
+        }
         
-        document.querySelector('#form-produto h3').innerHTML = '<i class="fas fa-edit"></i> Editar Produto';
+        showNotification('Estoque mínimo definido com sucesso!', 'success');
+        document.getElementById('form-estoque-minimo').reset();
+        loadProdutos();
+        loadProdutosSelects();
     } catch (err) {
-        showNotification('Erro ao carregar produto', 'error');
+        showNotification(err.message, 'error');
     }
+});
+
+// 3. EDITAR PRODUTO
+function carregarProdutoEdicao() {
+    const select = document.getElementById('editar-select');
+    const option = select.options[select.selectedIndex];
+    
+    if (!option.value) {
+        document.getElementById('form-editar-campos').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('editar-id').value = option.value;
+    document.getElementById('editar-nome').value = option.dataset.nome;
+    document.getElementById('editar-categoria').value = option.dataset.categoria;
+    document.getElementById('editar-unidade').value = option.dataset.unidade;
+    document.getElementById('form-editar-campos').style.display = 'block';
 }
 
-async function deletarProduto(id) {
-    if (!confirm('Deseja realmente excluir este produto?')) return;
+function limparFormEdicao() {
+    document.getElementById('editar-select').value = '';
+    document.getElementById('form-editar-campos').style.display = 'none';
+    document.getElementById('form-editar').reset();
+}
+
+document.getElementById('form-editar')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const id = document.getElementById('editar-id').value;
+    const nome = document.getElementById('editar-nome').value;
+    const categoria = document.getElementById('editar-categoria').value;
+    const unidade = document.getElementById('editar-unidade').value;
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/alimentos/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                nome: nome,
+                categoria: categoria,
+                unidade_medida: unidade
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao atualizar produto');
+        }
+        
+        showNotification('Produto atualizado com sucesso!', 'success');
+        limparFormEdicao();
+        loadProdutos();
+        loadProdutosSelects();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+});
+
+async function deletarProduto() {
+    const id = document.getElementById('editar-id').value;
+    
+    if (!confirm('Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita.')) {
+        return;
+    }
     
     try {
         const response = await fetch(`/api/tenant/${tenantId}/alimentos/${id}`, {
@@ -446,57 +498,55 @@ async function deletarProduto(id) {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         
-        if (response.ok) {
-            showNotification('Produto excluído com sucesso!', 'success');
-            loadProdutosGerenciar();
-            loadProdutosSelect();
-            loadProdutos();
-        } else {
-            showNotification('Erro ao excluir produto', 'error');
+        if (!response.ok) {
+            throw new Error('Erro ao excluir produto');
         }
+        
+        showNotification('Produto excluído com sucesso!', 'success');
+        limparFormEdicao();
+        loadProdutos();
+        loadProdutosSelects();
     } catch (err) {
-        showNotification('Erro ao excluir produto', 'error');
+        showNotification(err.message, 'error');
     }
 }
 
-document.getElementById('btn-cancelar-produto')?.addEventListener('click', () => {
-    document.getElementById('form-produto').reset();
-    document.getElementById('produto-id').value = '';
-    document.querySelector('#form-produto h3').innerHTML = '<i class="fas fa-plus-circle"></i> Cadastrar Produto';
-});
-
-// Ajuste de Estoque
+// 4. AJUSTAR ESTOQUE
 document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
-    const dados = {
-        alimento_id: parseInt(document.getElementById('ajuste-produto').value),
-        tipo: document.getElementById('ajuste-tipo').value,
-        quantidade: parseFloat(document.getElementById('ajuste-quantidade').value),
-        observacao: document.getElementById('ajuste-obs').value || null
-    };
+    const alimentoId = parseInt(document.getElementById('ajuste-produto').value);
+    const tipo = document.getElementById('ajuste-tipo').value;
+    const quantidade = parseFloat(document.getElementById('ajuste-quantidade').value);
+    const observacao = document.getElementById('ajuste-obs').value;
     
     try {
         const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
             method: 'POST',
             headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify(dados)
+            body: JSON.stringify({
+                alimento_id: alimentoId,
+                tipo: tipo,
+                quantidade: quantidade,
+                observacao: observacao || null
+            })
         });
         
-        if (response.ok) {
-            showNotification('Movimentação registrada com sucesso!', 'success');
-            document.getElementById('form-ajuste').reset();
-            loadProdutos();
-            loadProdutosGerenciar();
-            loadProdutosSelect();
-        } else {
-            showNotification('Erro ao registrar movimentação', 'error');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao registrar movimentação');
         }
+        
+        const tipoNome = tipo === 'entrada' ? 'Entrada' : tipo === 'saida' ? 'Saída' : 'Ajuste';
+        showNotification(`${tipoNome} registrado com sucesso!`, 'success');
+        document.getElementById('form-ajuste').reset();
+        loadProdutos();
+        loadProdutosSelects();
     } catch (err) {
-        showNotification('Erro ao registrar movimentação', 'error');
+        showNotification(err.message, 'error');
     }
 });
 
