@@ -402,20 +402,27 @@ function updateEntradaPlaceholder() {
     const calcInfo = document.getElementById('entrada-calc-info');
     
     if (formato === 'embalagens' && tipoEmb) {
-        input.placeholder = `Ex: 5 ${tipoEmb}s`;
+        input.placeholder = `Ex: 5`;
         input.step = '1';
-        input.addEventListener('input', () => {
-            const qtd = parseFloat(input.value);
+        input.min = '1';
+        input.value = ''; // Limpa o valor anterior
+        input.removeEventListener('input', updateCalcInfo); // Remove listener anterior
+        input.addEventListener('input', updateCalcInfo);
+        
+        function updateCalcInfo() {
+            const qtd = parseInt(input.value);
             if (qtd && unidadesPorEmb) {
                 calcInfo.style.display = 'block';
                 calcInfo.textContent = `= ${qtd * unidadesPorEmb} unidades`;
             } else {
                 calcInfo.style.display = 'none';
             }
-        });
+        }
     } else {
-        input.placeholder = 'Ex: 50 unidades';
+        input.placeholder = 'Ex: 50';
         input.step = '0.01';
+        input.min = '0.01';
+        input.value = ''; // Limpa o valor anterior
         calcInfo.style.display = 'none';
     }
 }
@@ -424,7 +431,7 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
     e.preventDefault();
     
     const alimentoId = parseInt(document.getElementById('entrada-produto').value);
-    let quantidade = parseFloat(document.getElementById('entrada-quantidade').value);
+    const inputQtd = document.getElementById('entrada-quantidade').value;
     const observacao = document.getElementById('entrada-obs').value;
     const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
     
@@ -433,8 +440,11 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
     const option = select.options[select.selectedIndex];
     const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
     
+    let quantidade;
     if (formato === 'embalagens' && unidadesPorEmb > 0) {
-        quantidade = quantidade * unidadesPorEmb;
+        quantidade = parseInt(inputQtd) * unidadesPorEmb; // Usa parseInt para embalagens
+    } else {
+        quantidade = parseFloat(inputQtd); // Usa parseFloat para unidades avulsas
     }
     
     try {
