@@ -259,8 +259,49 @@ async function carregarClientes() {
     }
 }
 
-function editarCliente(id) {
-    showNotification('Edição em desenvolvimento', 'info');
+async function editarCliente(id) {
+    try {
+        // Buscar dados atuais do cliente
+        const response = await fetch(`${API_BASE}/admin/clientes/${id}`, {
+            headers: authHeaders()
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar cliente');
+
+        const cliente = await response.json();
+
+        // Criar formulário modal simples
+        const novoNome = prompt('Nome da Empresa:', cliente.nome_empresa);
+        if (novoNome === null) return; // Cancelado
+
+        const novoEmail = prompt('Email:', cliente.email);
+        if (novoEmail === null) return;
+
+        const novoTelefone = prompt('Telefone:', cliente.telefone || '');
+        if (novoTelefone === null) return;
+
+        // Enviar atualização
+        const updateResponse = await fetch(`${API_BASE}/admin/clientes/${id}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                nome_empresa: novoNome,
+                email: novoEmail,
+                telefone: novoTelefone,
+                ativo: cliente.ativo
+            })
+        });
+
+        if (updateResponse.ok) {
+            showNotification('✓ Cliente atualizado com sucesso!', 'success');
+            carregarClientes();
+        } else {
+            const error = await updateResponse.json();
+            showNotification(error.detail || 'Erro ao atualizar cliente', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro: ' + error.message, 'error');
+    }
 }
 
 async function deletarCliente(id) {
@@ -408,8 +449,50 @@ async function carregarRestaurantes() {
     }
 }
 
-function editarRestaurante(id) {
-    showNotification('Edição em desenvolvimento', 'info');
+async function editarRestaurante(id) {
+    try {
+        // Buscar dados atuais do restaurante
+        const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
+            headers: authHeaders()
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar restaurante');
+
+        const restaurante = await response.json();
+
+        // Criar formulário modal simples
+        const novoNome = prompt('Nome do Restaurante:', restaurante.nome);
+        if (novoNome === null) return; // Cancelado
+
+        const novoSlug = prompt('Slug (URL):', restaurante.slug);
+        if (novoSlug === null) return;
+
+        const novaDescricao = prompt('Descrição:', restaurante.descricao || '');
+        if (novaDescricao === null) return;
+
+        // Enviar atualização
+        const updateResponse = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                nome: novoNome,
+                slug: novoSlug,
+                descricao: novaDescricao,
+                cliente_id: restaurante.cliente_id,
+                ativo: restaurante.ativo
+            })
+        });
+
+        if (updateResponse.ok) {
+            showNotification('✓ Restaurante atualizado com sucesso!', 'success');
+            carregarRestaurantes();
+        } else {
+            const error = await updateResponse.json();
+            showNotification(error.detail || 'Erro ao atualizar restaurante', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro: ' + error.message, 'error');
+    }
 }
 
 async function deletarRestaurante(id) {
@@ -511,8 +594,54 @@ async function carregarUsuarios() {
                     <i class="fas fa-inbox"></i>
                     <h3>Nenhum usuário cadastrado</h3>
                     <p>Comece criando um novo usuário no formulário acima</p>
-                </div>
-            `;
+async function editarUsuario(id) {
+    try {
+        // Buscar dados atuais do usuário
+        const response = await fetch(`${API_BASE}/admin/usuarios/${id}`, {
+            headers: authHeaders()
+        });
+
+        if (!response.ok) throw new Error('Erro ao carregar usuário');
+
+        const usuario = await response.json();
+
+        // Criar formulário modal simples
+        const novoNome = prompt('Nome:', usuario.nome);
+        if (novoNome === null) return; // Cancelado
+
+        const novoEmail = prompt('Email:', usuario.email);
+        if (novoEmail === null) return;
+
+        const isAdminStr = prompt('É Admin do SaaS? (sim/não):', usuario.is_admin ? 'sim' : 'não');
+        if (isAdminStr === null) return;
+        const isAdmin = isAdminStr.toLowerCase() === 'sim';
+
+        const ativoStr = prompt('Usuário Ativo? (sim/não):', usuario.ativo ? 'sim' : 'não');
+        if (ativoStr === null) return;
+        const ativo = ativoStr.toLowerCase() === 'sim';
+
+        // Enviar atualização
+        const updateResponse = await fetch(`${API_BASE}/admin/usuarios/${id}`, {
+            method: 'PUT',
+            headers: authHeaders(),
+            body: JSON.stringify({
+                nome: novoNome,
+                email: novoEmail,
+                is_admin: isAdmin,
+                ativo: ativo
+            })
+        });
+
+        if (updateResponse.ok) {
+            showNotification('✓ Usuário atualizado com sucesso!', 'success');
+            carregarUsuarios();
+        } else {
+            const error = await updateResponse.json();
+            showNotification(error.detail || 'Erro ao atualizar usuário', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro: ' + error.message, 'error');
+    }
             return;
         }
 
