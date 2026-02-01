@@ -1,7 +1,7 @@
 // ==================== AUTENTICAÇÃO ====================
 const token = localStorage.getItem('token');
 if (!token) {
-    window.location.href = '/login.html';
+    window.location.href = '/painelfoods/login.html';
 }
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -384,5 +384,5 @@ document.getElementById('trocar-rest')?.addEventListener('click', () => {
 // Logout
 document.getElementById('logout')?.addEventListener('click', () => {
     localStorage.clear();
-    window.location.href = '/login.html';
+    window.location.href = '/painelfoods/login.html';
 });
