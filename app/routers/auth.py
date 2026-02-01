@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Tenant
 from app.schemas import LoginRequest, Token
-from app.security import verify_password, create_access_token
+from app.security import verify_password, create_access_token, get_current_user
 from datetime import timedelta
 from app.config import settings
 
@@ -72,17 +72,47 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/me", response_model=dict)
-def get_me(current_user: User = Depends(get_db)):
-    """Retorna informações do usuário logado"""
-    from app.security import get_current_user
-    user = Depends(get_current_user)
+@router.get("/me")
+def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Retorna informações do usuário logado com seus restaurantes e roles"""
+    # Busca o usuário novamente para garantir que temos os relacionamentos carregados
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Monta lista de restaurantes com roles
+    restaurantes = []
+    for tenant in user.tenants:
+        # Busca o role na tabela de associação
+        from app.models import user_tenants_association
+        from sqlalchemy import select
+        
+        stmt = select(user_tenants_association).where(
+            user_tenants_association.c.user_id == user.id,
+            user_tenants_association.c.tenant_id == tenant.id
+        )
+        result = db.execute(stmt).first()
+        
+        restaurantes.append({
+            "id": tenant.id,
+            "nome": tenant.nome,
+            "slug": tenant.slug,
+            "role": result.role if result else None
+        })
+    
     return {
         "id": user.id,
         "nome": user.nome,
         "email": user.email,
         "cliente_id": user.cliente_id,
-        "tenants": [{"id": t.id, "nome": t.nome, "slug": t.slug} for t in user.tenants],
+        "restaurantes": restaurantes,
         "is_admin": user.is_admin
     }
 
