@@ -49,8 +49,11 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         if (sec === 'restaurantes') { loadEmpresas(); loadRestaurantes(); }
         if (sec === 'usuarios') { 
             console.log('Chamando loadEmpresas()...');
-            loadEmpresas();
-            loadUsuarios(); 
+            // Esperar um pouco para garantir que a seção está visível
+            setTimeout(() => {
+                loadEmpresas();
+                loadUsuarios();
+            }, 50);
         }
     });
 });
@@ -100,29 +103,30 @@ async function loadEmpresas() {
         });
         
         console.log('Options HTML:', opts);
+        console.log('Número de empresas:', empresas.length);
         
-        // Esperar um pouco para garantir que o DOM está pronto
-        setTimeout(() => {
-            const restEmpSelect = document.querySelector('select#rest-emp');
-            const usrEmpSelect = document.querySelector('select#usr-emp');
-            
-            console.log('Procurando select#rest-emp:', restEmpSelect);
-            console.log('Procurando select#usr-emp:', usrEmpSelect);
-            
-            if (restEmpSelect) {
-                restEmpSelect.innerHTML = opts;
-                console.log('✓ rest-emp preenchido');
-            } else {
-                console.warn('✗ rest-emp não encontrado');
-            }
-            
-            if (usrEmpSelect) {
-                usrEmpSelect.innerHTML = opts;
-                console.log('✓ usr-emp preenchido');
-            } else {
-                console.warn('✗ usr-emp não encontrado');
-            }
-        }, 300);
+        // Popular selects de forma síncrona
+        const restEmpSelect = document.querySelector('select#rest-emp');
+        const usrEmpSelect = document.querySelector('select#usr-emp');
+        
+        console.log('Procurando select#rest-emp:', restEmpSelect);
+        console.log('Procurando select#usr-emp:', usrEmpSelect);
+        console.log('select#usr-emp visível?', usrEmpSelect ? window.getComputedStyle(usrEmpSelect.parentElement.parentElement).display : 'N/A');
+        
+        if (restEmpSelect) {
+            restEmpSelect.innerHTML = opts;
+            console.log('✓ rest-emp preenchido com', empresas.length, 'opções');
+        } else {
+            console.warn('✗ rest-emp não encontrado');
+        }
+        
+        if (usrEmpSelect) {
+            usrEmpSelect.innerHTML = opts;
+            console.log('✓ usr-emp preenchido com', empresas.length, 'opções');
+            console.log('✓ usr-emp.innerHTML:', usrEmpSelect.innerHTML.substring(0, 100));
+        } else {
+            console.warn('✗ usr-emp não encontrado');
+        }
         
     } catch (e) {
         notify(e.message, 'error');
