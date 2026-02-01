@@ -291,5 +291,8 @@ document.getElementById('logout').addEventListener('click', () => {
     window.location.href = '/painelfoods/login.html';
 });
 
-// Load inicial
-loadEmpresas();
+// Carregar dados da aba ativa inicial (empresas)
+const abaInicial = document.querySelector('.nav-btn.active');
+if (abaInicial && abaInicial.dataset.section === 'empresas') {
+    loadEmpresas();
+}
