@@ -73,7 +73,7 @@ class UsuarioCreate(BaseModel):
 
 class UsuarioResponse(BaseModel):
     id: int
-    cliente_id: int
+    cliente_id: int | None
     nome: str
     email: str
     is_admin: bool
