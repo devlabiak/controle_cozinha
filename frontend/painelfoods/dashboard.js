@@ -81,38 +81,49 @@ async function loadEmpresas() {
         const empresas = await api('/admin/clientes');
         console.log('Empresas recebidas:', empresas);
         
+        if (!empresas || empresas.length === 0) {
+            console.warn('Nenhuma empresa retornada da API');
+        }
+        
         let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ação</th></tr></thead><tbody>';
         empresas.forEach(e => {
             html += `<tr><td>${e.nome_empresa}</td><td>${e.email}</td><td>${e.telefone || '-'}</td><td><button class="btn-sm danger" onclick="delEmpresa(${e.id})">Deletar</button></td></tr>`;
         });
         html += '</tbody></table>';
-        document.getElementById('empresas-list').innerHTML = html;
+        const empresasListEl = document.getElementById('empresas-list');
+        if (empresasListEl) empresasListEl.innerHTML = html;
         
         // Popular select de restaurantes e usuários
-        let opts = '<option value="">Selecione</option>';
+        let opts = '<option value="">Selecione uma empresa</option>';
         empresas.forEach(e => {
             opts += `<option value="${e.id}">${e.nome_empresa}</option>`;
         });
         
-        const restEmpSelect = document.getElementById('rest-emp');
-        const usrEmpSelect = document.getElementById('usr-emp');
+        console.log('Options HTML:', opts);
         
-        console.log('rest-emp element:', restEmpSelect);
-        console.log('usr-emp element:', usrEmpSelect);
+        // Esperar um pouco para garantir que o DOM está pronto
+        setTimeout(() => {
+            const restEmpSelect = document.querySelector('select#rest-emp');
+            const usrEmpSelect = document.querySelector('select#usr-emp');
+            
+            console.log('Procurando select#rest-emp:', restEmpSelect);
+            console.log('Procurando select#usr-emp:', usrEmpSelect);
+            
+            if (restEmpSelect) {
+                restEmpSelect.innerHTML = opts;
+                console.log('✓ rest-emp preenchido');
+            } else {
+                console.warn('✗ rest-emp não encontrado');
+            }
+            
+            if (usrEmpSelect) {
+                usrEmpSelect.innerHTML = opts;
+                console.log('✓ usr-emp preenchido');
+            } else {
+                console.warn('✗ usr-emp não encontrado');
+            }
+        }, 100);
         
-        if (restEmpSelect) {
-            restEmpSelect.innerHTML = opts;
-            console.log('rest-emp preenchido com', empresas.length, 'empresas');
-        } else {
-            console.warn('rest-emp não encontrado no DOM');
-        }
-        
-        if (usrEmpSelect) {
-            usrEmpSelect.innerHTML = opts;
-            console.log('usr-emp preenchido com', empresas.length, 'empresas');
-        } else {
-            console.warn('usr-emp não encontrado no DOM');
-        }
     } catch (e) {
         notify(e.message, 'error');
         console.error('Erro ao carregar empresas:', e);
