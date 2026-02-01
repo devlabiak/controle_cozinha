@@ -184,6 +184,23 @@ def atualizar_cliente(cliente_id: int, dados: ClienteCreate, db: Session = Depen
     return cliente
 
 
+@router.delete("/clientes/{cliente_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    """Deleta cliente e todas suas dependências (restaurantes, usuários, etc)"""
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente não encontrado"
+        )
+    
+    # Deletar cascata: restaurantes -> alimentos, lotes, movimentações
+    # Usuários associados
+    # Tudo é feito via CASCADE DELETE no banco
+    db.delete(cliente)
+    db.commit()
+
+
 # ==================== RESTAURANTES ====================
 
 @router.post("/restaurantes", response_model=RestauranteResponse)
@@ -337,6 +354,27 @@ def criar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     db.refresh(novo_usuario)
     
     return novo_usuario
+
+
+@router.delete("/usuarios/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_usuario(user_id: int, db: Session = Depends(get_db)):
+    """Deleta um usuário"""
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Não permitir deletar admin principal
+    if usuario.is_admin and usuario.id == 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não é possível deletar o admin principal"
+        )
+    
+    db.delete(usuario)
+    db.commit()
 
 
 @router.get("/usuarios", response_model=List[UsuarioClienteResponse])

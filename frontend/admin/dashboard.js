@@ -256,9 +256,26 @@ function editarCliente(id) {
     showNotification('Edição em desenvolvimento', 'info');
 }
 
-function deletarCliente(id) {
-    if (!confirm('Tem certeza que deseja deletar este cliente?')) return;
-    showNotification('Deleção em desenvolvimento', 'info');
+async function deletarCliente(id) {
+    if (!confirm('Tem certeza que deseja deletar este cliente?\n\nISSO VAI EXCLUIR:\n- Todos os restaurantes\n- Todos os usuários\n- Todos os dados associados')) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/clientes/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+
+        if (response.ok) {
+            showNotification('✓ Cliente deletado com sucesso!', 'success');
+            carregarClientes();
+            carregarClientesSelect();
+        } else {
+            const data = await response.json();
+            showNotification(data.detail || 'Erro ao deletar cliente', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro de conexão: ' + error.message, 'error');
+    }
 }
 
 // ===== RESTAURANTES =====
@@ -388,9 +405,25 @@ function editarRestaurante(id) {
     showNotification('Edição em desenvolvimento', 'info');
 }
 
-function deletarRestaurante(id) {
-    if (!confirm('Tem certeza que deseja deletar este restaurante?')) return;
-    showNotification('Deleção em desenvolvimento', 'info');
+async function deletarRestaurante(id) {
+    if (!confirm('Tem certeza que deseja deletar este restaurante?\n\nISSO VAI EXCLUIR:\n- Todos os alimentos\n- Todos os lotes\n- Todos os registros de movimentação')) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+
+        if (response.ok) {
+            showNotification('✓ Restaurante deletado com sucesso!', 'success');
+            carregarRestaurantes();
+        } else {
+            const data = await response.json();
+            showNotification(data.detail || 'Erro ao deletar restaurante', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro de conexão: ' + error.message, 'error');
+    }
 }
 
 // ===== USUARIOS =====
@@ -517,9 +550,25 @@ function editarUsuario(id) {
     showNotification('Edição em desenvolvimento', 'info');
 }
 
-function deletarUsuario(id) {
+async function deletarUsuario(id) {
     if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
-    showNotification('Deleção em desenvolvimento', 'info');
+
+    try {
+        const response = await fetch(`${API_BASE}/admin/usuarios/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders()
+        });
+
+        if (response.ok) {
+            showNotification('✓ Usuário deletado com sucesso!', 'success');
+            carregarUsuarios();
+        } else {
+            const data = await response.json();
+            showNotification(data.detail || 'Erro ao deletar usuário', 'error');
+        }
+    } catch (error) {
+        showNotification('Erro de conexão: ' + error.message, 'error');
+    }
 }
 
 // ===== INITIALIZATION =====
