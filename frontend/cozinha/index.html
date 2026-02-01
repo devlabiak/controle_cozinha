@@ -117,6 +117,13 @@
             display: block;
         }
         
+        .tab-section {
+            display: none;
+        }
+        .tab-section.active {
+            display: block;
+        }
+        
         /* Seletor de Restaurante */
         .selector-card {
             background: white;
@@ -453,7 +460,7 @@
             </div>
 
             <!-- ABA: ESTOQUE -->
-            <div id="tab-estoque" class="section active">
+            <div id="tab-estoque" class="tab-section active">
                 <div class="filters">
                     <input type="text" id="search-estoque" placeholder="🔍 Buscar produto...">
                     <select id="filter-estoque-categoria">
@@ -491,7 +498,7 @@
             </div>
 
             <!-- ABA: HISTÓRICO -->
-            <div id="tab-historico" class="section">
+            <div id="tab-historico" class="tab-section">
                 <div class="filters">
                     <select id="filter-tipo">
                         <option value="">Todos os tipos</option>
@@ -529,7 +536,7 @@
             </div>
 
             <!-- ABA: GERENCIAR -->
-            <div id="tab-gerenciar" class="section">
+            <div id="tab-gerenciar" class="tab-section">
                 
                 <!-- 1. CADASTRAR NOVO PRODUTO -->
                 <div class="card" style="margin-bottom:20px;">
@@ -703,6 +710,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012235"></script>
+    <script src="index.js?v=202602012240"></script>
 </body>
 </html>

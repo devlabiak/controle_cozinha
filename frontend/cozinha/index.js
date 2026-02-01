@@ -114,7 +114,7 @@ document.addEventListener('click', (e) => {
 function showTab(tabName) {
     // Remove active de todas as abas e seções
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.section').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(c => c.classList.remove('active'));
     
     // Ativa a aba clicada
     document.querySelector(`.nav-tab[data-tab="${tabName}"]`)?.classList.add('active');
