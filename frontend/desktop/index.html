@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Cozinha - Produtos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fb;
+            color: #333;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .card { background: #fff; border-radius: 12px; box-shadow: 0 6px 18px rgba(0,0,0,0.08); padding: 20px; margin-bottom: 20px; }
+        .title { font-size: 22px; font-weight: 700; margin-bottom: 12px; }
+        .tabs { display: flex; gap: 12px; margin-bottom: 16px; }
+        .tab { padding: 10px 14px; border-radius: 8px; background: #e9edf5; cursor: pointer; font-weight: 600; }
+        .tab.active { background: #4CAF50; color: #fff; }
+        .grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 13px; color: #666; font-weight: 600; }
+        input, select, textarea {
+            padding: 10px 12px; border: 1px solid #d7dce5; border-radius: 8px; font-size: 14px;
+        }
+        textarea { resize: vertical; min-height: 80px; }
+        .actions { display: flex; gap: 12px; margin-top: 12px; }
+        .btn { border: none; border-radius: 8px; padding: 12px 16px; font-weight: 700; cursor: pointer; }
+        .btn-primary { background: #4CAF50; color: #fff; }
+        .btn-secondary { background: #eef1f7; color: #333; }
+        .btn-danger { background: #f44336; color: #fff; }
+        .hidden { display: none; }
+        .list { display: grid; gap: 10px; }
+        .list-item { border: 1px solid #e4e8f0; border-radius: 10px; padding: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .pill { font-size: 12px; background: #eef1f7; padding: 4px 8px; border-radius: 999px; }
+        .badge { font-size: 12px; padding: 4px 8px; border-radius: 999px; font-weight: 600; }
+        .badge-danger { background: #ffebee; color: #c62828; }
+        .badge-warning { background: #fff3e0; color: #e65100; }
+        .badge-ok { background: #e8f5e9; color: #2e7d32; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .logout { font-size: 13px; color: #666; cursor: pointer; }
+        .login-card { max-width: 420px; margin: 60px auto; }
+        .note { font-size: 12px; color: #777; }
+        @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div id="loginView" class="container">
+        <div class="card login-card">
+            <div class="title">Login - Controle de Cozinha</div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="seu@email.com">
+            </div>
+            <div class="form-group" style="margin-top:10px;">
+                <label>Senha</label>
+                <input type="password" id="loginPassword" placeholder="••••••••">
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="login()">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="appView" class="container hidden">
+        <div class="topbar">
+            <div>
+                <div class="title">Controle de Produtos</div>
+                <div class="note" id="tenantInfo"></div>
+            </div>
+            <div class="logout" onclick="logout()">Sair</div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="cadastro">Cadastro de Produtos</div>
+            <div class="tab" data-tab="produtos">Produtos Cadastrados</div>
+            <div class="tab" data-tab="alertas">Alertas de Validade</div>
+        </div>
+
+        <div id="tab-cadastro" class="card">
+            <div class="title">Cadastro e Entrada de Estoque</div>
+            <div class="grid">
+                <div class="form-group">
+                    <label>Produto existente</label>
+                    <select id="produtoExistente">
+                        <option value="">Novo produto</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Nome do produto</label>
+                    <input type="text" id="produtoNome" placeholder="Ex: Peito de frango">
+                </div>
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="categoria"></select>
+                </div>
+                <div class="form-group">
+                    <label>Subcategoria</label>
+                    <select id="subcategoria"></select>
+                </div>
+                <div class="form-group">
+                    <label>Conservação</label>
+                    <select id="tipoConservacao">
+                        <option value="">Selecione</option>
+                        <option value="congelado">Congelado</option>
+                        <option value="resfriado">Resfriado</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Unidade de medida</label>
+                    <select id="unidadeMedida">
+                        <option value="">Selecione</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="l">l</option>
+                        <option value="ml">ml</option>
+                        <option value="un">unidade</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fornecedor (opcional)</label>
+                    <input type="text" id="fornecedor" placeholder="Nome do fornecedor">
+                </div>
+                <div class="form-group">
+                    <label>Fabricante (lote)</label>
+                    <input type="text" id="fabricante" placeholder="Nome do fabricante">
+                </div>
+                <div class="form-group">
+                    <label>S.I.F (lote)</label>
+                    <input type="text" id="sif" placeholder="Registro SIF">
+                </div>
+                <div class="form-group">
+                    <label>Nº do Lote</label>
+                    <input type="text" id="loteNumero" placeholder="Opcional">
+                </div>
+                <div class="form-group">
+                    <label>Data de fabricação</label>
+                    <input type="datetime-local" id="dataFabricacao">
+                </div>
+                <div class="form-group">
+                    <label>Data de validade</label>
+                    <input type="datetime-local" id="dataValidade">
+                </div>
+                <div class="form-group">
+                    <label>Quantidade produzida</label>
+                    <input type="number" id="quantidadeProduzida" step="0.1" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Quantidade de etiquetas</label>
+                    <input type="number" id="quantidadeEtiquetas" min="1" value="1">
+                </div>
+            </div>
+            <div class="actions">
+                <button class="btn btn-primary" onclick="cadastrarProduto()">Salvar e imprimir etiquetas</button>
+                <button class="btn btn-secondary" onclick="limparFormulario()">Limpar</button>
+            </div>
+        </div>
+
+        <div id="tab-produtos" class="card hidden">
+            <div class="title">Produtos Cadastrados</div>
+            <div id="produtosList" class="list"></div>
+        </div>
+
+        <div id="tab-alertas" class="card hidden">
+            <div class="title">Alertas de Validade</div>
+            <div class="note">Produtos vencidos ou próximos ao vencimento com estoque disponível.</div>
+            <div style="height: 12px"></div>
+            <div class="title" style="font-size:16px">Vencidos</div>
+            <div id="alertasVencidos" class="list"></div>
+            <div style="height: 12px"></div>
+            <div class="title" style="font-size:16px">Vencendo</div>
+            <div id="alertasVencendo" class="list"></div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        let token = localStorage.getItem('token');
+
+        const categorias = {
+            "embutidos": [],
+            "hortifruti": ["frutas", "legumes", "verduras"],
+            "laticinios": [],
+            "preparacoes": [],
+            "proteinas": ["aves", "bovinos", "peixes", "frutos do mar"]
+        };
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        });
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+            document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+        }
+
+        function initCategorias() {
+            const categoriaSelect = document.getElementById('categoria');
+            categoriaSelect.innerHTML = '<option value="">Selecione</option>';
+            Object.keys(categorias).forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                categoriaSelect.appendChild(opt);
+            });
+            categoriaSelect.addEventListener('change', updateSubcategorias);
+            updateSubcategorias();
+        }
+
+        function updateSubcategorias() {
+            const categoria = document.getElementById('categoria').value;
+            const subSelect = document.getElementById('subcategoria');
+            subSelect.innerHTML = '<option value="">Sem subcategoria</option>';
+            (categorias[categoria] || []).forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub;
+                subSelect.appendChild(opt);
+            });
+        }
+
+        function showLogin() {
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('appView').classList.add('hidden');
+        }
+
+        function showApp() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('appView').classList.remove('hidden');
+            initCategorias();
+            carregarProdutos();
+            carregarAlertas();
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const senha = document.getElementById('loginPassword').value;
+            const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, senha })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.detail || 'Falha no login');
+                return;
+            }
+            token = data.access_token;
+            localStorage.setItem('token', token);
+            showApp();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            token = null;
+            showLogin();
+        }
+
+        function authHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        }
+
+        async function carregarProdutos() {
+            const response = await fetch(`${BASE_URL}/api/tenant/alimentos`, { headers: authHeaders() });
+            if (!response.ok) return;
+            const alimentos = await response.json();
+
+            const select = document.getElementById('produtoExistente');
+            select.innerHTML = '<option value="">Novo produto</option>';
+            alimentos.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.id;
+                opt.textContent = `${a.nome} (${a.categoria || 'sem categoria'})`;
+                opt.dataset.nome = a.nome;
+                opt.dataset.categoria = a.categoria || '';
+                opt.dataset.subcategoria = a.subcategoria || '';
+                opt.dataset.tipo = a.tipo_conservacao || '';
+                opt.dataset.unidade = a.unidade_medida || '';
+                opt.dataset.fornecedor = a.fornecedor || '';
+                select.appendChild(opt);
+            });
+
+            select.addEventListener('change', () => preencherProdutoExistente(select));
+
+            const list = document.getElementById('produtosList');
+            list.innerHTML = '';
+            alimentos.forEach(a => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = `
+                    <div>
+                        <strong>${a.nome}</strong>
+                        <div class="note">${a.categoria || ''} ${a.subcategoria ? '• ' + a.subcategoria : ''} • ${a.tipo_conservacao || ''}</div>
+                        <div class="note">Estoque: ${a.quantidade_estoque} ${a.unidade_medida || ''}</div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary" onclick="selecionarProduto(${a.id})">Adicionar estoque</button>
+                        <button class="btn btn-danger" onclick="excluirProduto(${a.id})">Excluir</button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function preencherProdutoExistente(select) {
+            const selected = select.options[select.selectedIndex];
+            if (!selected || !selected.value) return;
+            document.getElementById('produtoNome').value = selected.dataset.nome || '';
+            document.getElementById('categoria').value = selected.dataset.categoria || '';
+            updateSubcategorias();
+            document.getElementById('subcategoria').value = selected.dataset.subcategoria || '';
+            document.getElementById('tipoConservacao').value = selected.dataset.tipo || '';
+            document.getElementById('unidadeMedida').value = selected.dataset.unidade || '';
+            document.getElementById('fornecedor').value = selected.dataset.fornecedor || '';
+        }
+
+        function selecionarProduto(id) {
+            const select = document.getElementById('produtoExistente');
+            select.value = String(id);
+            preencherProdutoExistente(select);
+            switchTab('cadastro');
+        }
+
+        async function excluirProduto(id) {
+            if (!confirm('Deseja excluir o produto?')) return;
+            const response = await fetch(`${BASE_URL}/api/tenant/alimentos/${id}`, {
+                method: 'DELETE',
+                headers: authHeaders()
+            });
+            if (response.ok) {
+                carregarProdutos();
+            } else {
+                const data = await response.json();
+                alert(data.detail || 'Erro ao excluir');
+            }
+        }
+
+        async function cadastrarProduto() {
+            const existenteId = document.getElementById('produtoExistente').value;
+
+            const payloadAlimento = {
+                nome: document.getElementById('produtoNome').value,
+                categoria: document.getElementById('categoria').value,
+                subcategoria: document.getElementById('subcategoria').value || null,
+                tipo_conservacao: document.getElementById('tipoConservacao').value,
+                unidade_medida: document.getElementById('unidadeMedida').value,
+                fornecedor: document.getElementById('fornecedor').value
+            };
+
+            let alimentoId = existenteId;
+
+            if (!alimentoId) {
+                if (!payloadAlimento.nome) {
+                    alert('Informe o nome do produto');
+                    return;
+                }
+                const resp = await fetch(`${BASE_URL}/api/tenant/alimentos`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(payloadAlimento)
+                });
+                const data = await resp.json();
+                if (!resp.ok) {
+                    alert(data.detail || 'Erro ao cadastrar produto');
+                    return;
+                }
+                alimentoId = data.id;
+            }
+
+            const payloadLote = {
+                alimento_id: parseInt(alimentoId, 10),
+                lote_numero: document.getElementById('loteNumero').value || null,
+                data_fabricacao: document.getElementById('dataFabricacao').value,
+                data_validade: document.getElementById('dataValidade').value,
+                quantidade_produzida: parseFloat(document.getElementById('quantidadeProduzida').value || 0),
+                unidade_medida: document.getElementById('unidadeMedida').value,
+                quantidade_etiquetas: parseInt(document.getElementById('quantidadeEtiquetas').value || 1, 10),
+                fabricante: document.getElementById('fabricante').value,
+                sif: document.getElementById('sif').value,
+                imprimir_etiqueta: true
+            };
+
+            if (!payloadLote.data_fabricacao || !payloadLote.data_validade) {
+                alert('Informe fabricação e validade');
+                return;
+            }
+            if (!payloadLote.quantidade_produzida || payloadLote.quantidade_produzida <= 0) {
+                alert('Informe a quantidade produzida');
+                return;
+            }
+
+            const respLote = await fetch(`${BASE_URL}/api/tenant/lotes`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify(payloadLote)
+            });
+            const loteData = await respLote.json();
+            if (!respLote.ok) {
+                alert(loteData.detail || 'Erro ao cadastrar lote');
+                return;
+            }
+
+            alert('Produto cadastrado e etiquetas enviadas para impressão');
+            limparFormulario();
+            carregarProdutos();
+            carregarAlertas();
+        }
+
+        function limparFormulario() {
+            document.getElementById('produtoExistente').value = '';
+            document.getElementById('produtoNome').value = '';
+            document.getElementById('categoria').value = '';
+            updateSubcategorias();
+            document.getElementById('subcategoria').value = '';
+            document.getElementById('tipoConservacao').value = '';
+            document.getElementById('unidadeMedida').value = '';
+            document.getElementById('fornecedor').value = '';
+            document.getElementById('fabricante').value = '';
+            document.getElementById('sif').value = '';
+            document.getElementById('loteNumero').value = '';
+            document.getElementById('dataFabricacao').value = '';
+            document.getElementById('dataValidade').value = '';
+            document.getElementById('quantidadeProduzida').value = '';
+            document.getElementById('quantidadeEtiquetas').value = 1;
+        }
+
+        async function carregarAlertas() {
+            const response = await fetch(`${BASE_URL}/api/tenant/lotes/alertas?dias=3`, { headers: authHeaders() });
+            if (!response.ok) return;
+            const data = await response.json();
+            const vencidos = document.getElementById('alertasVencidos');
+            const vencendo = document.getElementById('alertasVencendo');
+
+            vencidos.innerHTML = '';
+            data.vencidos.forEach(l => {
+                vencidos.appendChild(renderAlertaItem(l, 'vencido'));
+            });
+            vencendo.innerHTML = '';
+            data.vencendo.forEach(l => {
+                vencendo.appendChild(renderAlertaItem(l, 'vencendo'));
+            });
+        }
+
+        function renderAlertaItem(lote, tipo) {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            const badgeClass = tipo === 'vencido' ? 'badge-danger' : 'badge-warning';
+            const badgeText = tipo === 'vencido' ? 'Vencido' : 'Vencendo';
+            item.innerHTML = `
+                <div>
+                    <strong>${lote.alimento_nome}</strong>
+                    <div class="note">Lote: ${lote.lote_numero} • Validade: ${new Date(lote.data_validade).toLocaleDateString('pt-BR')} • ${lote.quantidade_disponivel} ${lote.unidade_medida || ''}</div>
+                </div>
+                <span class="badge ${badgeClass}">${badgeText}</span>
+            `;
+            return item;
+        }
+
+        if (token) {
+            showApp();
+        } else {
+            showLogin();
+        }
+    </script>
+</body>
+</html>

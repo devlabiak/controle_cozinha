@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4CAF50">
+    <title>Scanner QR Code - Controle de Cozinha</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .user-info .name {
+            color: #4CAF50;
+            font-weight: 600;
+        }
+        
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        /* Scanner */
+        .scanner-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        #reader {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 3px solid #4CAF50;
+        }
+        
+        .scanner-status {
+            text-align: center;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .scanner-status.ready {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        
+        .scanner-status.scanning {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+        
+        .scanner-status.error {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+        
+        /* Product Info */
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .product-card.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .product-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge.valid {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        
+        .badge.expired {
+            background: #FFEBEE;
+            color: #C62828;
+        }
+        
+        .badge.expiring {
+            background: #FFF3E0;
+            color: #E65100;
+        }
+        
+        .product-info {
+            margin-bottom: 20px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .info-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        /* Quantity Input */
+        .quantity-section {
+            background: #F5F5F5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .quantity-section label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .quantity-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .quantity-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #667eea;
+            color: white;
+            font-size: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .quantity-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .quantity-input {
+            flex: 1;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-confirm {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: #f44336;
+            color: white;
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #323232;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            max-width: 90%;
+        }
+        
+        .toast.show {
+            display: block;
+            animation: toastIn 0.3s ease;
+        }
+        
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        
+        .toast.success {
+            background: #4CAF50;
+        }
+        
+        .toast.error {
+            background: #f44336;
+        }
+        
+        /* Login Screen */
+        .login-screen {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .login-screen h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .btn-login:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="container">
+        <div class="login-screen">
+            <h2>🍕 Scanner de Produtos</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="emailInput" required placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="passwordInput" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-login" id="loginBtn">Entrar</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Main App -->
+    <div id="mainApp" class="container hidden">
+        <!-- Header -->
+        <div class="header">
+            <h1>🍕 Scanner QR Code</h1>
+            <p class="subtitle">Escaneie as etiquetas para dar baixa no estoque</p>
+            <div class="user-info">
+                <span class="name" id="userName"></span>
+                <button class="logout-btn" onclick="logout()">Sair</button>
+            </div>
+        </div>
+        
+        <!-- Scanner -->
+        <div class="scanner-card">
+            <div id="reader"></div>
+            <div id="scannerStatus" class="scanner-status ready">
+                📷 Aponte a câmera para o QR Code
+            </div>
+        </div>
+        
+        <!-- Product Info -->
+        <div id="productCard" class="product-card">
+            <div class="product-header">
+                <h2 class="product-name" id="productName"></h2>
+                <span class="badge" id="statusBadge"></span>
+            </div>
+            
+            <div class="product-info">
+                <div class="info-row">
+                    <span class="info-label">Lote</span>
+                    <span class="info-value" id="loteNumero"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Fabricação</span>
+                    <span class="info-value" id="dataFabricacao"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Validade</span>
+                    <span class="info-value" id="dataValidade"></span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Disponível</span>
+                    <span class="info-value" id="quantidadeDisponivel"></span>
+                </div>
+            </div>
+            
+            <div class="quantity-section">
+                <label>Quantidade a utilizar:</label>
+                <div class="quantity-input-group">
+                    <button class="quantity-btn" onclick="decrementQuantity()">−</button>
+                    <input type="number" id="quantityInput" class="quantity-input" value="1" min="0.1" step="0.1">
+                    <button class="quantity-btn" onclick="incrementQuantity()">+</button>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn btn-cancel" onclick="cancelScan()">Cancelar</button>
+                <button class="btn btn-confirm" onclick="confirmUsage()">✓ Confirmar Uso</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+    
+    <!-- html5-qrcode Library -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    
+    <script>
+        // Configuration
+        const BASE_URL = window.location.origin;
+        let token = localStorage.getItem('token');
+        let userName = localStorage.getItem('userName');
+        let currentQRCode = null;
+        let currentLote = null;
+        let html5QrCode = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            if (token) {
+                showMainApp();
+            } else {
+                showLoginScreen();
+            }
+        });
+        
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('emailInput').value;
+            const password = document.getElementById('passwordInput').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Entrando...';
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, senha: password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.access_token;
+                    userName = data.user_name || email;
+                    
+                    localStorage.setItem('token', token);
+                    localStorage.setItem('userName', userName);
+                    
+                    showToast('Login realizado com sucesso!', 'success');
+                    showMainApp();
+                } else {
+                    showToast(data.detail || 'Email ou senha incorretos', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao conectar ao servidor', 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Entrar';
+            }
+        });
+        
+        function showLoginScreen() {
+            document.getElementById('loginScreen').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+        }
+        
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userName').textContent = userName;
+            initScanner();
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userName');
+            token = null;
+            
+            if (html5QrCode) {
+                html5QrCode.stop();
+            }
+            
+            showLoginScreen();
+            showToast('Logout realizado com sucesso', 'success');
+        }
+        
+        // Scanner
+        function initScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+            
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanError
+            ).then(() => {
+                updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
+            }).catch(err => {
+                updateScannerStatus('error', '❌ Erro ao acessar câmera');
+                console.error(err);
+            });
+        }
+        
+        async function onScanSuccess(decodedText) {
+            // Pause scanner
+            html5QrCode.pause();
+            updateScannerStatus('scanning', '🔍 Validando QR Code...');
+            
+            currentQRCode = decodedText;
+            
+            // Validate QR Code
+            try {
+                const response = await fetch(`${BASE_URL}/api/qrcode/validar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ qr_code: decodedText })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.valido) {
+                    currentLote = data.lote;
+                    displayProductInfo(data);
+                } else {
+                    showToast(data.mensagem || 'QR Code inválido', 'error');
+                    html5QrCode.resume();
+                    updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
+                }
+            } catch (error) {
+                showToast('Erro ao validar QR Code', 'error');
+                html5QrCode.resume();
+                updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
+            }
+        }
+        
+        function onScanError(error) {
+            // Silent error handling
+        }
+        
+        function updateScannerStatus(type, message) {
+            const status = document.getElementById('scannerStatus');
+            status.className = `scanner-status ${type}`;
+            status.textContent = message;
+        }
+        
+        // Product Display
+        function displayProductInfo(data) {
+            document.getElementById('productName').textContent = data.alimento_nome;
+            document.getElementById('loteNumero').textContent = data.lote.lote_numero;
+            document.getElementById('dataFabricacao').textContent = formatDate(data.lote.data_fabricacao);
+            document.getElementById('dataValidade').textContent = formatDate(data.lote.data_validade);
+            document.getElementById('quantidadeDisponivel').textContent = `${data.lote.quantidade_disponivel} ${data.lote.unidade_medida}`;
+            
+            // Set badge
+            const badge = document.getElementById('statusBadge');
+            const daysToExpire = getDaysToExpire(data.lote.data_validade);
+            
+            if (daysToExpire < 0) {
+                badge.className = 'badge expired';
+                badge.textContent = '⚠️ Vencido';
+            } else if (daysToExpire <= 3) {
+                badge.className = 'badge expiring';
+                badge.textContent = '⏰ Vencendo';
+            } else {
+                badge.className = 'badge valid';
+                badge.textContent = '✓ Válido';
+            }
+            
+            // Set default quantity
+            document.getElementById('quantityInput').value = 1;
+            document.getElementById('quantityInput').max = data.lote.quantidade_disponivel;
+            
+            // Show product card
+            document.getElementById('productCard').classList.add('show');
+        }
+        
+        // Confirm Usage
+        async function confirmUsage() {
+            const quantidade = parseFloat(document.getElementById('quantityInput').value);
+            
+            if (!quantidade || quantidade <= 0) {
+                showToast('Informe uma quantidade válida', 'error');
+                return;
+            }
+            
+            if (quantidade > currentLote.quantidade_disponivel) {
+                showToast('Quantidade indisponível no lote', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${BASE_URL}/api/qrcode/usar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        qr_code: currentQRCode,
+                        quantidade: quantidade,
+                        motivo: 'Uso via scanner mobile'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.sucesso) {
+                    showToast('✓ Baixa realizada com sucesso!', 'success');
+                    cancelScan();
+                } else {
+                    showToast(data.mensagem || 'Erro ao dar baixa', 'error');
+                }
+            } catch (error) {
+                showToast('Erro ao conectar ao servidor', 'error');
+            }
+        }
+        
+        function cancelScan() {
+            document.getElementById('productCard').classList.remove('show');
+            currentQRCode = null;
+            currentLote = null;
+            
+            if (html5QrCode) {
+                html5QrCode.resume();
+            }
+            updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
+        }
+        
+        // Quantity Controls
+        function incrementQuantity() {
+            const input = document.getElementById('quantityInput');
+            const newValue = parseFloat(input.value) + 0.5;
+            if (newValue <= parseFloat(input.max)) {
+                input.value = newValue.toFixed(1);
+            }
+        }
+        
+        function decrementQuantity() {
+            const input = document.getElementById('quantityInput');
+            const newValue = parseFloat(input.value) - 0.5;
+            if (newValue >= 0.1) {
+                input.value = newValue.toFixed(1);
+            }
+        }
+        
+        // Utilities
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        }
+        
+        function getDaysToExpire(dateString) {
+            const expireDate = new Date(dateString);
+            const today = new Date();
+            const diffTime = expireDate - today;
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        }
+        
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
