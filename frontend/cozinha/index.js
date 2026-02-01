@@ -100,174 +100,98 @@ function showMainArea() {
     document.getElementById('main-area').classList.add('active');
     document.getElementById('rest-name').textContent = tenantName;
     
-    // Mostra/oculta aba de gerenciamento conforme permissão
-    if (isAdminRestaurante) {
-        document.getElementById('tab-gerenciar').style.display = 'block';
-    }
-    
-    loadProdutos();
+    loadEstoque();
 }
 
 // ==================== NAVEGAÇÃO POR ABAS ====================
 document.addEventListener('click', (e) => {
-    if (e.target.classList.contains('tab')) {
-        showTab(e.target.dataset.tab);
+    if (e.target.closest('.nav-tab')) {
+        const tab = e.target.closest('.nav-tab');
+        showTab(tab.dataset.tab);
     }
 });
 
 function showTab(tabName) {
-    // Remove active de todas as abas
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    // Remove active de todas as abas e seções
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(c => c.classList.remove('active'));
     
     // Ativa a aba clicada
-    document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
+    document.querySelector(`.nav-tab[data-tab="${tabName}"]`)?.classList.add('active');
     document.getElementById(`tab-${tabName}`)?.classList.add('active');
     
     // Carrega dados conforme a aba
-    if (tabName === 'estoque') loadProdutos();
+    if (tabName === 'estoque') loadEstoque();
     if (tabName === 'historico') loadHistorico();
-    if (tabName === 'gerenciar') loadGerenciar();
+    if (tabName === 'gerenciar') loadProdutosSelects();
 }
 
 // ==================== ABA: ESTOQUE ====================
-async function loadProdutos() {
+async function loadEstoque() {
     try {
-        console.log('loadProdutos - Token:', token ? token.substring(0, 20) + '...' : 'VAZIO');
-        
-        const search = document.getElementById('search-produto')?.value || '';
-        const categoria = document.getElementById('filter-categoria')?.value || '';
+        const search = document.getElementById('search-estoque')?.value.toLowerCase() || '';
+        const categoria = document.getElementById('filter-estoque-categoria')?.value || '';
         
         let url = `/api/tenant/${tenantId}/alimentos?`;
-        if (search) url += `search=${search}&`;
         if (categoria) url += `categoria=${categoria}`;
-        
-        console.log('loadProdutos - URL:', url);
         
         const response = await fetch(url, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         
-        console.log('loadProdutos - Response status:', response.status);
-        
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+            throw new Error(`HTTP ${response.status}`);
         }
         
-        const produtos = await response.json();
+        let produtos = await response.json();
         
-        const container = document.getElementById('lista-produtos');
+        // Filtro de busca local
+        if (search) {
+            produtos = produtos.filter(p => 
+                p.nome.toLowerCase().includes(search) ||
+                (p.categoria || '').toLowerCase().includes(search)
+            );
+        }
+        
+        const tbody = document.getElementById('tbody-estoque');
         const empty = document.getElementById('empty-estoque');
         
         if (produtos.length === 0) {
-            container.innerHTML = '';
+            tbody.innerHTML = '';
             empty.style.display = 'block';
             return;
         }
         
         empty.style.display = 'none';
-        container.innerHTML = produtos.map(p => `
-            <div class="product-card">
-                <div class="product-info">
-                    <h3>${p.nome}</h3>
-                    <span class="badge">${p.categoria || 'Sem categoria'}</span>
-                </div>
-                <div class="product-stock ${p.estoque_atual < p.estoque_minimo ? 'low' : ''}">
-                    <strong>${p.estoque_atual} ${p.unidade_medida}</strong>
-                    ${p.estoque_atual < p.estoque_minimo ? '<span class="badge badge-danger">Estoque baixo!</span>' : ''}
-                    ${p.estoque_minimo > 0 ? `<small>Mínimo: ${p.estoque_minimo}</small>` : ''}
-                </div>
-                <div class="product-actions">
-                    <button class="btn-action btn-entrada" onclick="openMovimentacao(${p.id}, '${p.nome}', ${p.estoque_atual}, '${p.unidade_medida}', 'entrada')">
-                        <i class="fas fa-plus"></i> Entrada
-                    </button>
-                    <button class="btn-action btn-saida" onclick="openMovimentacao(${p.id}, '${p.nome}', ${p.estoque_atual}, '${p.unidade_medida}', 'saida')">
-                        <i class="fas fa-minus"></i> Saída
-                    </button>
-                </div>
-            </div>
-        `).join('');
+        tbody.innerHTML = produtos.map(p => {
+            const estoqueAtual = p.quantidade_estoque || 0;
+            const estoqueMinimo = p.quantidade_minima || 0;
+            const isLow = estoqueMinimo > 0 && estoqueAtual <= estoqueMinimo;
+            
+            return `
+                <tr>
+                    <td><strong>${p.nome}</strong></td>
+                    <td>${p.categoria || '-'}</td>
+                    <td class="${isLow ? 'stock-low' : 'stock-ok'}">
+                        <strong>${estoqueAtual.toFixed(2)}</strong>
+                    </td>
+                    <td>${p.unidade_medida || 'un'}</td>
+                    <td>${estoqueMinimo > 0 ? estoqueMinimo.toFixed(2) : '-'}</td>
+                    <td>
+                        ${isLow ? '<span class="badge badge-danger">⚠️ Baixo</span>' : '<span class="badge badge-success">✅ OK</span>'}
+                    </td>
+                </tr>
+            `;
+        }).join('');
     } catch (err) {
-        console.error('Erro em loadProdutos:', err);
-        showNotification('Erro ao carregar produtos: ' + err.message, 'error');
+        console.error('Erro em loadEstoque:', err);
+        showNotification('Erro ao carregar estoque: ' + err.message, 'error');
     }
 }
 
-// Modal de Movimentação
-function openMovimentacao(id, nome, estoqueAtual, unidade, tipo) {
-    document.getElementById('mov-alimento-id').value = id;
-    document.getElementById('mov-produto-nome').value = nome;
-    document.getElementById('mov-tipo').value = tipo;
-    document.getElementById('mov-quantidade').value = '';
-    document.getElementById('mov-observacao').value = '';
-    
-    const modal = document.getElementById('modal-movimentacao');
-    const title = document.getElementById('modal-title');
-    const estoqueInfo = document.getElementById('mov-estoque-info');
-    const btnSubmit = document.getElementById('btn-submit-mov');
-    
-    if (tipo === 'entrada') {
-        title.textContent = '➕ Registrar Entrada';
-        title.style.color = '#48bb78';
-        estoqueInfo.textContent = `Estoque atual: ${estoqueAtual} ${unidade}`;
-        btnSubmit.style.background = '#48bb78';
-        btnSubmit.textContent = 'Registrar Entrada';
-    } else {
-        title.textContent = '➖ Registrar Saída';
-        title.style.color = '#f56565';
-        estoqueInfo.textContent = `Estoque disponível: ${estoqueAtual} ${unidade}`;
-        btnSubmit.style.background = '#f56565';
-        btnSubmit.textContent = 'Registrar Saída';
-        document.getElementById('mov-quantidade').max = estoqueAtual;
-    }
-    
-    modal.classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('modal-movimentacao').classList.remove('active');
-}
-
-async function submitMovimentacao(event) {
-    event.preventDefault();
-    
-    const alimentoId = parseInt(document.getElementById('mov-alimento-id').value);
-    const tipo = document.getElementById('mov-tipo').value;
-    const quantidade = parseFloat(document.getElementById('mov-quantidade').value);
-    const observacao = document.getElementById('mov-observacao').value;
-    
-    try {
-        const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
-                alimento_id: alimentoId,
-                tipo: tipo,
-                quantidade: quantidade,
-                observacao: observacao || null
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.detail || 'Erro ao registrar movimentação');
-        }
-        
-        closeModal();
-        showNotification(`${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
-        loadProdutos(); // Recarrega lista
-        
-    } catch (err) {
-        showNotification(err.message, 'error');
-    }
-}
-
-document.getElementById('search-produto')?.addEventListener('input', loadProdutos);
-document.getElementById('filter-categoria')?.addEventListener('change', loadProdutos);
-document.getElementById('btn-refresh')?.addEventListener('click', loadProdutos);
+document.getElementById('search-estoque')?.addEventListener('input', loadEstoque);
+document.getElementById('filter-estoque-categoria')?.addEventListener('change', loadEstoque);
+document.getElementById('btn-refresh-estoque')?.addEventListener('click', loadEstoque);
 
 // ==================== ABA: HISTÓRICO ====================
 async function loadHistorico() {
@@ -346,7 +270,7 @@ async function loadProdutosSelects() {
             const select = document.getElementById(selectId);
             if (select) {
                 select.innerHTML = '<option value="">Selecione um produto...</option>' +
-                    produtos.map(p => `<option value="${p.id}" data-estoque="${p.estoque_atual}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.estoque_minimo || 0}">${p.nome} (${p.estoque_atual} ${p.unidade_medida})</option>`).join('');
+                    produtos.map(p => `<option value="${p.id}" data-estoque="${p.quantidade_estoque || 0}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.quantidade_minima || 0}">${p.nome} (${(p.quantidade_estoque || 0).toFixed(2)} ${p.unidade_medida})</option>`).join('');
             }
         });
     } catch (err) {
@@ -386,7 +310,7 @@ document.getElementById('form-produto')?.addEventListener('submit', async (e) =>
         
         showNotification('Produto cadastrado com sucesso!', 'success');
         document.getElementById('form-produto').reset();
-        loadProdutos();
+        loadEstoque();
         loadProdutosSelects();
     } catch (err) {
         showNotification(err.message, 'error');
@@ -419,7 +343,7 @@ document.getElementById('form-estoque-minimo')?.addEventListener('submit', async
         
         showNotification('Estoque mínimo definido com sucesso!', 'success');
         document.getElementById('form-estoque-minimo').reset();
-        loadProdutos();
+        loadEstoque();
         loadProdutosSelects();
     } catch (err) {
         showNotification(err.message, 'error');
@@ -478,7 +402,7 @@ document.getElementById('form-editar')?.addEventListener('submit', async (e) => 
         
         showNotification('Produto atualizado com sucesso!', 'success');
         limparFormEdicao();
-        loadProdutos();
+        loadEstoque();
         loadProdutosSelects();
     } catch (err) {
         showNotification(err.message, 'error');
@@ -504,7 +428,7 @@ async function deletarProduto() {
         
         showNotification('Produto excluído com sucesso!', 'success');
         limparFormEdicao();
-        loadProdutos();
+        loadEstoque();
         loadProdutosSelects();
     } catch (err) {
         showNotification(err.message, 'error');
@@ -543,7 +467,7 @@ document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => 
         const tipoNome = tipo === 'entrada' ? 'Entrada' : tipo === 'saida' ? 'Saída' : 'Ajuste';
         showNotification(`${tipoNome} registrado com sucesso!`, 'success');
         document.getElementById('form-ajuste').reset();
-        loadProdutos();
+        loadEstoque();
         loadProdutosSelects();
     } catch (err) {
         showNotification(err.message, 'error');

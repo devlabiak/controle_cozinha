@@ -394,6 +394,31 @@
         .notification.error {
             background: #f56565;
         }
+        
+        /* Tabela de estoque simplificada */
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .filters input, .filters select {
+            flex: 1;
+            min-width: 200px;
+        }
+        .stock-low {
+            color: #e53e3e;
+            font-weight: 700;
+        }
+        .stock-ok {
+            color: #38a169;
+        }
     </style>
 </head>
 <body>
@@ -421,17 +446,17 @@
             </div>
 
             <!-- Navegação por Abas -->
-            <div class="tabs">
-                <button class="tab active" data-tab="estoque"><i class="fas fa-boxes"></i> Estoque</button>
-                <button class="tab" data-tab="historico"><i class="fas fa-history"></i> Histórico</button>
-                <button class="tab" data-tab="gerenciar" id="tab-gerenciar" style="display:none;"><i class="fas fa-cogs"></i> Gerenciar</button>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="estoque"><i class="fas fa-boxes"></i> Estoque</button>
+                <button class="nav-tab" data-tab="historico"><i class="fas fa-history"></i> Histórico</button>
+                <button class="nav-tab" data-tab="gerenciar"><i class="fas fa-cogs"></i> Gerenciar</button>
             </div>
 
             <!-- ABA: ESTOQUE -->
-            <div id="tab-estoque" class="tab-content active">
+            <div id="tab-estoque" class="section active">
                 <div class="filters">
-                    <input type="text" id="search-produto" placeholder="Buscar produto...">
-                    <select id="filter-categoria">
+                    <input type="text" id="search-estoque" placeholder="🔍 Buscar produto...">
+                    <select id="filter-estoque-categoria">
                         <option value="">Todas as categorias</option>
                         <option value="bebidas">Bebidas</option>
                         <option value="carnes">Carnes</option>
@@ -439,20 +464,34 @@
                         <option value="temperos">Temperos</option>
                         <option value="outros">Outros</option>
                     </select>
-                    <button class="btn-primary" id="btn-refresh"><i class="fas fa-sync-alt"></i> Atualizar</button>
+                    <button class="btn-primary" id="btn-refresh-estoque"><i class="fas fa-sync-alt"></i> Atualizar</button>
                 </div>
 
-                <div id="lista-produtos" class="product-list"></div>
+                <div class="table-container">
+                    <table id="tabela-estoque">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Categoria</th>
+                                <th>Quantidade Atual</th>
+                                <th>Unidade</th>
+                                <th>Estoque Mínimo</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-estoque"></tbody>
+                    </table>
+                </div>
 
                 <div id="empty-estoque" class="empty-state" style="display:none;">
                     <i class="fas fa-box-open"></i>
-                    <p>Nenhum produto encontrado</p>
-                    <button class="btn-primary" onclick="showTab('gerenciar')">Cadastrar Produto</button>
+                    <p>Nenhum produto cadastrado</p>
+                    <button class="btn-primary" onclick="showTab('gerenciar')"><i class="fas fa-plus"></i> Cadastrar Primeiro Produto</button>
                 </div>
             </div>
 
             <!-- ABA: HISTÓRICO -->
-            <div id="tab-historico" class="tab-content">
+            <div id="tab-historico" class="section">
                 <div class="filters">
                     <select id="filter-tipo">
                         <option value="">Todos os tipos</option>
@@ -489,8 +528,8 @@
                 </div>
             </div>
 
-            <!-- ABA: GERENCIAR (APENAS ADMIN) -->
-            <div id="tab-gerenciar" class="tab-content">
+            <!-- ABA: GERENCIAR -->
+            <div id="tab-gerenciar" class="section">
                 
                 <!-- 1. CADASTRAR NOVO PRODUTO -->
                 <div class="card" style="margin-bottom:20px;">
@@ -664,6 +703,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012200"></script>
+    <script src="index.js?v=202602012230"></script>
 </body>
 </html>
