@@ -198,12 +198,27 @@ def criar_restaurante(restaurante: RestauranteCreate, db: Session = Depends(get_
             detail="Cliente não encontrado"
         )
     
+    # Normalizar campos
+    restaurante.slug = restaurante.slug.strip()
+    restaurante.email = restaurante.email.strip().lower()
+    restaurante.telefone = restaurante.telefone.strip() if restaurante.telefone else None
+    restaurante.cnpj = restaurante.cnpj.strip() if restaurante.cnpj else None
+    restaurante.endereco = restaurante.endereco.strip() if restaurante.endereco else None
+
     # Verificar se slug já existe
     slug_existente = db.query(Tenant).filter(Tenant.slug == restaurante.slug).first()
     if slug_existente:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Slug (URL) já cadastrado"
+        )
+
+    # Verificar se email já existe
+    email_existente = db.query(Tenant).filter(Tenant.email == restaurante.email).first()
+    if email_existente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email já cadastrado"
         )
     
     novo_restaurante = Tenant(**restaurante.dict())

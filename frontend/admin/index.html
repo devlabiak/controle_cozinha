@@ -920,14 +920,24 @@
         async function adicionarRestaurante(event) {
             event.preventDefault();
 
+            const clienteId = parseInt(document.getElementById('restaurante-cliente').value);
+            const nome = document.getElementById('restaurante-nome').value.trim();
+            const slug = document.getElementById('restaurante-slug').value.trim();
+            const email = document.getElementById('restaurante-email').value.trim().toLowerCase();
+
+            if (!clienteId || !nome || !slug || !email) {
+                alert('❌ Preencha cliente, nome, slug e email válidos.');
+                return;
+            }
+
             const restaurante = {
-                cliente_id: parseInt(document.getElementById('restaurante-cliente').value),
-                nome: document.getElementById('restaurante-nome').value,
-                slug: document.getElementById('restaurante-slug').value,
-                email: document.getElementById('restaurante-email').value,
-                telefone: document.getElementById('restaurante-telefone').value,
-                cnpj: document.getElementById('restaurante-cnpj').value,
-                endereco: document.getElementById('restaurante-endereco').value
+                cliente_id: clienteId,
+                nome,
+                slug,
+                email,
+                telefone: document.getElementById('restaurante-telefone').value.trim() || null,
+                cnpj: document.getElementById('restaurante-cnpj').value.trim() || null,
+                endereco: document.getElementById('restaurante-endereco').value.trim() || null
             };
 
             try {
