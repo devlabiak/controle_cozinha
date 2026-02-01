@@ -1,11 +1,18 @@
 // ==================== AUTENTICAÇÃO ====================
+console.log('Iniciando verificação de autenticação...');
 const token = localStorage.getItem('token');
+console.log('Token encontrado:', token ? 'Sim' : 'Não');
+
 if (!token) {
+    console.log('Sem token, redirecionando para login...');
     window.location.href = '/painelfoods/login.html';
 }
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
+console.log('Usuário:', user);
+
 if (user.is_admin) {
+    console.log('Usuário é admin, redirecionando...');
     window.location.href = '/painelfoods/dashboard.html';
 }
 
