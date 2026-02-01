@@ -125,7 +125,7 @@ class UsuarioLoginResponse(BaseModel):
     nome: str
     email: str
     is_admin: bool
-    cliente_id: int
+    cliente_id: int | None
     restaurantes: list[RestauranteSeletor] = []  # Restaurantes que o usuário pode acessar
     
     class Config:
@@ -142,6 +142,7 @@ class TokenData(BaseModel):
     email: Optional[str] = None
     user_id: Optional[int] = None
     tenant_id: Optional[int] = None
+    cliente_id: Optional[int] = None
     is_admin: bool = False
 
 
