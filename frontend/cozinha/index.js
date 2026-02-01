@@ -168,12 +168,20 @@ async function loadEstoque() {
             const estoqueMinimo = p.quantidade_minima || 0;
             const isLow = estoqueMinimo > 0 && estoqueAtual <= estoqueMinimo;
             
+            // Calcula embalagens se aplicável
+            let displayEstoque = `<strong>${estoqueAtual.toFixed(2)}</strong>`;
+            if (p.tipo_embalagem && p.unidades_por_embalagem > 0) {
+                const pacotesCompletos = Math.floor(estoqueAtual / p.unidades_por_embalagem);
+                const avulsos = estoqueAtual % p.unidades_por_embalagem;
+                displayEstoque += `<br><small style="color:#718096;">(${pacotesCompletos} ${p.tipo_embalagem}${pacotesCompletos !== 1 ? 's' : ''}${avulsos > 0 ? ` + ${avulsos}` : ''})</small>`;
+            }
+            
             return `
                 <tr>
                     <td><strong>${p.nome}</strong></td>
                     <td>${p.categoria || '-'}</td>
                     <td class="${isLow ? 'stock-low' : 'stock-ok'}">
-                        <strong>${estoqueAtual.toFixed(2)}</strong>
+                        ${displayEstoque}
                     </td>
                     <td>${p.unidade_medida || 'un'}</td>
                     <td>${estoqueMinimo > 0 ? estoqueMinimo.toFixed(2) : '-'}</td>
@@ -270,7 +278,10 @@ async function loadProdutosSelects() {
             const select = document.getElementById(selectId);
             if (select) {
                 select.innerHTML = '<option value="">Selecione um produto...</option>' +
-                    produtos.map(p => `<option value="${p.id}" data-estoque="${p.quantidade_estoque || 0}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.quantidade_minima || 0}">${p.nome} (${(p.quantidade_estoque || 0).toFixed(2)} ${p.unidade_medida})</option>`).join('');
+                    produtos.map(p => {
+                        const emb = p.tipo_embalagem ? ` data-embalagem="${p.tipo_embalagem}" data-unidadesemb="${p.unidades_por_embalagem || 0}"` : '';
+                        return `<option value="${p.id}" data-estoque="${p.quantidade_estoque || 0}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.quantidade_minima || 0}"${emb}>${p.nome} (${(p.quantidade_estoque || 0).toFixed(2)} ${p.unidade_medida})</option>`;
+                    }).join('');
             }
         });
     } catch (err) {
@@ -286,6 +297,8 @@ document.getElementById('form-produto')?.addEventListener('submit', async (e) =>
     const nome = document.getElementById('produto-nome').value;
     const categoria = document.getElementById('produto-categoria').value;
     const unidade = document.getElementById('produto-unidade').value;
+    const tipoEmbalagem = document.getElementById('produto-embalagem').value || null;
+    const unidadesPorEmb = document.getElementById('produto-unidades-emb').value;
     
     try {
         const response = await fetch(`/api/tenant/${tenantId}/alimentos`, {
@@ -299,7 +312,9 @@ document.getElementById('form-produto')?.addEventListener('submit', async (e) =>
                 categoria: categoria,
                 unidade_medida: unidade,
                 quantidade_estoque: 0,
-                quantidade_minima: 0
+                quantidade_minima: 0,
+                tipo_embalagem: tipoEmbalagem,
+                unidades_por_embalagem: unidadesPorEmb ? parseInt(unidadesPorEmb) : null
             })
         });
         
@@ -351,12 +366,76 @@ document.getElementById('form-estoque-minimo')?.addEventListener('submit', async
 });
 
 // 3. ENTRADA DE PRODUTO NO ESTOQUE
+// Funções auxiliares para controle de formato
+function updateEntradaFormat() {
+    const select = document.getElementById('entrada-produto');
+    const option = select.options[select.selectedIndex];
+    const tipoEmb = option.dataset.embalagem;
+    const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
+    
+    const formatContainer = document.getElementById('entrada-formato-container');
+    const infoEmbalagem = document.getElementById('entrada-info-embalagem');
+    const embText = document.getElementById('entrada-emb-text');
+    const formatoEmbLabel = document.getElementById('entrada-formato-emb-label');
+    
+    if (tipoEmb && unidadesPorEmb > 0) {
+        infoEmbalagem.style.display = 'block';
+        embText.textContent = `Embalagem: ${unidadesPorEmb} unidades por ${tipoEmb}`;
+        formatContainer.style.display = 'block';
+        formatoEmbLabel.innerHTML = `<i class="fas fa-box"></i> ${tipoEmb}s (${unidadesPorEmb} un/${tipoEmb})`;
+    } else {
+        infoEmbalagem.style.display = 'none';
+        formatContainer.style.display = 'none';
+        document.querySelector('input[name="entrada-formato"][value="unidades"]').checked = true;
+    }
+    
+    updateEntradaPlaceholder();
+}
+
+function updateEntradaPlaceholder() {
+    const select = document.getElementById('entrada-produto');
+    const option = select.options[select.selectedIndex];
+    const tipoEmb = option.dataset.embalagem;
+    const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
+    const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
+    const input = document.getElementById('entrada-quantidade');
+    const calcInfo = document.getElementById('entrada-calc-info');
+    
+    if (formato === 'embalagens' && tipoEmb) {
+        input.placeholder = `Ex: 5 ${tipoEmb}s`;
+        input.step = '1';
+        input.addEventListener('input', () => {
+            const qtd = parseFloat(input.value);
+            if (qtd && unidadesPorEmb) {
+                calcInfo.style.display = 'block';
+                calcInfo.textContent = `= ${qtd * unidadesPorEmb} unidades`;
+            } else {
+                calcInfo.style.display = 'none';
+            }
+        });
+    } else {
+        input.placeholder = 'Ex: 50 unidades';
+        input.step = '0.01';
+        calcInfo.style.display = 'none';
+    }
+}
+
 document.getElementById('form-entrada')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const alimentoId = parseInt(document.getElementById('entrada-produto').value);
-    const quantidade = parseFloat(document.getElementById('entrada-quantidade').value);
+    let quantidade = parseFloat(document.getElementById('entrada-quantidade').value);
     const observacao = document.getElementById('entrada-obs').value;
+    const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
+    
+    // Se for embalagens, multiplica pela quantidade de unidades
+    const select = document.getElementById('entrada-produto');
+    const option = select.options[select.selectedIndex];
+    const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
+    
+    if (formato === 'embalagens' && unidadesPorEmb > 0) {
+        quantidade = quantidade * unidadesPorEmb;
+    }
     
     try {
         const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {

@@ -111,6 +111,8 @@ class Alimento(Base):
     unidade_medida = Column(String(20))  # kg, g, l, ml, unidade
     quantidade_estoque = Column(Float, default=0)
     quantidade_minima = Column(Float, default=0)
+    tipo_embalagem = Column(String(50))  # pacote, bandeja, caixa, fardo, pote
+    unidades_por_embalagem = Column(Integer)  # Ex: 10 unidades por pacote
     preco_unitario = Column(Float)
     fornecedor = Column(String(255))
     observacoes = Column(Text)

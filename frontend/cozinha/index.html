@@ -552,16 +552,39 @@
                                 <option value="carnes">Carnes</option>
                                 <option value="verduras">Verduras</option>
                                 <option value="temperos">Temperos</option>
+                                <option value="preparados">Preparados</option>
                                 <option value="outros">Outros</option>
                             </select>
                             <select id="produto-unidade" required>
-                                <option value="">Unidade *</option>
+                                <option value="">Unidade Base *</option>
                                 <option value="kg">Quilograma (kg)</option>
                                 <option value="g">Grama (g)</option>
                                 <option value="l">Litro (L)</option>
                                 <option value="ml">Mililitro (ml)</option>
                                 <option value="un">Unidade</option>
                             </select>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;padding:15px;background:#f7fafc;border-radius:8px;">
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-size:13px;font-weight:600;color:#4a5568;">
+                                    <i class="fas fa-box"></i> Tipo de Embalagem (opcional)
+                                </label>
+                                <select id="produto-embalagem">
+                                    <option value="">Sem embalagem</option>
+                                    <option value="pacote">Pacote</option>
+                                    <option value="bandeja">Bandeja</option>
+                                    <option value="caixa">Caixa</option>
+                                    <option value="fardo">Fardo</option>
+                                    <option value="pote">Pote</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-size:13px;font-weight:600;color:#4a5568;">
+                                    Unidades por Embalagem
+                                </label>
+                                <input type="number" id="produto-unidades-emb" min="1" placeholder="Ex: 10">
+                                <small style="color:#718096;font-size:11px;">Ex: 10 espetinhos/pacote</small>
+                            </div>
                         </div>
                         <button type="submit" class="btn-primary" style="width:100%;">
                             <i class="fas fa-save"></i> Salvar Produto
@@ -599,16 +622,37 @@
                         <i class="fas fa-dolly"></i> 3. Entrada de Produto no Estoque
                     </h3>
                     <form id="form-entrada">
-                        <div style="display:grid;grid-template-columns:3fr 1fr auto;gap:15px;align-items:end;">
-                            <div>
-                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Produto</label>
-                                <select id="entrada-produto" required style="width:100%;">
-                                    <option value="">Selecione o produto...</option>
-                                </select>
+                        <div style="margin-bottom:15px;">
+                            <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Produto</label>
+                            <select id="entrada-produto" required style="width:100%;" onchange="updateEntradaFormat()">
+                                <option value="">Selecione o produto...</option>
+                            </select>
+                            <small id="entrada-info-embalagem" style="display:none;color:#667eea;font-weight:600;margin-top:5px;">
+                                <i class="fas fa-box"></i> <span id="entrada-emb-text"></span>
+                            </small>
+                        </div>
+                        <div id="entrada-formato-container" style="display:none;margin-bottom:15px;padding:12px;background:#f0fdf4;border:2px solid #10b981;border-radius:8px;">
+                            <label style="display:block;margin-bottom:8px;font-weight:600;color:#065f46;">
+                                <i class="fas fa-exchange-alt"></i> Formato de Entrada:
+                            </label>
+                            <div style="display:flex;gap:15px;">
+                                <label style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+                                    <input type="radio" name="entrada-formato" value="unidades" checked onchange="updateEntradaPlaceholder()">
+                                    <span><i class="fas fa-boxes"></i> Unidades Avulsas</span>
+                                </label>
+                                <label style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+                                    <input type="radio" name="entrada-formato" value="embalagens" onchange="updateEntradaPlaceholder()">
+                                    <span id="entrada-formato-emb-label"><i class="fas fa-box"></i> Embalagens</span>
+                                </label>
                             </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:2fr auto;gap:15px;align-items:end;">
                             <div>
-                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Quantidade</label>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">
+                                    Quantidade
+                                </label>
                                 <input type="number" id="entrada-quantidade" step="0.01" min="0.01" required placeholder="Ex: 50">
+                                <small id="entrada-calc-info" style="display:none;color:#059669;font-weight:600;margin-top:3px;"></small>
                             </div>
                             <button type="submit" class="btn-success">
                                 <i class="fas fa-plus"></i> Registrar Entrada
@@ -736,6 +780,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012300"></script>
+    <script src="index.js?v=202602012330"></script>
 </body>
 </html>

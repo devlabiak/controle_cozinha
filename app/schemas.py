@@ -74,6 +74,8 @@ class AlimentoBase(BaseModel):
     unidade_medida: Optional[str] = None
     quantidade_estoque: float = 0
     quantidade_minima: float = 0
+    tipo_embalagem: Optional[str] = None
+    unidades_por_embalagem: Optional[int] = None
     preco_unitario: Optional[float] = None
     fornecedor: Optional[str] = None
     observacoes: Optional[str] = None
@@ -91,6 +93,8 @@ class AlimentoUpdate(BaseModel):
     unidade_medida: Optional[str] = None
     quantidade_estoque: Optional[float] = None
     quantidade_minima: Optional[float] = None
+    tipo_embalagem: Optional[str] = None
+    unidades_por_embalagem: Optional[int] = None
     preco_unitario: Optional[float] = None
     fornecedor: Optional[str] = None
     observacoes: Optional[str] = None
