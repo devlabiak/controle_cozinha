@@ -14,7 +14,7 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
 def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     """
     Endpoint de login.
-    Aceita email e senha, retorna token JWT.
+    Aceita email e senha, retorna token JWT e lista de restaurantes disponíveis.
     """
     # Busca usuário pelo email
     user = db.query(User).filter(User.email == credentials.email).first()
@@ -35,6 +35,14 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     # Para usuários admin, não tem tenant_id fixo
     # Para usuários de cliente, retorna os tenants que tem acesso
     tenant_ids = [t.id for t in user.tenants] if user.tenants else []
+    restaurantes = [
+        {
+            "id": t.id,
+            "nome": t.nome,
+            "slug": t.slug
+        }
+        for t in user.tenants
+    ] if user.tenants else []
     
     # Cria token
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -58,7 +66,7 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             "email": user.email,
             "is_admin": user.is_admin,
             "cliente_id": user.cliente_id,
-            "tenant_ids": tenant_ids
+            "restaurantes": restaurantes
         }
     }
 

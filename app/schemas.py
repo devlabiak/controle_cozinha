@@ -109,9 +109,33 @@ class AlimentoResponse(AlimentoBase):
 
 
 # ============= AUTH SCHEMAS =============
+class RestauranteSeletor(BaseModel):
+    """Restaurante para seletor no login"""
+    id: int
+    nome: str
+    slug: str
+    
+    class Config:
+        from_attributes = True
+
+
+class UsuarioLoginResponse(BaseModel):
+    """Resposta com dados do usuário após login"""
+    id: int
+    nome: str
+    email: str
+    is_admin: bool
+    cliente_id: int
+    restaurantes: list[RestauranteSeletor] = []  # Restaurantes que o usuário pode acessar
+    
+    class Config:
+        from_attributes = True
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+    user: UsuarioLoginResponse | None = None
 
 
 class TokenData(BaseModel):

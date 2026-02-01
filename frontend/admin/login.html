@@ -174,6 +174,110 @@
             display: block;
             margin-bottom: 5px;
         }
+
+        /* Estilos para modal de seleção de restaurante */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 450px;
+            width: 90%;
+            overflow: hidden;
+            animation: slideUp 0.5s ease;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+
+        .modal-header h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .restaurante-opcao {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .restaurante-opcao:hover {
+            border-color: #667eea;
+            background: #edf2f7;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .restaurante-opcao.selected {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .restaurante-nome {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 5px;
+        }
+
+        .restaurante-slug {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .modal-footer {
+            padding: 20px 30px;
+            text-align: right;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .btn-confirmar {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-confirmar:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-confirmar:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -221,8 +325,30 @@
         </div>
     </div>
 
+    <!-- Modal de Seleção de Restaurante -->
+    <div class="modal-overlay" id="modal-restaurante">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🏠 Selecione um Restaurante</h2>
+                <p>Escolha qual restaurante deseja acessar</p>
+            </div>
+
+            <div class="modal-body" id="lista-restaurantes">
+                <!-- Restaurantes serão inseridos aqui -->
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-confirmar" id="btn-confirmar-restaurante" disabled>
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000/api`;
+        const API_BASE = `${window.location.protocol}//${window.location.hostname}/api`;
+        let restauranteSelecionado = null;
+        let usuarioLogado = null;
 
         function mostrarAlerta(mensagem, tipo) {
             const alert = document.getElementById('alert');
@@ -231,6 +357,61 @@
             setTimeout(() => {
                 alert.className = 'alert';
             }, 5000);
+        }
+
+        function mostrarSeletorRestaurante(restaurantes) {
+            if (restaurantes.length === 0) {
+                // Nenhum restaurante disponível
+                mostrarAlerta('❌ Nenhum restaurante disponível para este usuário', 'error');
+                return false;
+            }
+
+            if (restaurantes.length === 1) {
+                // Apenas um restaurante, ir direto
+                restauranteSelecionado = restaurantes[0];
+                finalizarLogin();
+                return;
+            }
+
+            // Múltiplos restaurantes - mostrar seletor
+            const listaRestaurantes = document.getElementById('lista-restaurantes');
+            listaRestaurantes.innerHTML = '';
+
+            restaurantes.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'restaurante-opcao';
+                div.innerHTML = `
+                    <div class="restaurante-nome">${r.nome}</div>
+                    <div class="restaurante-slug">@${r.slug}</div>
+                `;
+                div.addEventListener('click', () => {
+                    // Remover seleção anterior
+                    document.querySelectorAll('.restaurante-opcao').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    // Adicionar seleção ao clicado
+                    div.classList.add('selected');
+                    restauranteSelecionado = r;
+                    document.getElementById('btn-confirmar-restaurante').disabled = false;
+                });
+                listaRestaurantes.appendChild(div);
+            });
+
+            // Mostrar modal
+            document.getElementById('modal-restaurante').classList.add('active');
+        }
+
+        function finalizarLogin() {
+            if (restauranteSelecionado) {
+                localStorage.setItem('token', usuarioLogado.token);
+                localStorage.setItem('user', JSON.stringify(usuarioLogado.user));
+                localStorage.setItem('restaurante_selecionado', JSON.stringify(restauranteSelecionado));
+
+                mostrarAlerta('✓ Login realizado com sucesso!', 'success');
+                setTimeout(() => {
+                    window.location.href = `//${restauranteSelecionado.slug}.${window.location.hostname}/`;
+                }, 1000);
+            }
         }
 
         async function fazerLogin(event) {
@@ -257,13 +438,21 @@
                 const data = await response.json();
 
                 if (response.ok && data.access_token) {
-                    localStorage.setItem('token', data.access_token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    usuarioLogado = data;
 
-                    mostrarAlerta('✓ Login realizado com sucesso!', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/admin/';
-                    }, 1000);
+                    // Se é admin, vai para o painel de admin
+                    if (data.user.is_admin) {
+                        localStorage.setItem('token', data.access_token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        mostrarAlerta('✓ Login realizado com sucesso!', 'success');
+                        setTimeout(() => {
+                            window.location.href = '/admin/';
+                        }, 1000);
+                    } else {
+                        // Se não é admin, mostrar seletor de restaurante
+                        mostrarSeletorRestaurante(data.user.restaurantes);
+                    }
                 } else {
                     mostrarAlerta('❌ ' + (data.detail || 'Erro ao fazer login'), 'error');
                 }
@@ -275,6 +464,12 @@
                 loader.style.display = 'none';
             }
         }
+
+        // Evento do botão confirmar restaurante
+        document.getElementById('btn-confirmar-restaurante').addEventListener('click', () => {
+            document.getElementById('modal-restaurante').classList.remove('active');
+            finalizarLogin();
+        });
 
         // Verificar se já está logado
         if (localStorage.getItem('token')) {

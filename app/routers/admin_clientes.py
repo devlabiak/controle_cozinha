@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from app.database import get_db
-from app.models import Cliente, Tenant, User, RoleType, user_tenants_association
+from app.models import Cliente, Tenant, User, RoleType, user_tenants_association, user_clientes_association
 from app.security import get_password_hash, verify_password, create_access_token
 from pydantic import BaseModel, EmailStr
 from datetime import timedelta
@@ -78,6 +78,20 @@ class UsuarioResponse(BaseModel):
     email: str
     is_admin: bool
     ativo: bool
+
+    class Config:
+        from_attributes = True
+
+
+class UsuarioClienteResponse(BaseModel):
+    """Modelo para retornar usuário com lista de clientes associados"""
+    id: int
+    cliente_id: int  # Cliente principal (criador)
+    nome: str
+    email: str
+    is_admin: bool
+    ativo: bool
+    clientes_acesso: List['ClienteResponse'] = []  # Empresas extras que o usuário pode acessar
 
     class Config:
         from_attributes = True
@@ -297,15 +311,40 @@ def criar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     return novo_usuario
 
 
-@router.get("/usuarios", response_model=List[UsuarioResponse])
+@router.get("/usuarios", response_model=List[UsuarioClienteResponse])
 def listar_usuarios(cliente_id: int | None = None, db: Session = Depends(get_db)):
-    """Lista usuários (opcionalmente filtrados por cliente)"""
+    """Lista usuários com seus clientes associados (opcionalmente filtrados por cliente principal)"""
     query = db.query(User).filter(User.ativo == True)
     
     if cliente_id:
         query = query.filter(User.cliente_id == cliente_id)
     
-    return query.all()
+    usuarios = query.all()
+    resultado = []
+    
+    for usuario in usuarios:
+        usuario_data = {
+            'id': usuario.id,
+            'cliente_id': usuario.cliente_id,
+            'nome': usuario.nome,
+            'email': usuario.email,
+            'is_admin': usuario.is_admin,
+            'ativo': usuario.ativo,
+            'clientes_acesso': [
+                {
+                    'id': c.id,
+                    'nome_empresa': c.nome_empresa,
+                    'email': c.email,
+                    'telefone': c.telefone,
+                    'cnpj': c.cnpj,
+                    'ativo': c.ativo
+                }
+                for c in usuario.clientes_acesso
+            ]
+        }
+        resultado.append(usuario_data)
+    
+    return resultado
 
 
 @router.get("/clientes/{cliente_id}/usuarios", response_model=List[UsuarioResponse])
@@ -511,3 +550,176 @@ def atualizar_role_usuario(
     
     return {"message": f"Role do usuário atualizado para '{role}'"}
 
+
+# ==================== COMPARTILHAMENTO DE USUÁRIOS ===================
+
+@router.post("/usuarios/{user_id}/clientes/{cliente_id}")
+def adicionar_usuario_cliente(
+    user_id: int,
+    cliente_id: int,
+    db: Session = Depends(get_db)
+):
+    """Compartilha um usuário com outra empresa (cliente)
+    Permite que o usuário acesse múltiplas empresas"""
+    
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente não encontrado"
+        )
+    
+    # Evitar adicionar o cliente principal novamente
+    if usuario.cliente_id == cliente_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este é o cliente principal do usuário"
+        )
+    
+    # Verificar se já existe a associação
+    existing = db.query(user_clientes_association).filter(
+        and_(
+            user_clientes_association.c.user_id == user_id,
+            user_clientes_association.c.cliente_id == cliente_id
+        )
+    ).first()
+    
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usuário já tem acesso a este cliente"
+        )
+    
+    # Adicionar a associação
+    stmt = user_clientes_association.insert().values(
+        user_id=user_id,
+        cliente_id=cliente_id
+    )
+    db.execute(stmt)
+    db.commit()
+    
+    return {"message": f"Usuário {usuario.nome} agora tem acesso à empresa {cliente.nome_empresa}"}
+
+
+@router.delete("/usuarios/{user_id}/clientes/{cliente_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remover_usuario_cliente(
+    user_id: int,
+    cliente_id: int,
+    db: Session = Depends(get_db)
+):
+    """Remove o acesso de um usuário a uma empresa específica"""
+    
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente não encontrado"
+        )
+    
+    # Evitar remover o cliente principal
+    if usuario.cliente_id == cliente_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Não é possível remover o cliente principal do usuário"
+        )
+    
+    # Remover a associação
+    db.execute(
+        user_clientes_association.delete().where(
+            and_(
+                user_clientes_association.c.user_id == user_id,
+                user_clientes_association.c.cliente_id == cliente_id
+            )
+        )
+    )
+    db.commit()
+
+
+@router.get("/usuarios/{user_id}/clientes-disponiveis")
+def listar_clientes_disponiveis(user_id: int, db: Session = Depends(get_db)):
+    """Lista clientes disponíveis para compartilhar com um usuário
+    (clientes que o usuário ainda não tem acesso)"""
+    
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Pegar todos os clientes ativos
+    todos_clientes = db.query(Cliente).filter(Cliente.ativo == True).all()
+    
+    # Pegar clientes que o usuário já tem acesso (principal + compartilhados)
+    clientes_usuario = [usuario.cliente_id]
+    for c in usuario.clientes_acesso:
+        clientes_usuario.append(c.id)
+    
+    # Filtrar clientes disponíveis
+    clientes_disponiveis = [
+        {
+            'id': c.id,
+            'nome_empresa': c.nome_empresa,
+            'email': c.email,
+            'telefone': c.telefone,
+            'cnpj': c.cnpj,
+            'ativo': c.ativo
+        }
+        for c in todos_clientes if c.id not in clientes_usuario
+    ]
+    
+    return clientes_disponiveis
+
+
+@router.get("/usuarios/{user_id}/todas-empresas")
+def listar_todas_empresas_usuario(user_id: int, db: Session = Depends(get_db)):
+    """Lista todas as empresas que um usuário pode acessar
+    (empresa principal + empresas compartilhadas)"""
+    
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Empresa principal
+    empresas = [
+        {
+            'id': usuario.cliente.id,
+            'nome_empresa': usuario.cliente.nome_empresa,
+            'email': usuario.cliente.email,
+            'telefone': usuario.cliente.telefone,
+            'cnpj': usuario.cliente.cnpj,
+            'ativo': usuario.cliente.ativo,
+            'principal': True
+        }
+    ]
+    
+    # Empresas compartilhadas
+    for c in usuario.clientes_acesso:
+        empresas.append({
+            'id': c.id,
+            'nome_empresa': c.nome_empresa,
+            'email': c.email,
+            'telefone': c.telefone,
+            'cnpj': c.cnpj,
+            'ativo': c.ativo,
+            'principal': False
+        })
+    
+    return empresas
