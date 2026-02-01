@@ -505,9 +505,35 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
 });
 
 function imprimirEtiqueta(movimentacaoId) {
-    const url = `/api/tenant/${tenantId}/movimentacoes/${movimentacaoId}/etiqueta`;
-    window.open(url, '_blank');
-    showNotification('Abrindo etiqueta para impressão...', 'success');
+    showNotification('Gerando etiqueta...', 'success');
+    
+    fetch(`/api/tenant/${tenantId}/movimentacoes/${movimentacaoId}/etiqueta`, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro ao gerar etiqueta');
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        // Cria URL temporária e faz download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `etiqueta_${movimentacaoId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        showNotification('Etiqueta baixada com sucesso!', 'success');
+    })
+    .catch(err => {
+        showNotification('Erro ao baixar etiqueta: ' + err.message, 'error');
+    });
 }
 
 // 4. EDITAR PRODUTO
