@@ -238,6 +238,19 @@ def listar_restaurantes_cliente(cliente_id: int, db: Session = Depends(get_db)):
     return cliente.tenants
 
 
+@router.get("/restaurantes/{restaurante_id}", response_model=RestauranteResponse)
+def obter_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
+    """Obtém dados de um restaurante específico"""
+    restaurante = db.query(Tenant).filter(Tenant.id == restaurante_id).first()
+    if not restaurante:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Restaurante não encontrado"
+        )
+    
+    return restaurante
+
+
 @router.put("/restaurantes/{restaurante_id}", response_model=RestauranteResponse)
 def atualizar_restaurante(restaurante_id: int, dados: RestauranteCreate, db: Session = Depends(get_db)):
     """Atualiza dados de um restaurante"""

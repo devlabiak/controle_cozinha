@@ -605,7 +605,140 @@
         </div>
     </div>
 
-    <script>
+    <!-- Modal de Edição de Cliente -->
+    <div id="modal-cliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Cliente</h2>
+            </div>
+            <form id="form-editar-cliente" onsubmit="salvarClienteEditado(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-cliente-nome">Nome da Empresa</label>
+                        <input type="text" id="edit-cliente-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cliente-email">Email</label>
+                        <input type="email" id="edit-cliente-email" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-cliente-telefone">Telefone</label>
+                        <input type="tel" id="edit-cliente-telefone">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cliente-cnpj">CNPJ</label>
+                        <input type="text" id="edit-cliente-cnpj">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-cliente-endereco">Endereço</label>
+                    <input type="text" id="edit-cliente-endereco">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-cliente-cidade">Cidade</label>
+                        <input type="text" id="edit-cliente-cidade">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cliente-estado">Estado</label>
+                        <select id="edit-cliente-estado">
+                            <option value="">Selecione...</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="RJ">Rio de Janeiro</option>
+                            <option value="MG">Minas Gerais</option>
+                            <option value="RS">Rio Grande do Sul</option>
+                            <option value="BA">Bahia</option>
+                            <option value="SC">Santa Catarina</option>
+                            <option value="PR">Paraná</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Restaurante -->
+    <div id="modal-restaurante" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Restaurante</h2>
+            </div>
+            <form id="form-editar-restaurante" onsubmit="salvarRestauranteEditado(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-restaurante-nome">Nome</label>
+                        <input type="text" id="edit-restaurante-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-restaurante-slug">URL (slug)</label>
+                        <input type="text" id="edit-restaurante-slug" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-restaurante-email">Email</label>
+                        <input type="email" id="edit-restaurante-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-restaurante-telefone">Telefone</label>
+                        <input type="tel" id="edit-restaurante-telefone">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-restaurante-cnpj">CNPJ</label>
+                    <input type="text" id="edit-restaurante-cnpj">
+                </div>
+                <div class="form-group">
+                    <label for="edit-restaurante-endereco">Endereço</label>
+                    <input type="text" id="edit-restaurante-endereco">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-restaurante')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Usuário -->
+    <div id="modal-usuario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Usuário</h2>
+            </div>
+            <form id="form-editar-usuario" onsubmit="salvarUsuarioEditado(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-usuario-nome">Nome</label>
+                        <input type="text" id="edit-usuario-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-usuario-email">Email</label>
+                        <input type="email" id="edit-usuario-email" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-usuario-is-admin">
+                        <input type="checkbox" id="edit-usuario-is-admin"> Admin do Cliente
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Restaurantes e Roles</label>
+                    <div id="lista-restaurantes-editar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-usuario')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
         const API_BASE = `${window.location.protocol}//${window.location.hostname}/api`;
         const TOKEN = localStorage.getItem('token');
 
@@ -936,6 +1069,236 @@
                 }
             } catch (error) {
                 alert('Erro ao criar usuário: ' + error.message);
+            }
+        }
+
+        // ===== FUNÇÕES DE EDIÇÃO =====
+        let clienteEditandoId = null;
+        let restauranteEditandoId = null;
+        let usuarioEditandoId = null;
+
+        function abrirModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function fecharModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Fechar modal ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.classList.remove('show');
+            }
+        });
+
+        async function editarCliente(id) {
+            clienteEditandoId = id;
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes/${id}`, { headers });
+                const cliente = await response.json();
+
+                document.getElementById('edit-cliente-nome').value = cliente.nome_empresa;
+                document.getElementById('edit-cliente-email').value = cliente.email;
+                document.getElementById('edit-cliente-telefone').value = cliente.telefone || '';
+                document.getElementById('edit-cliente-cnpj').value = cliente.cnpj || '';
+                document.getElementById('edit-cliente-endereco').value = cliente.endereco || '';
+                document.getElementById('edit-cliente-cidade').value = cliente.cidade || '';
+                document.getElementById('edit-cliente-estado').value = cliente.estado || '';
+
+                abrirModal('modal-cliente');
+            } catch (error) {
+                alert('Erro ao carregar cliente: ' + error.message);
+            }
+        }
+
+        async function salvarClienteEditado(event) {
+            event.preventDefault();
+
+            const cliente = {
+                nome_empresa: document.getElementById('edit-cliente-nome').value,
+                email: document.getElementById('edit-cliente-email').value,
+                telefone: document.getElementById('edit-cliente-telefone').value || null,
+                cnpj: document.getElementById('edit-cliente-cnpj').value || null,
+                endereco: document.getElementById('edit-cliente-endereco').value || null,
+                cidade: document.getElementById('edit-cliente-cidade').value || null,
+                estado: document.getElementById('edit-cliente-estado').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes/${clienteEditandoId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(cliente)
+                });
+
+                if (response.ok) {
+                    alert('✓ Cliente atualizado com sucesso!');
+                    fecharModal('modal-cliente');
+                    carregarClientes();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao salvar cliente: ' + error.message);
+            }
+        }
+
+        async function editarRestaurante(id) {
+            restauranteEditandoId = id;
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, { headers });
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar restaurante');
+                }
+                const restaurante = await response.json();
+
+                document.getElementById('edit-restaurante-nome').value = restaurante.nome;
+                document.getElementById('edit-restaurante-slug').value = restaurante.slug;
+                document.getElementById('edit-restaurante-email').value = restaurante.email;
+                document.getElementById('edit-restaurante-telefone').value = restaurante.telefone || '';
+                document.getElementById('edit-restaurante-cnpj').value = restaurante.cnpj || '';
+                document.getElementById('edit-restaurante-endereco').value = restaurante.endereco || '';
+
+                abrirModal('modal-restaurante');
+            } catch (error) {
+                alert('Erro ao carregar restaurante: ' + error.message);
+            }
+        }
+
+        async function salvarRestauranteEditado(event) {
+            event.preventDefault();
+
+            const restaurante = {
+                cliente_id: 0, // Não será usado na atualização
+                nome: document.getElementById('edit-restaurante-nome').value,
+                slug: document.getElementById('edit-restaurante-slug').value,
+                email: document.getElementById('edit-restaurante-email').value,
+                telefone: document.getElementById('edit-restaurante-telefone').value || null,
+                cnpj: document.getElementById('edit-restaurante-cnpj').value || null,
+                endereco: document.getElementById('edit-restaurante-endereco').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurantes/${restauranteEditandoId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(restaurante)
+                });
+
+                if (response.ok) {
+                    alert('✓ Restaurante atualizado com sucesso!');
+                    fecharModal('modal-restaurante');
+                    carregarRestaurantes();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao salvar restaurante: ' + error.message);
+            }
+        }
+
+        async function editarUsuario(id) {
+            usuarioEditandoId = id;
+            try {
+                const response = await fetch(`${API_BASE}/admin/usuarios`, { headers });
+                const usuarios = await response.json();
+                const usuario = usuarios.find(u => u.id === id);
+
+                if (!usuario) {
+                    throw new Error('Usuário não encontrado');
+                }
+
+                document.getElementById('edit-usuario-nome').value = usuario.nome;
+                document.getElementById('edit-usuario-email').value = usuario.email;
+                document.getElementById('edit-usuario-is-admin').checked = usuario.is_admin;
+
+                // Carregar restaurantes do cliente
+                const respRestaurantes = await fetch(`${API_BASE}/admin/clientes/${usuario.cliente_id}/restaurantes`, { headers });
+                const restaurantes = await respRestaurantes.json();
+
+                // Carregar restaurantes que o usuário tem acesso
+                const respTenants = await fetch(`${API_BASE}/admin/restaurantes/${usuario.id}/usuarios`, { headers }).catch(() => ({
+                    json: () => ([])
+                }));
+                const tenantsUsuario = respTenants.ok ? await respTenants.json() : [];
+
+                const container = document.getElementById('lista-restaurantes-editar');
+                container.innerHTML = '';
+
+                restaurantes.forEach(r => {
+                    const temAcesso = tenantsUsuario.find(t => t.id === r.id);
+                    const role = temAcesso ? tenantsUsuario.find(t => t.id === r.id).role || 'leitura' : 'leitura';
+
+                    const div = document.createElement('div');
+                    div.style.borderRadius = '5px';
+                    div.style.border = '1px solid #ddd';
+                    div.style.padding = '10px';
+                    div.style.backgroundColor = '#f9f9f9';
+                    
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <input type="checkbox" value="${r.id}" name="restaurante-editar" class="restaurante-checkbox-editar" ${temAcesso ? 'checked' : ''}>
+                            <strong>${r.nome}</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-left: 24px;">
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
+                                <input type="radio" name="role-edit-${r.id}" value="admin" ${role === 'admin' ? 'checked' : ''}> 
+                                👨‍💼 Admin
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
+                                <input type="radio" name="role-edit-${r.id}" value="leitura" ${role === 'leitura' ? 'checked' : ''}> 
+                                👁️ Leitura
+                            </label>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                abrirModal('modal-usuario');
+            } catch (error) {
+                alert('Erro ao carregar usuário: ' + error.message);
+            }
+        }
+
+        async function salvarUsuarioEditado(event) {
+            event.preventDefault();
+
+            try {
+                // Atualizar dados básicos do usuário se necessário
+                // (nome, email, is_admin seriam atualizados aqui)
+
+                // Sincronizar restaurantes
+                const checkboxes = document.querySelectorAll('input[name="restaurante-editar"]');
+                
+                // Remover acessos desmarcados e atualizar marcados
+                for (const checkbox of checkboxes) {
+                    const restauranteId = checkbox.value;
+                    const roleRadio = document.querySelector(`input[name="role-edit-${restauranteId}"]:checked`);
+                    const role = roleRadio ? roleRadio.value : 'leitura';
+
+                    if (checkbox.checked) {
+                        // Adicionar ou atualizar acesso
+                        await fetch(`${API_BASE}/admin/usuarios/${usuarioEditandoId}/restaurantes/${restauranteId}?role=${role}`, {
+                            method: 'POST',
+                            headers
+                        });
+                    } else {
+                        // Remover acesso
+                        await fetch(`${API_BASE}/admin/usuarios/${usuarioEditandoId}/restaurantes/${restauranteId}`, {
+                            method: 'DELETE',
+                            headers
+                        });
+                    }
+                }
+
+                alert('✓ Usuário atualizado com sucesso!');
+                fecharModal('modal-usuario');
+                carregarUsuarios();
+            } catch (error) {
+                alert('Erro ao salvar usuário: ' + error.message);
             }
         }
 
