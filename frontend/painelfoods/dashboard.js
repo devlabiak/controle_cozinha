@@ -50,7 +50,6 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         if (sec === 'usuarios') { 
             console.log('Chamando loadEmpresas()...');
             loadEmpresas();
-            preencherSelectsEmpresa();
             loadUsuarios(); 
         }
     });
@@ -123,7 +122,7 @@ async function loadEmpresas() {
             } else {
                 console.warn('✗ usr-emp não encontrado');
             }
-        }, 100);
+        }, 300);
         
     } catch (e) {
         notify(e.message, 'error');
@@ -263,31 +262,7 @@ async function delUsuario(id) {
     } catch (e) {
         notify(e.message, 'error');
     }
-}
 
-// Função para preencher todos os selects de empresa
-async function preencherSelectsEmpresa() {
-    try {
-        console.log('preencherSelectsEmpresa iniciado');
-        const empresas = await api('/admin/clientes');
-        
-        let opts = '<option value="">Selecione uma empresa</option>';
-        empresas.forEach(e => {
-            opts += `<option value="${e.id}">${e.nome_empresa}</option>`;
-        });
-        
-        // Tentar preencher todos os selects que existem
-        const selects = document.querySelectorAll('select[id$="-emp"]');
-        console.log('Encontrados', selects.length, 'selects com id terminado em -emp');
-        
-        selects.forEach(sel => {
-            console.log('Preenchendo select:', sel.id);
-            sel.innerHTML = opts;
-        });
-        
-    } catch (e) {
-        console.error('Erro ao preencher selects:', e);
-    }
 }
 
 // Logout
@@ -298,4 +273,3 @@ document.getElementById('logout').addEventListener('click', () => {
 
 // Load inicial
 loadEmpresas();
-preencherSelectsEmpresa();
