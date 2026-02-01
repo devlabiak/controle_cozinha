@@ -298,8 +298,8 @@ document.getElementById('form-produto')?.addEventListener('submit', async (e) =>
                 nome: nome,
                 categoria: categoria,
                 unidade_medida: unidade,
-                estoque_atual: 0,
-                estoque_minimo: 0
+                quantidade_estoque: 0,
+                quantidade_minima: 0
             })
         });
         
@@ -332,7 +332,7 @@ document.getElementById('form-estoque-minimo')?.addEventListener('submit', async
                 'Authorization': 'Bearer ' + token
             },
             body: JSON.stringify({
-                estoque_minimo: parseFloat(quantidade)
+                quantidade_minima: parseFloat(quantidade)
             })
         });
         
