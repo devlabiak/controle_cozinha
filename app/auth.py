@@ -37,11 +37,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+async def get_current_user(
+    token: str = Depends(oauth2_scheme)
 ) -> User:
     """Obtém usuário autenticado pelo token"""
+    from app.database import SessionLocal
+    
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Credenciais inválidas",
@@ -59,12 +60,16 @@ def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    user = db.query(User).filter(User.id == user_id, User.email == email).first()
-    
-    if user is None or not user.ativo:
-        raise credentials_exception
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == user_id, User.email == email).first()
         
-    return user
+        if user is None or not user.ativo:
+            raise credentials_exception
+            
+        return user
+    finally:
+        db.close()
 
 
 def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
