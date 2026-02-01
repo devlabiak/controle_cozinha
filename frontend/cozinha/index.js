@@ -29,15 +29,32 @@ function showSelector() {
     fetch('/api/auth/me', { 
         headers: { 'Authorization': 'Bearer ' + token } 
     })
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) {
+            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
+        }
+        return r.json();
+    })
     .then(data => {
+        console.log('Dados recebidos:', data);
         const restos = data.restaurantes || [];
+        console.log('Restaurantes:', restos);
+        
         const div = document.getElementById('rest-options');
+        
+        if (restos.length === 0) {
+            div.innerHTML = '<p style="text-align:center;padding:20px;color:#666;">Nenhum restaurante disponível para este usuário.</p>';
+            return;
+        }
+        
         div.innerHTML = restos.map(r =>
-            `<button class="btn-resto" onclick="selectRestaurant(${r.id}, '${r.nome}')">${r.nome}</button>`
+            `<button class="btn-resto" onclick="selectRestaurant(${r.id}, '${r.nome.replace(/'/g, "\\'")}')">${r.nome}</button>`
         ).join('');
     })
-    .catch(err => showNotification('Erro ao carregar restaurantes', 'error'));
+    .catch(err => {
+        console.error('Erro ao carregar restaurantes:', err);
+        showNotification('Erro ao carregar restaurantes: ' + err.message, 'error');
+    });
 }
 
 function selectRestaurant(id, nome) {
