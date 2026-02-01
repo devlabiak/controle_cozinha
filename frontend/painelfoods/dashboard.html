@@ -277,8 +277,8 @@
                     <h2>+ Novo Usuário</h2>
                     <form onsubmit="addUsuario(event)">
                         <div class="form-group">
-                            <label>Empresa *</label>
-                            <select id="usr-emp" required onchange="loadRestosForUser()">
+                            <label>Empresa * (SE FUNDO VERMELHO = HTML ATUALIZADO)</label>
+                            <select id="usr-emp" required onchange="loadRestosForUser()" style="background-color: red; color: white; padding: 10px;">
                                 <option value="">Selecione uma empresa</option>
                                 <option value="999">TESTE - Se você vê isto, o select funciona</option>
                             </select>
