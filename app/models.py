@@ -25,15 +25,6 @@ class RoleType(str, enum.Enum):
     LEITURA = "leitura"  # Pode apenas ler QR code para dar baixa automática
 
 
-# Tabela de Relacionamento Muitos-para-Muitos: User -> Clientes
-# Permite que um usuário acesse múltiplas empresas
-user_clientes_association = Table(
-    'user_clientes_association',
-    Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
-    Column('cliente_id', Integer, ForeignKey('clientes.id', ondelete='CASCADE'), primary_key=True),
-)
-
 # Tabela de Relacionamento Muitos-para-Muitos: User -> Tenants (com role)
 user_tenants_association = Table(
     'user_tenants_association',
@@ -63,7 +54,6 @@ class Cliente(Base):
     # Relacionamentos
     tenants = relationship("Tenant", back_populates="cliente", cascade="all, delete-orphan")
     users = relationship("User", back_populates="cliente", cascade="all, delete-orphan")
-    usuarios_compartilhados = relationship("User", secondary=user_clientes_association, back_populates="clientes_acesso")
 
 
 class Tenant(Base):
@@ -104,7 +94,6 @@ class User(Base):
 
     # Relacionamentos
     cliente = relationship("Cliente", back_populates="users")
-    clientes_acesso = relationship("Cliente", secondary=user_clientes_association, back_populates="usuarios_compartilhados")
     tenants = relationship("Tenant", secondary=user_tenants_association, back_populates="users")
     movimentacoes = relationship("MovimentacaoEstoque", back_populates="usuario", cascade="all, delete-orphan")
 

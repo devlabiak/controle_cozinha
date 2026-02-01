@@ -27,17 +27,6 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('user_id', 'tenant_id')
     )
 
-    # Criar tabela user_clientes_association (many-to-many entre users e clientes)
-    op.create_table(
-        'user_clientes_association',
-        sa.Column('user_id', sa.Integer(), nullable=False),
-        sa.Column('cliente_id', sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
-        sa.ForeignKeyConstraint(['cliente_id'], ['clientes.id'], ondelete='CASCADE'),
-        sa.PrimaryKeyConstraint('user_id', 'cliente_id')
-    )
-
 
 def downgrade() -> None:
-    op.drop_table('user_clientes_association')
     op.drop_table('user_tenants_association')
