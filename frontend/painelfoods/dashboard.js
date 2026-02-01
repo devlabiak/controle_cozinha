@@ -1,5 +1,4 @@
 console.log('=== DASHBOARD.JS CARREGADO ===', new Date().toLocaleTimeString());
-alert('DASHBOARD.JS CARREGADO - VERSAO: ' + new Date().toLocaleTimeString());
 
 const API = `${window.location.protocol}//${window.location.hostname}/api`;
 const TOKEN = localStorage.getItem('token');
