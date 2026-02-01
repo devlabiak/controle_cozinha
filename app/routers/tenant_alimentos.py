@@ -230,7 +230,7 @@ def criar_movimentacao(
         )
     
     # Calcula nova quantidade
-    quantidade_anterior = alimento.estoque_atual or 0
+    quantidade_anterior = alimento.quantidade_estoque or 0
     
     if dados.tipo == 'entrada':
         quantidade_nova = quantidade_anterior + dados.quantidade
@@ -265,7 +265,7 @@ def criar_movimentacao(
     )
     
     # Atualiza o estoque do alimento
-    alimento.estoque_atual = quantidade_nova
+    alimento.quantidade_estoque = quantidade_nova
     
     db.add(movimentacao)
     db.commit()
