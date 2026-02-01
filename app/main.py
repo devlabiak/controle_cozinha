@@ -1,7 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.middleware import TenantMiddleware
-from app.routers import auth, admin_clientes, admin_usuarios, tenant_alimentos, tenant_users
+
+# Importar routers com error handling
+try:
+    from app.routers import auth, admin_clientes, admin_usuarios, tenant_alimentos, tenant_users
+    print("✓ Routers importados com sucesso")
+except Exception as e:
+    print(f"✗ Erro ao importar routers: {e}")
+    raise
 
 app = FastAPI(
     title="Controle de Cozinha - Multi-Tenant",

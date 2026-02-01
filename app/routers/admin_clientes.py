@@ -2,9 +2,10 @@
 Rotas Admin - Clientes e Restaurantes
 """
 
+from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from app.database import get_db
 from app.models import Cliente, Tenant
 from pydantic import BaseModel, EmailStr
@@ -17,19 +18,19 @@ router = APIRouter(prefix="/api/admin", tags=["Admin - Clientes/Restaurantes"])
 class ClienteCreate(BaseModel):
     nome_empresa: str
     email: EmailStr
-    telefone: str | None = None
-    cnpj: str | None = None
-    endereco: str | None = None
-    cidade: str | None = None
-    estado: str | None = None
+    telefone: Optional[str] = None
+    cnpj: Optional[str] = None
+    endereco: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
 
 
 class ClienteResponse(BaseModel):
     id: int
     nome_empresa: str
     email: str
-    telefone: str | None
-    cnpj: str | None
+    telefone: Optional[str] = None
+    cnpj: Optional[str] = None
     ativo: bool
 
     class Config:
@@ -41,9 +42,9 @@ class RestauranteCreate(BaseModel):
     nome: str
     slug: str
     email: str
-    telefone: str | None = None
-    cnpj: str | None = None
-    endereco: str | None = None
+    telefone: Optional[str] = None
+    cnpj: Optional[str] = None
+    endereco: Optional[str] = None
 
 
 class RestauranteResponse(BaseModel):
