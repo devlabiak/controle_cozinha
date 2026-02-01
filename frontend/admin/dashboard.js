@@ -2,6 +2,8 @@ const API_BASE = `${window.location.protocol}//${window.location.hostname.replac
 const TOKEN = localStorage.getItem('token');
 let usuarioAtual = JSON.parse(localStorage.getItem('user') || '{}');
 
+console.log('Dashboard Loaded:', { API_BASE, TOKEN: !!TOKEN, usuario: usuarioAtual.nome });
+
 // ===== NOTIFICATION SYSTEM =====
 function showNotification(message, type = 'success', duration = 4000) {
     const notification = document.createElement('div');
@@ -202,7 +204,10 @@ async function carregarClientes() {
             headers: authHeaders()
         });
 
-        if (!response.ok) throw new Error('Erro ao carregar clientes');
+        if (!response.ok) {
+            console.error('Erro ao carregar clientes:', response.status, response.statusText);
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
 
         const clientes = await response.json();
         const container = document.getElementById('clientes-list');
@@ -573,10 +578,19 @@ async function deletarUsuario(id) {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOMContentLoaded:', { TOKEN: !!TOKEN, usuario: usuarioAtual.nome });
+    
     if (!TOKEN) {
+        console.warn('Token não encontrado, redirecionando para login');
         window.location.href = '/admin/login.html';
         return;
     }
 
+    // Não redirecionar infinitamente
     document.getElementById('user-name').textContent = usuarioAtual.nome || 'Administrador';
+    
+    // Carregar dados iniciais
+    console.log('Carregando dados iniciais...');
+    carregarClientesSelect();
+    navigateTo('home');
 });
