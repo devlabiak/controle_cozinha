@@ -606,7 +606,7 @@
     </div>
 
     <script>
-        const API_BASE = `${window.location.protocol}//${window.location.hostname}:8000/api`;
+        const API_BASE = `${window.location.protocol}//${window.location.hostname}/api`;
         const TOKEN = localStorage.getItem('token');
 
         // Headers padrão
@@ -700,14 +700,22 @@
         async function adicionarCliente(event) {
             event.preventDefault();
 
+            const nomeEmpresa = document.getElementById('cliente-nome').value.trim();
+            const email = document.getElementById('cliente-email').value.trim().toLowerCase();
+
+            if (!nomeEmpresa || !email) {
+                alert('❌ Preencha nome da empresa e email válidos.');
+                return;
+            }
+
             const cliente = {
-                nome_empresa: document.getElementById('cliente-nome').value,
-                email: document.getElementById('cliente-email').value,
-                telefone: document.getElementById('cliente-telefone').value,
-                cnpj: document.getElementById('cliente-cnpj').value,
-                endereco: document.getElementById('cliente-endereco').value,
-                cidade: document.getElementById('cliente-cidade').value,
-                estado: document.getElementById('cliente-estado').value
+                nome_empresa: nomeEmpresa,
+                email,
+                telefone: document.getElementById('cliente-telefone').value.trim() || null,
+                cnpj: document.getElementById('cliente-cnpj').value.trim() || null,
+                endereco: document.getElementById('cliente-endereco').value.trim() || null,
+                cidade: document.getElementById('cliente-cidade').value.trim() || null,
+                estado: document.getElementById('cliente-estado').value || null
             };
 
             try {
