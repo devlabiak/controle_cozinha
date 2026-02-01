@@ -21,10 +21,15 @@ let tenantId = localStorage.getItem('selectedTenantId');
 let tenantName = localStorage.getItem('selectedTenantName');
 let isAdminRestaurante = false;
 
+console.log('TenantId armazenado:', tenantId);
+console.log('TenantName armazenado:', tenantName);
+
 // ==================== INICIALIZAÇÃO ====================
 if (tenantId) {
+    console.log('Já tem tenant selecionado, carregando área principal...');
     checkPermissionsAndShowMain();
 } else {
+    console.log('Sem tenant, mostrando seletor...');
     showSelector();
 }
 
@@ -55,7 +60,7 @@ function showSelector() {
         }
         
         div.innerHTML = restos.map(r =>
-            `<button class="btn-resto" onclick="selectRestaurant(${r.id}, '${r.nome.replace(/'/g, "\\'")}')">${r.nome}</button>`
+            `<button class="restaurant-btn" onclick="selectRestaurant(${r.id}, '${r.nome.replace(/'/g, "\\'")}')">${r.nome}</button>`
         ).join('');
     })
     .catch(err => {
