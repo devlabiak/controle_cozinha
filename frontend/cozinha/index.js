@@ -133,6 +133,8 @@ function showTab(tabName) {
 // ==================== ABA: ESTOQUE ====================
 async function loadProdutos() {
     try {
+        console.log('loadProdutos - Token:', token ? token.substring(0, 20) + '...' : 'VAZIO');
+        
         const search = document.getElementById('search-produto')?.value || '';
         const categoria = document.getElementById('filter-categoria')?.value || '';
         
@@ -140,9 +142,18 @@ async function loadProdutos() {
         if (search) url += `search=${search}&`;
         if (categoria) url += `categoria=${categoria}`;
         
+        console.log('loadProdutos - URL:', url);
+        
         const response = await fetch(url, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
+        
+        console.log('loadProdutos - Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+        }
+        
         const produtos = await response.json();
         
         const container = document.getElementById('lista-produtos');
