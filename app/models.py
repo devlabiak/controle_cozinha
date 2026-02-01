@@ -185,7 +185,7 @@ class MovimentacaoEstoque(Base):
     usuario_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Tipo de movimentação
-    tipo = Column(Enum(TipoMovimentacao), nullable=False, index=True)
+    tipo = Column(Enum(TipoMovimentacao, values_callable=lambda x: [e.value for e in x]), nullable=False, index=True)
     
     # Quantidades
     quantidade = Column(Float, nullable=False)
