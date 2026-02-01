@@ -1,3 +1,5 @@
+console.log('=== DASHBOARD.JS CARREGADO ===', new Date().toLocaleTimeString());
+
 const API = `${window.location.protocol}//${window.location.hostname}/api`;
 const TOKEN = localStorage.getItem('token');
 
@@ -48,12 +50,14 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
         if (sec === 'empresas') loadEmpresas();
         if (sec === 'restaurantes') { loadEmpresas(); loadRestaurantes(); }
         if (sec === 'usuarios') { 
+            console.log('=== ABA USUÁRIOS CLICADA ===');
             console.log('Chamando loadEmpresas()...');
-            // Esperar um pouco para garantir que a seção está visível
-            setTimeout(() => {
-                loadEmpresas();
+            loadEmpresas().then(() => {
+                console.log('loadEmpresas() concluído');
                 loadUsuarios();
-            }, 50);
+            }).catch(err => {
+                console.error('Erro em loadEmpresas():', err);
+            });
         }
     });
 });
@@ -79,6 +83,7 @@ async function addEmpresa(e) {
 }
 
 async function loadEmpresas() {
+    console.log('=== loadEmpresas INICIADO ===' + new Date().toLocaleTimeString());
     try {
         console.log('loadEmpresas iniciado');
         const empresas = await api('/admin/clientes') || [];
@@ -130,8 +135,10 @@ async function loadEmpresas() {
         }
         
     } catch (e) {
+        console.error('=== ERRO em loadEmpresas ===');
+        console.error('Mensagem:', e.message);
+        console.error('Stack:', e.stack);
         notify(e.message, 'error');
-        console.error('Erro ao carregar empresas:', e);
     }
 }
 
