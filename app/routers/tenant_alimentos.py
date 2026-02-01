@@ -26,6 +26,8 @@ class MovimentacaoCreate(BaseModel):
     tipo: str  # 'entrada', 'saida', 'ajuste'
     quantidade: float
     observacao: Optional[str] = None
+    data_producao: Optional[str] = None  # Data de produção (ISO format)
+    data_validade: Optional[str] = None  # Data de validade (ISO format)
 
 
 class MovimentacaoResponse(BaseModel):
