@@ -1316,6 +1316,12 @@
             }
         }
 
+        // Expor funções no escopo global (compatibilidade com onclick inline)
+        window.editarCliente = editarCliente;
+        window.editarRestaurante = editarRestaurante;
+        window.editarUsuario = editarUsuario;
+        window.deletarRestaurante = deletarRestaurante;
+
         // Logout
         function logout() {
             localStorage.removeItem('token');
