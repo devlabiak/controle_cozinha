@@ -1,11 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.middleware import TenantMiddleware
-from app.routers import (
-    auth, admin_tenants, admin_users, admin_clientes,
-    tenant_alimentos, tenant_users, tenant_lotes,
-    qrcode, print_jobs
-)
+from app.routers import auth, admin_clientes, admin_usuarios, tenant_alimentos, tenant_users
 
 app = FastAPI(
     title="Controle de Cozinha - Multi-Tenant",
@@ -28,13 +24,9 @@ app.add_middleware(TenantMiddleware)
 # Routers
 app.include_router(auth.router)
 app.include_router(admin_clientes.router)
-app.include_router(admin_tenants.router)
-app.include_router(admin_users.router)
+app.include_router(admin_usuarios.router)
 app.include_router(tenant_alimentos.router)
 app.include_router(tenant_users.router)
-app.include_router(tenant_lotes.router)
-app.include_router(qrcode.router)
-app.include_router(print_jobs.router)
 
 
 @app.get("/")
