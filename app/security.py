@@ -65,9 +65,10 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     from app.database import SessionLocal
     
     payload = verify_token(token)
-    user_id = payload.get("sub")
+    user_id = payload.get("user_id")
+    email = payload.get("sub")
     
-    if user_id is None:
+    if user_id is None or email is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido"
@@ -75,7 +76,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.id == int(user_id)).first()
+        user = db.query(User).filter(User.id == user_id, User.email == email).first()
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
