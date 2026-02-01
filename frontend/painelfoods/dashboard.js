@@ -239,20 +239,40 @@ async function addUsuario(e) {
         return;
     }
     
+    const dados = {
+        cliente_id: parseInt(document.getElementById('usr-emp').value),
+        nome: document.getElementById('usr-nome').value,
+        email: document.getElementById('usr-email').value,
+        is_admin: document.getElementById('usr-admin').checked,
+        restaurantes: rests
+    };
+    
+    // Só envia senha se não estiver editando ou se campo não estiver vazio
+    const senhaField = document.getElementById('usr-senha');
+    if (!usuarioEditandoId || senhaField.value) {
+        dados.senha = senhaField.value;
+    }
+    
     try {
-        await api('/admin/usuarios', {
-            method: 'POST',
-            body: JSON.stringify({
-                cliente_id: parseInt(document.getElementById('usr-emp').value),
-                nome: document.getElementById('usr-nome').value,
-                email: document.getElementById('usr-email').value,
-                senha: document.getElementById('usr-senha').value,
-                is_admin: document.getElementById('usr-admin').checked,
-                restaurantes: rests
-            })
-        });
-        notify('Usuário criado!');
+        if (usuarioEditandoId) {
+            // Editando
+            await api(`/admin/usuarios/${usuarioEditandoId}`, {
+                method: 'PUT',
+                body: JSON.stringify(dados)
+            });
+            notify('Usuário atualizado!');
+            cancelarEdicaoUsuario();
+        } else {
+            // Criando novo
+            await api('/admin/usuarios', {
+                method: 'POST',
+                body: JSON.stringify(dados)
+            });
+            notify('Usuário criado!');
+        }
+        
         e.target.reset();
+        document.getElementById('usr-rests').innerHTML = '';
         loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');
@@ -264,7 +284,15 @@ async function loadUsuarios() {
         const users = await api('/admin/usuarios');
         let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Admin</th><th>Ação</th></tr></thead><tbody>';
         users.forEach(u => {
-            html += `<tr><td>${u.nome}</td><td>${u.email}</td><td>${u.is_admin ? 'Sim' : 'Não'}</td><td><button class="btn-sm danger" onclick="delUsuario(${u.id})">Deletar</button></td></tr>`;
+            html += `<tr>
+                <td>${u.nome}</td>
+                <td>${u.email}</td>
+                <td>${u.is_admin ? 'Sim' : 'Não'}</td>
+                <td>
+                    <button class="btn-sm" onclick="editUsuario(${u.id})" style="margin-right:5px;">Editar</button>
+                    <button class="btn-sm danger" onclick="delUsuario(${u.id})">Deletar</button>
+                </td>
+            </tr>`;
         });
         html += '</tbody></table>';
         document.getElementById('usuarios-list').innerHTML = html;
@@ -282,7 +310,100 @@ async function delUsuario(id) {
     } catch (e) {
         notify(e.message, 'error');
     }
+}
 
+let usuarioEditandoId = null;
+
+async function editUsuario(id) {
+    try {
+        const user = await api(`/admin/usuarios/${id}`);
+        
+        // Marcar que está editando
+        usuarioEditandoId = id;
+        
+        // Preencher formulário
+        document.getElementById('usr-emp').value = user.cliente_id;
+        document.getElementById('usr-nome').value = user.nome;
+        document.getElementById('usr-email').value = user.email;
+        document.getElementById('usr-admin').checked = user.is_admin;
+        
+        // Carregar restaurantes e marcar os vinculados
+        await loadRestosForUser();
+        
+        // Esperar um pouco para os checkboxes renderizarem
+        setTimeout(() => {
+            user.restaurantes.forEach(resto => {
+                const checkbox = document.querySelector(`input.usr-rest-check[value="${resto.tenant_id}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }, 100);
+        
+        // Mudar texto do botão
+        const btn = document.querySelector('#usuarios form button[type="submit"]');
+        if (btn) btn.textContent = 'Atualizar Usuário';
+        
+        // Scroll para o formulário
+        document.querySelector('#usuarios .form-card').scrollIntoView({ behavior: 'smooth' });
+        
+        notify('Editando usuário. Modifique e clique em Atualizar.', 'success');
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+function cancelarEdicaoUsuario() {
+    usuarioEditandoId = null;
+    document.querySelector('#usuarios form').reset();
+    document.getElementById('usr-rests').innerHTML = '';
+    const btn = document.querySelector('#usuarios form button[type="submit"]');
+    if (btn) btn.textContent = 'Cadastrar Usuário';
+}
+
+let usuarioEditandoId = null;
+
+async function editUsuario(id) {
+    try {
+        const user = await api(`/admin/usuarios/${id}`);
+        
+        // Marcar que está editando
+        usuarioEditandoId = id;
+        
+        // Preencher formulário
+        document.getElementById('usr-emp').value = user.cliente_id;
+        document.getElementById('usr-nome').value = user.nome;
+        document.getElementById('usr-email').value = user.email;
+        document.getElementById('usr-admin').checked = user.is_admin;
+        
+        // Carregar restaurantes e marcar os vinculados
+        await loadRestosForUser();
+        
+        // Esperar um pouco para os checkboxes renderizarem
+        setTimeout(() => {
+            user.restaurantes.forEach(resto => {
+                const checkbox = document.querySelector(`input.usr-rest-check[value="${resto.tenant_id}"]`);
+                if (checkbox) checkbox.checked = true;
+            });
+        }, 100);
+        
+        // Mudar texto do botão
+        const btn = document.querySelector('#usuarios form button[type="submit"]');
+        if (btn) btn.textContent = 'Atualizar Usuário';
+        
+        // Scroll para o formulário
+        document.querySelector('#usuarios .form-card').scrollIntoView({ behavior: 'smooth' });
+        
+        notify('Editando usuário. Modifique e clique em Atualizar.', 'success');
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+function cancelarEdicaoUsuario() {
+    usuarioEditandoId = null;
+    document.querySelector('#usuarios form').reset();
+    document.getElementById('usr-rests').innerHTML = '';
+    const btn = document.querySelector('#usuarios form button[type="submit"]');
+    if (btn) btn.textContent = 'Cadastrar Usuário';
 }
 
 // Logout
