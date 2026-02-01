@@ -54,17 +54,26 @@ async def get_current_user(
         email: str = payload.get("sub")
         user_id: int = payload.get("user_id")
         
+        print(f"🔍 Token decodificado - user_id: {user_id}, email: {email}")
+        
         if email is None or user_id is None:
+            print(f"❌ user_id ou email é None")
             raise credentials_exception
             
-    except JWTError:
+    except JWTError as e:
+        print(f"❌ Erro JWT: {e}")
         raise credentials_exception
     
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id, User.email == email).first()
         
+        print(f"🔍 Usuário encontrado no banco: {user is not None}")
+        if user:
+            print(f"🔍 Usuário ativo: {user.ativo}")
+        
         if user is None or not user.ativo:
+            print(f"❌ Usuário None ou inativo")
             raise credentials_exception
             
         return user
