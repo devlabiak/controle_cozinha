@@ -121,9 +121,12 @@
 
     <script>
         const API = `${window.location.protocol}//${window.location.hostname}/api`;
+        console.log('API Base URL:', API);
 
         async function login(e) {
             e.preventDefault();
+            console.log('Iniciando login...');
+            
             const email = document.getElementById('email').value;
             const senha = document.getElementById('senha').value;
             const error = document.getElementById('error');
@@ -131,35 +134,46 @@
             const text = document.getElementById('text');
             const spinner = document.getElementById('spinner');
 
+            console.log('Email:', email);
+            
             error.style.display = 'none';
             btn.disabled = true;
             text.style.display = 'none';
             spinner.style.display = 'block';
 
             try {
+                console.log('Fazendo requisição para:', `${API}/auth/login`);
+                
                 const res = await fetch(`${API}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email, senha })
                 });
 
+                console.log('Resposta status:', res.status);
                 const data = await res.json();
+                console.log('Dados recebidos:', data);
 
                 if (!res.ok) {
                     throw new Error(data.detail || 'Erro ao fazer login');
                 }
 
                 // Salvar token
+                console.log('Salvando token...');
                 localStorage.setItem('token', data.access_token);
                 localStorage.setItem('user', JSON.stringify(data.user));
 
                 // Redirecionar
+                console.log('Redirecionando usuário...');
                 if (data.user.is_admin) {
+                    console.log('Admin -> dashboard');
                     window.location.href = '/painelfoods/dashboard.html';
                 } else {
+                    console.log('Usuário comum -> cozinha');
                     window.location.href = '/cozinha/index.html';
                 }
             } catch (err) {
+                console.error('Erro no login:', err);
                 error.textContent = err.message;
                 error.style.display = 'block';
             } finally {
@@ -170,7 +184,9 @@
         }
 
         // Checar se já está logado
+        console.log('Verificando se já está logado...');
         if (localStorage.getItem('token')) {
+            console.log('Token encontrado, redirecionando...');
             const user = JSON.parse(localStorage.getItem('user'));
             if (user.is_admin) {
                 window.location.href = '/painelfoods/dashboard.html';
