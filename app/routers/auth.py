@@ -72,11 +72,11 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
-@router.get("/me")
+@router.get("/me", response_model=None)
 def get_current_user_info(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
-):
+) -> dict:
     """Retorna informações do usuário logado com seus restaurantes e roles"""
     # Busca o usuário novamente para garantir que temos os relacionamentos carregados
     user = db.query(User).filter(User.id == current_user.id).first()
