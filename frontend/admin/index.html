@@ -374,10 +374,10 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="logo">🍽️ WL Soluções</div>
-            <div class="nav-item active" onclick="showSection('dashboard')">Dashboard</div>
-            <div class="nav-item" onclick="showSection('clientes')">Clientes</div>
-            <div class="nav-item" onclick="showSection('restaurantes')">Restaurantes</div>
-            <div class="nav-item" onclick="showSection('usuarios')">Usuários</div>
+            <div class="nav-item active" onclick="showSection('dashboard', this)">Dashboard</div>
+            <div class="nav-item" onclick="showSection('clientes', this)">Clientes</div>
+            <div class="nav-item" onclick="showSection('restaurantes', this)">Restaurantes</div>
+            <div class="nav-item" onclick="showSection('usuarios', this)">Usuários</div>
             <div style="border-top: 1px solid #4a5568; margin-top: 30px; padding-top: 20px;">
                 <div class="nav-item" onclick="logout()">Sair</div>
             </div>
@@ -756,12 +756,12 @@
         }
 
         // Show section
-        function showSection(section) {
+        function showSection(section, navElement) {
             document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
             document.getElementById(section).classList.add('active');
 
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+            if (navElement) navElement.classList.add('active');
 
             if (section === 'clientes') carregarClientes();
             if (section === 'restaurantes') carregarRestaurantes();
@@ -948,6 +948,13 @@
                     if (response.ok) {
                         alert('✓ Restaurante deletado');
                         carregarRestaurantes();
+                    } else {
+                        let errorMsg = 'Erro ao deletar';
+                        try {
+                            const error = await response.json();
+                            errorMsg = error.detail || errorMsg;
+                        } catch (e) {}
+                        alert('❌ Erro: ' + errorMsg);
                     }
                 } catch (error) {
                     alert('Erro: ' + error.message);
@@ -993,6 +1000,11 @@
 
             try {
                 const response = await fetch(`${API_BASE}/admin/clientes/${clienteId}/restaurantes`, { headers });
+                if (!response.ok) {
+                    console.error('Erro ao carregar restaurantes:', response.statusText);
+                    document.getElementById('lista-restaurantes-usuario').innerHTML = '<p style="color: red;">Erro ao carregar restaurantes</p>';
+                    return;
+                }
                 const restaurantes = await response.json();
 
                 const container = document.getElementById('lista-restaurantes-usuario');
@@ -1089,7 +1101,7 @@
 
         // Fechar modal ao clicar fora
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal')) {
+            if (e.target.id === 'modal-cliente' || e.target.id === 'modal-restaurante' || e.target.id === 'modal-usuario') {
                 e.target.classList.remove('show');
             }
         });
