@@ -13,11 +13,7 @@ from sqlalchemy.orm import Session
 
 from app.models import User, Tenant, user_tenants_association
 from sqlalchemy import and_
-
-# Configurações
-SECRET_KEY = "sua-chave-secreta-super-segura"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+from app.config import settings
 
 # Contexto de hash de senha
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -44,14 +40,14 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 
 def verify_token(token: str) -> dict:
     """Verifica e decodifica um token JWT"""
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload
     except JWTError:
         raise HTTPException(
