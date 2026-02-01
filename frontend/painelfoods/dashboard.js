@@ -81,18 +81,14 @@ async function addEmpresa(e) {
 async function loadEmpresas() {
     try {
         console.log('loadEmpresas iniciado');
-        const empresas = await api('/admin/clientes');
+        const empresas = await api('/admin/clientes') || [];
         console.log('Empresas recebidas:', empresas);
-        
-        alert(`API retornou ${empresas ? empresas.length : 0} empresas`);
-        
-        if (!empresas || empresas.length === 0) {
-            console.warn('Nenhuma empresa retornada da API');
-            alert('ATENÇÃO: Nenhuma empresa cadastrada! Vá para a aba Empresas e cadastre uma empresa primeiro.');
-            return;
-        }
+        console.log('Número de empresas:', empresas.length);
         
         let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ação</th></tr></thead><tbody>';
+        if (empresas.length === 0) {
+            html += '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">Nenhuma empresa cadastrada</td></tr>';
+        }
         empresas.forEach(e => {
             html += `<tr><td>${e.nome_empresa}</td><td>${e.email}</td><td>${e.telefone || '-'}</td><td><button class="btn-sm danger" onclick="delEmpresa(${e.id})">Deletar</button></td></tr>`;
         });
@@ -127,11 +123,10 @@ async function loadEmpresas() {
         if (usrEmpSelect) {
             usrEmpSelect.innerHTML = opts;
             console.log('✓ usr-emp preenchido com', empresas.length, 'opções');
+            console.log('✓ usr-emp.options.length:', usrEmpSelect.options.length);
             console.log('✓ usr-emp.innerHTML:', usrEmpSelect.innerHTML.substring(0, 100));
-            alert(`usr-emp preenchido! Opções: ${usrEmpSelect.options.length}`);
         } else {
             console.warn('✗ usr-emp não encontrado');
-            alert('ERRO: Select usr-emp não encontrado no DOM!');
         }
         
     } catch (e) {
