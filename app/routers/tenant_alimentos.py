@@ -430,17 +430,12 @@ def gerar_etiqueta_pdf(
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white")
     
-    # Converte QR code para bytes
-    qr_buffer = io.BytesIO()
-    qr_img.save(qr_buffer, format='PNG')
-    qr_buffer.seek(0)
-    
     # Cria PDF
     pdf_buffer = io.BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=(80*mm, 60*mm))  # Etiqueta 80x60mm
     
-    # Desenha QR code
-    c.drawInlineImage(qr_buffer, 5*mm, 25*mm, width=25*mm, height=25*mm)
+    # Desenha QR code (passa o objeto PIL Image diretamente)
+    c.drawInlineImage(qr_img, 5*mm, 25*mm, width=25*mm, height=25*mm)
     
     # Adiciona texto
     c.setFont("Helvetica-Bold", 12)
