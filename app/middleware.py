@@ -23,6 +23,13 @@ class TenantMiddleware(BaseHTTPMiddleware):
         if host.endswith(f".{settings.BASE_DOMAIN}"):
             # Extrai o slug (subdomínio)
             tenant_slug = host.replace(f".{settings.BASE_DOMAIN}", "")
+
+            # Subdomínios que não representam restaurante
+            non_tenant_subdomains = {"painelfood", "cozinha", "admin"}
+            if tenant_slug in non_tenant_subdomains:
+                request.state.tenant_id = None
+                request.state.tenant_slug = tenant_slug
+                return await call_next(request)
             
             # Busca o tenant no banco
             db = SessionLocal()
