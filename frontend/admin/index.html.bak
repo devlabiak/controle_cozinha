@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - WL Soluções</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            background: #2d3748;
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #4a5568;
+        }
+
+        .nav-item {
+            padding: 12px 15px;
+            margin: 5px 0;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover {
+            background: #4a5568;
+        }
+
+        .nav-item.active {
+            background: #667eea;
+            font-weight: bold;
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #667eea;
+        }
+
+        .logout-btn {
+            background: #f56565;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: #e53e3e;
+        }
+
+        /* Content sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-secondary {
+            background: #cbd5e0;
+            color: #2d3748;
+        }
+
+        .btn-secondary:hover {
+            background: #a0aec0;
+        }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #edf2f7;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #2d3748;
+            border-bottom: 2px solid #cbd5e0;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        /* Status badges */
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-danger {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #fc8181;
+        }
+
+        .alert-info {
+            background: #bee3f8;
+            color: #2c5282;
+            border: 1px solid #63b3ed;
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-box .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-box .label {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .modal-header h2 {
+            color: #667eea;
+        }
+
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo">🍽️ WL Soluções</div>
+            <div class="nav-item active" onclick="showSection('dashboard', this)">Dashboard</div>
+            <div class="nav-item" onclick="showSection('clientes', this)">Clientes</div>
+            <div class="nav-item" onclick="showSection('restaurantes', this)">Restaurantes</div>
+            <div class="nav-item" onclick="showSection('usuarios', this)">Usuários</div>
+            <div style="border-top: 1px solid #4a5568; margin-top: 30px; padding-top: 20px;">
+                <div class="nav-item" onclick="logout()">Sair</div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main">
+            <!-- Header -->
+            <div class="header">
+                <div>
+                    <h1>Painel de Administração</h1>
+                    <p style="color: #718096; margin-top: 5px;">Gerenciar clientes, restaurantes e usuários</p>
+                </div>
+                <button class="logout-btn" onclick="logout()">Sair</button>
+            </div>
+
+            <!-- Dashboard Section -->
+            <div id="dashboard" class="content-section active">
+                <div class="grid-3">
+                    <div class="stat-box">
+                        <div class="number" id="total-clientes">0</div>
+                        <div class="label">Clientes</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="total-restaurantes">0</div>
+                        <div class="label">Restaurantes</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="number" id="total-usuarios">0</div>
+                        <div class="label">Usuários</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clientes Section -->
+            <div id="clientes" class="content-section">
+                <div class="card">
+                    <h2>Novo Cliente</h2>
+                    <form id="form-cliente" onsubmit="adicionarCliente(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cliente-nome">Nome da Empresa *</label>
+                                <input type="text" id="cliente-nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cliente-email">Email *</label>
+                                <input type="email" id="cliente-email" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cliente-telefone">Telefone</label>
+                                <input type="tel" id="cliente-telefone">
+                            </div>
+                            <div class="form-group">
+                                <label for="cliente-cnpj">CNPJ</label>
+                                <input type="text" id="cliente-cnpj" placeholder="XX.XXX.XXX/0001-XX">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="cliente-endereco">Endereço</label>
+                            <input type="text" id="cliente-endereco">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cliente-cidade">Cidade</label>
+                                <input type="text" id="cliente-cidade">
+                            </div>
+                            <div class="form-group">
+                                <label for="cliente-estado">Estado</label>
+                                <select id="cliente-estado">
+                                    <option value="">Selecione...</option>
+                                    <option value="SP">São Paulo</option>
+                                    <option value="RJ">Rio de Janeiro</option>
+                                    <option value="MG">Minas Gerais</option>
+                                    <option value="RS">Rio Grande do Sul</option>
+                                    <option value="BA">Bahia</option>
+                                    <option value="SC">Santa Catarina</option>
+                                    <option value="PR">Paraná</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Adicionar Cliente</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>Clientes Cadastrados</h2>
+                    <div class="table-responsive">
+                        <table id="tabela-clientes">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Telefone</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restaurantes Section -->
+            <div id="restaurantes" class="content-section">
+                <div class="card">
+                    <h2>Novo Restaurante</h2>
+                    <form id="form-restaurante" onsubmit="adicionarRestaurante(event)">
+                        <div class="form-group">
+                            <label for="restaurante-cliente">Cliente *</label>
+                            <select id="restaurante-cliente" required></select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="restaurante-nome">Nome do Restaurante *</label>
+                                <input type="text" id="restaurante-nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="restaurante-slug">URL (slug) *</label>
+                                <input type="text" id="restaurante-slug" placeholder="exemplo" required>
+                                <small style="color: #718096;">Ex: pizzaria-italia → pizzaria-italia.localhost</small>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="restaurante-email">Email *</label>
+                                <input type="email" id="restaurante-email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="restaurante-telefone">Telefone</label>
+                                <input type="tel" id="restaurante-telefone">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="restaurante-cnpj">CNPJ</label>
+                            <input type="text" id="restaurante-cnpj">
+                        </div>
+                        <div class="form-group">
+                            <label for="restaurante-endereco">Endereço</label>
+                            <input type="text" id="restaurante-endereco">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Criar Restaurante</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>Restaurantes Cadastrados</h2>
+                    <div class="table-responsive">
+                        <table id="tabela-restaurantes">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>URL</th>
+                                    <th>Cliente</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuários Section -->
+            <div id="usuarios" class="content-section">
+                <div class="card">
+                    <h2>Novo Usuário</h2>
+                    <form id="form-usuario" onsubmit="adicionarUsuario(event)">
+                        <div class="form-group">
+                            <label for="usuario-cliente">Cliente *</label>
+                            <select id="usuario-cliente" required onchange="carregarRestaurantesCliente(this.value)"></select>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="usuario-nome">Nome *</label>
+                                <input type="text" id="usuario-nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="usuario-email">Email *</label>
+                                <input type="email" id="usuario-email" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="usuario-senha">Senha *</label>
+                                <input type="password" id="usuario-senha" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="usuario-is-admin">
+                                    <input type="checkbox" id="usuario-is-admin"> Admin do Cliente
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Restaurantes (selecione os que o usuário terá acesso)</label>
+                            <div id="lista-restaurantes-usuario" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Criar Usuário</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h2>Usuários Cadastrados</h2>
+                    <div class="table-responsive">
+                        <table id="tabela-usuarios">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Cliente</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Cliente -->
+    <div id="modal-cliente" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Cliente</h2>
+            </div>
+            <form id="form-editar-cliente" onsubmit="salvarClienteEditado(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-cliente-nome">Nome da Empresa</label>
+                        <input type="text" id="edit-cliente-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cliente-email">Email</label>
+                        <input type="email" id="edit-cliente-email" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-cliente-telefone">Telefone</label>
+                        <input type="tel" id="edit-cliente-telefone">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cliente-cnpj">CNPJ</label>
+                        <input type="text" id="edit-cliente-cnpj">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-cliente-endereco">Endereço</label>
+                    <input type="text" id="edit-cliente-endereco">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-cliente-cidade">Cidade</label>
+                        <input type="text" id="edit-cliente-cidade">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-cliente-estado">Estado</label>
+                        <select id="edit-cliente-estado">
+                            <option value="">Selecione...</option>
+                            <option value="SP">São Paulo</option>
+                            <option value="RJ">Rio de Janeiro</option>
+                            <option value="MG">Minas Gerais</option>
+                            <option value="RS">Rio Grande do Sul</option>
+                            <option value="BA">Bahia</option>
+                            <option value="SC">Santa Catarina</option>
+                            <option value="PR">Paraná</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Restaurante -->
+    <div id="modal-restaurante" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Restaurante</h2>
+            </div>
+            <form id="form-editar-restaurante" onsubmit="salvarRestauranteEditado(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-restaurante-nome">Nome</label>
+                        <input type="text" id="edit-restaurante-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-restaurante-slug">URL (slug)</label>
+                        <input type="text" id="edit-restaurante-slug" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-restaurante-email">Email</label>
+                        <input type="email" id="edit-restaurante-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-restaurante-telefone">Telefone</label>
+                        <input type="tel" id="edit-restaurante-telefone">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-restaurante-cnpj">CNPJ</label>
+                    <input type="text" id="edit-restaurante-cnpj">
+                </div>
+                <div class="form-group">
+                    <label for="edit-restaurante-endereco">Endereço</label>
+                    <input type="text" id="edit-restaurante-endereco">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-restaurante')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Edição de Usuário -->
+    <div id="modal-usuario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Usuário</h2>
+            </div>
+            <form id="form-editar-usuario" onsubmit="salvarUsuarioEditado(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-usuario-nome">Nome</label>
+                        <input type="text" id="edit-usuario-nome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-usuario-email">Email</label>
+                        <input type="email" id="edit-usuario-email" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit-usuario-is-admin">
+                        <input type="checkbox" id="edit-usuario-is-admin"> Admin do Cliente
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Restaurantes e Roles</label>
+                    <div id="lista-restaurantes-editar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-usuario')">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = `${window.location.protocol}//${window.location.hostname}/api`;
+        const TOKEN = localStorage.getItem('token');
+
+        // Headers padrão
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${TOKEN}`
+        };
+
+        // Verificar autenticação
+        if (!TOKEN) {
+            window.location.href = '/admin/login.html';
+        }
+
+        // Show section
+        function showSection(section, navElement) {
+            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
+            document.getElementById(section).classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            if (navElement) navElement.classList.add('active');
+
+            if (section === 'clientes') carregarClientes();
+            if (section === 'restaurantes') carregarRestaurantes();
+            if (section === 'usuarios') carregarUsuarios();
+            if (section === 'dashboard') carregarDashboard();
+        }
+
+        // ===== DASHBOARD =====
+        async function carregarDashboard() {
+            try {
+                const [clientes, restaurantes, usuarios] = await Promise.all([
+                    fetch(`${API_BASE}/admin/clientes`, { headers }).then(r => r.json()),
+                    fetch(`${API_BASE}/admin/restaurantes`, { headers }).then(r => r.json()),
+                    fetch(`${API_BASE}/admin/usuarios`, { headers }).then(r => r.json())
+                ]);
+
+                document.getElementById('total-clientes').textContent = clientes.length;
+                document.getElementById('total-restaurantes').textContent = restaurantes.length;
+                document.getElementById('total-usuarios').textContent = usuarios.length;
+            } catch (error) {
+                console.error('Erro ao carregar dashboard:', error);
+            }
+        }
+
+        // ===== CLIENTES =====
+        async function carregarClientes() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes`, { headers });
+                const clientes = await response.json();
+
+                const tbody = document.querySelector('#tabela-clientes tbody');
+                tbody.innerHTML = '';
+
+                clientes.forEach(cliente => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${cliente.nome_empresa}</td>
+                        <td>${cliente.email}</td>
+                        <td>${cliente.telefone || '-'}</td>
+                        <td><span class="badge ${cliente.ativo ? 'badge-success' : 'badge-danger'}">${cliente.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editarCliente(${cliente.id})">Editar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                // Carregar select de clientes
+                const select = document.getElementById('restaurante-cliente');
+                select.innerHTML = '<option value="">Selecione...</option>';
+                clientes.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    option.textContent = cliente.nome_empresa;
+                    select.appendChild(option);
+                });
+
+                const selectUsuario = document.getElementById('usuario-cliente');
+                selectUsuario.innerHTML = '<option value="">Selecione...</option>';
+                clientes.forEach(cliente => {
+                    const option = document.createElement('option');
+                    option.value = cliente.id;
+                    option.textContent = cliente.nome_empresa;
+                    selectUsuario.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Erro ao carregar clientes:', error);
+            }
+        }
+
+        async function adicionarCliente(event) {
+            event.preventDefault();
+
+            const nomeEmpresa = document.getElementById('cliente-nome').value.trim();
+            const email = document.getElementById('cliente-email').value.trim().toLowerCase();
+
+            if (!nomeEmpresa || !email) {
+                alert('❌ Preencha nome da empresa e email válidos.');
+                return;
+            }
+
+            const cliente = {
+                nome_empresa: nomeEmpresa,
+                email,
+                telefone: document.getElementById('cliente-telefone').value.trim() || null,
+                cnpj: document.getElementById('cliente-cnpj').value.trim() || null,
+                endereco: document.getElementById('cliente-endereco').value.trim() || null,
+                cidade: document.getElementById('cliente-cidade').value.trim() || null,
+                estado: document.getElementById('cliente-estado').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(cliente)
+                });
+
+                if (response.ok) {
+                    alert('✓ Cliente criado com sucesso!');
+                    document.getElementById('form-cliente').reset();
+                    carregarClientes();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao criar cliente: ' + error.message);
+            }
+        }
+
+        // ===== RESTAURANTES =====
+        async function carregarRestaurantes() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurantes`, { headers });
+                const restaurantes = await response.json();
+
+                const tbody = document.querySelector('#tabela-restaurantes tbody');
+                tbody.innerHTML = '';
+
+                restaurantes.forEach(r => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${r.nome}</td>
+                        <td><code>${r.slug}.localhost</code></td>
+                        <td>${r.cliente_id}</td>
+                        <td>${r.email}</td>
+                        <td><span class="badge ${r.ativo ? 'badge-success' : 'badge-danger'}">${r.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editarRestaurante(${r.id})">Editar</button>
+                            <button class="btn btn-danger" onclick="deletarRestaurante(${r.id})">Deletar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                carregarClientes();
+            } catch (error) {
+                console.error('Erro ao carregar restaurantes:', error);
+            }
+        }
+
+        async function adicionarRestaurante(event) {
+            event.preventDefault();
+
+            const restaurante = {
+                cliente_id: parseInt(document.getElementById('restaurante-cliente').value),
+                nome: document.getElementById('restaurante-nome').value,
+                slug: document.getElementById('restaurante-slug').value,
+                email: document.getElementById('restaurante-email').value,
+                telefone: document.getElementById('restaurante-telefone').value,
+                cnpj: document.getElementById('restaurante-cnpj').value,
+                endereco: document.getElementById('restaurante-endereco').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurantes`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(restaurante)
+                });
+
+                if (response.ok) {
+                    alert('✓ Restaurante criado com sucesso!');
+                    document.getElementById('form-restaurante').reset();
+                    carregarRestaurantes();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao criar restaurante: ' + error.message);
+            }
+        }
+
+        async function deletarRestaurante(id) {
+            if (confirm('Tem certeza que deseja deletar este restaurante?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
+                        method: 'DELETE',
+                        headers
+                    });
+
+                    if (response.ok) {
+                        alert('✓ Restaurante deletado');
+                        carregarRestaurantes();
+                    } else {
+                        let errorMsg = 'Erro ao deletar';
+                        try {
+                            const error = await response.json();
+                            errorMsg = error.detail || errorMsg;
+                        } catch (e) {}
+                        alert('❌ Erro: ' + errorMsg);
+                    }
+                } catch (error) {
+                    alert('Erro: ' + error.message);
+                }
+            }
+        }
+
+        // ===== USUÁRIOS =====
+        async function carregarUsuarios() {
+            try {
+                const response = await fetch(`${API_BASE}/admin/usuarios`, { headers });
+                const usuarios = await response.json();
+
+                const tbody = document.querySelector('#tabela-usuarios tbody');
+                tbody.innerHTML = '';
+
+                usuarios.forEach(u => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${u.nome}</td>
+                        <td>${u.email}</td>
+                        <td>${u.cliente_id}</td>
+                        <td><span class="badge ${u.is_admin ? 'badge-success' : ''}">${u.is_admin ? 'Admin' : 'Funcionário'}</span></td>
+                        <td><span class="badge ${u.ativo ? 'badge-success' : 'badge-danger'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="editarUsuario(${u.id})">Editar</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                carregarClientes();
+            } catch (error) {
+                console.error('Erro ao carregar usuários:', error);
+            }
+        }
+
+        async function carregarRestaurantesCliente(clienteId) {
+            if (!clienteId) {
+                document.getElementById('lista-restaurantes-usuario').innerHTML = '';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes/${clienteId}/restaurantes`, { headers });
+                if (!response.ok) {
+                    console.error('Erro ao carregar restaurantes:', response.statusText);
+                    document.getElementById('lista-restaurantes-usuario').innerHTML = '<p style="color: red;">Erro ao carregar restaurantes</p>';
+                    return;
+                }
+                const restaurantes = await response.json();
+
+                const container = document.getElementById('lista-restaurantes-usuario');
+                container.innerHTML = '';
+
+                restaurantes.forEach(r => {
+                    const div = document.createElement('div');
+                    div.style.borderRadius = '5px';
+                    div.style.border = '1px solid #ddd';
+                    div.style.padding = '10px';
+                    div.style.backgroundColor = '#f9f9f9';
+                    
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <input type="checkbox" value="${r.id}" name="restaurante" class="restaurante-checkbox">
+                            <strong>${r.nome}</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-left: 24px;">
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
+                                <input type="radio" name="role-${r.id}" value="admin" checked> 
+                                👨‍💼 Admin
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
+                                <input type="radio" name="role-${r.id}" value="leitura"> 
+                                👁️ Leitura
+                            </label>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+
+        async function adicionarUsuario(event) {
+            event.preventDefault();
+
+            const usuario = {
+                cliente_id: parseInt(document.getElementById('usuario-cliente').value),
+                nome: document.getElementById('usuario-nome').value,
+                email: document.getElementById('usuario-email').value,
+                senha: document.getElementById('usuario-senha').value,
+                is_admin: document.getElementById('usuario-is-admin').checked
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/usuarios`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(usuario)
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    alert('✓ Usuário criado com sucesso!');
+
+                    // Associar restaurantes com seus roles
+                    const checkboxes = document.querySelectorAll('input[name="restaurante"]:checked');
+                    for (const checkbox of checkboxes) {
+                        const restauranteId = checkbox.value;
+                        const roleRadio = document.querySelector(`input[name="role-${restauranteId}"]:checked`);
+                        const role = roleRadio ? roleRadio.value : 'leitura';
+                        
+                        await fetch(`${API_BASE}/admin/usuarios/${user.id}/restaurantes/${restauranteId}?role=${role}`, {
+                            method: 'POST',
+                            headers
+                        });
+                    }
+
+                    document.getElementById('form-usuario').reset();
+                    carregarUsuarios();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao criar usuário: ' + error.message);
+            }
+        }
+
+        // ===== FUNÇÕES DE EDIÇÃO =====
+        let clienteEditandoId = null;
+        let restauranteEditandoId = null;
+        let usuarioEditandoId = null;
+
+        function abrirModal(modalId) {
+            document.getElementById(modalId).classList.add('show');
+        }
+
+        function fecharModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        // Fechar modal ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'modal-cliente' || e.target.id === 'modal-restaurante' || e.target.id === 'modal-usuario') {
+                e.target.classList.remove('show');
+            }
+        });
+
+        async function editarCliente(id) {
+            clienteEditandoId = id;
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes/${id}`, { headers });
+                const cliente = await response.json();
+
+                document.getElementById('edit-cliente-nome').value = cliente.nome_empresa;
+                document.getElementById('edit-cliente-email').value = cliente.email;
+                document.getElementById('edit-cliente-telefone').value = cliente.telefone || '';
+                document.getElementById('edit-cliente-cnpj').value = cliente.cnpj || '';
+                document.getElementById('edit-cliente-endereco').value = cliente.endereco || '';
+                document.getElementById('edit-cliente-cidade').value = cliente.cidade || '';
+                document.getElementById('edit-cliente-estado').value = cliente.estado || '';
+
+                abrirModal('modal-cliente');
+            } catch (error) {
+                alert('Erro ao carregar cliente: ' + error.message);
+            }
+        }
+
+        async function salvarClienteEditado(event) {
+            event.preventDefault();
+
+            const cliente = {
+                nome_empresa: document.getElementById('edit-cliente-nome').value,
+                email: document.getElementById('edit-cliente-email').value,
+                telefone: document.getElementById('edit-cliente-telefone').value || null,
+                cnpj: document.getElementById('edit-cliente-cnpj').value || null,
+                endereco: document.getElementById('edit-cliente-endereco').value || null,
+                cidade: document.getElementById('edit-cliente-cidade').value || null,
+                estado: document.getElementById('edit-cliente-estado').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/clientes/${clienteEditandoId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(cliente)
+                });
+
+                if (response.ok) {
+                    alert('✓ Cliente atualizado com sucesso!');
+                    fecharModal('modal-cliente');
+                    carregarClientes();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao salvar cliente: ' + error.message);
+            }
+        }
+
+        async function editarRestaurante(id) {
+            restauranteEditandoId = id;
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, { headers });
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar restaurante');
+                }
+                const restaurante = await response.json();
+
+                document.getElementById('edit-restaurante-nome').value = restaurante.nome;
+                document.getElementById('edit-restaurante-slug').value = restaurante.slug;
+                document.getElementById('edit-restaurante-email').value = restaurante.email;
+                document.getElementById('edit-restaurante-telefone').value = restaurante.telefone || '';
+                document.getElementById('edit-restaurante-cnpj').value = restaurante.cnpj || '';
+                document.getElementById('edit-restaurante-endereco').value = restaurante.endereco || '';
+
+                abrirModal('modal-restaurante');
+            } catch (error) {
+                alert('Erro ao carregar restaurante: ' + error.message);
+            }
+        }
+
+        async function salvarRestauranteEditado(event) {
+            event.preventDefault();
+
+            const restaurante = {
+                cliente_id: 0, // Não será usado na atualização
+                nome: document.getElementById('edit-restaurante-nome').value,
+                slug: document.getElementById('edit-restaurante-slug').value,
+                email: document.getElementById('edit-restaurante-email').value,
+                telefone: document.getElementById('edit-restaurante-telefone').value || null,
+                cnpj: document.getElementById('edit-restaurante-cnpj').value || null,
+                endereco: document.getElementById('edit-restaurante-endereco').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/restaurantes/${restauranteEditandoId}`, {
+                    method: 'PUT',
+                    headers,
+                    body: JSON.stringify(restaurante)
+                });
+
+                if (response.ok) {
+                    alert('✓ Restaurante atualizado com sucesso!');
+                    fecharModal('modal-restaurante');
+                    carregarRestaurantes();
+                } else {
+                    const error = await response.json();
+                    alert('❌ Erro: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Erro ao salvar restaurante: ' + error.message);
+            }
+        }
+
+        async function editarUsuario(id) {
+            usuarioEditandoId = id;
+            try {
+                const response = await fetch(`${API_BASE}/admin/usuarios`, { headers });
+                const usuarios = await response.json();
+                const usuario = usuarios.find(u => u.id === id);
+
+                if (!usuario) {
+                    throw new Error('Usuário não encontrado');
+                }
+
+                document.getElementById('edit-usuario-nome').value = usuario.nome;
+                document.getElementById('edit-usuario-email').value = usuario.email;
+                document.getElementById('edit-usuario-is-admin').checked = usuario.is_admin;
+
+                // Carregar restaurantes do cliente
+                const respRestaurantes = await fetch(`${API_BASE}/admin/clientes/${usuario.cliente_id}/restaurantes`, { headers });
+                const restaurantes = await respRestaurantes.json();
+
+                // Carregar restaurantes que o usuário tem acesso
+                const respTenants = await fetch(`${API_BASE}/admin/restaurantes/${usuario.id}/usuarios`, { headers }).catch(() => ({
+                    json: () => ([])
+                }));
+                const tenantsUsuario = respTenants.ok ? await respTenants.json() : [];
+
+                const container = document.getElementById('lista-restaurantes-editar');
+                container.innerHTML = '';
+
+                restaurantes.forEach(r => {
+                    const temAcesso = tenantsUsuario.find(t => t.id === r.id);
+                    const role = temAcesso ? tenantsUsuario.find(t => t.id === r.id).role || 'leitura' : 'leitura';
+
+                    const div = document.createElement('div');
+                    div.style.borderRadius = '5px';
+                    div.style.border = '1px solid #ddd';
+                    div.style.padding = '10px';
+                    div.style.backgroundColor = '#f9f9f9';
+                    
+                    div.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <input type="checkbox" value="${r.id}" name="restaurante-editar" class="restaurante-checkbox-editar" ${temAcesso ? 'checked' : ''}>
+                            <strong>${r.nome}</strong>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding-left: 24px;">
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
+                                <input type="radio" name="role-edit-${r.id}" value="admin" ${role === 'admin' ? 'checked' : ''}> 
+                                👨‍💼 Admin
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 14px;">
+                                <input type="radio" name="role-edit-${r.id}" value="leitura" ${role === 'leitura' ? 'checked' : ''}> 
+                                👁️ Leitura
+                            </label>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+
+                abrirModal('modal-usuario');
+            } catch (error) {
+                alert('Erro ao carregar usuário: ' + error.message);
+            }
+        }
+
+        async function salvarUsuarioEditado(event) {
+            event.preventDefault();
+
+            try {
+                // Atualizar dados básicos do usuário se necessário
+                // (nome, email, is_admin seriam atualizados aqui)
+
+                // Sincronizar restaurantes
+                const checkboxes = document.querySelectorAll('input[name="restaurante-editar"]');
+                
+                // Remover acessos desmarcados e atualizar marcados
+                for (const checkbox of checkboxes) {
+                    const restauranteId = checkbox.value;
+                    const roleRadio = document.querySelector(`input[name="role-edit-${restauranteId}"]:checked`);
+                    const role = roleRadio ? roleRadio.value : 'leitura';
+
+                    if (checkbox.checked) {
+                        // Adicionar ou atualizar acesso
+                        await fetch(`${API_BASE}/admin/usuarios/${usuarioEditandoId}/restaurantes/${restauranteId}?role=${role}`, {
+                            method: 'POST',
+                            headers
+                        });
+                    } else {
+                        // Remover acesso
+                        await fetch(`${API_BASE}/admin/usuarios/${usuarioEditandoId}/restaurantes/${restauranteId}`, {
+                            method: 'DELETE',
+                            headers
+                        });
+                    }
+                }
+
+                alert('✓ Usuário atualizado com sucesso!');
+                fecharModal('modal-usuario');
+                carregarUsuarios();
+            } catch (error) {
+                alert('Erro ao salvar usuário: ' + error.message);
+            }
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '/admin/login.html';
+        }
+
+        // Carregar dados ao abrir
+        window.addEventListener('load', () => {
+            carregarDashboard();
+        });
+    </script>
+</body>
+</html>

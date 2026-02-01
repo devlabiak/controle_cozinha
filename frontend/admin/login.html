@@ -403,13 +403,18 @@
 
         function finalizarLogin() {
             if (restauranteSelecionado) {
-                localStorage.setItem('token', usuarioLogado.token);
+                // Salvar token e informações do usuário
+                localStorage.setItem('token', usuarioLogado.access_token);
                 localStorage.setItem('user', JSON.stringify(usuarioLogado.user));
                 localStorage.setItem('restaurante_selecionado', JSON.stringify(restauranteSelecionado));
+                localStorage.setItem('tenant_id', restauranteSelecionado.id);
+                localStorage.setItem('tenant_slug', restauranteSelecionado.slug);
 
                 mostrarAlerta('✓ Login realizado com sucesso!', 'success');
                 setTimeout(() => {
-                    window.location.href = `//${restauranteSelecionado.slug}.${window.location.hostname}/`;
+                    // Redirecionar para o subdomínio do restaurante
+                    const baseHost = window.location.hostname.replace(/^admin\./, '');
+                    window.location.href = `${window.location.protocol}//${restauranteSelecionado.slug}.${baseHost}/`;
                 }, 1000);
             }
         }
@@ -447,7 +452,7 @@
 
                         mostrarAlerta('✓ Login realizado com sucesso!', 'success');
                         setTimeout(() => {
-                            window.location.href = '/admin/';
+                            window.location.href = '/admin/dashboard.html';
                         }, 1000);
                     } else {
                         // Se não é admin, mostrar seletor de restaurante
