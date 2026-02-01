@@ -22,6 +22,15 @@ class UsuarioCreate(BaseModel):
     is_admin: bool = False
 
 
+class ClienteResponse(BaseModel):
+    id: int
+    nome_empresa: str
+    email: str
+
+    class Config:
+        from_attributes = True
+
+
 class UsuarioResponse(BaseModel):
     id: int
     cliente_id: Optional[int] = None
@@ -43,15 +52,6 @@ class UsuarioClienteResponse(BaseModel):
     is_admin: bool
     ativo: bool
     clientes_acesso: List[ClienteResponse] = []
-
-    class Config:
-        from_attributes = True
-
-
-class ClienteResponse(BaseModel):
-    id: int
-    nome_empresa: str
-    email: str
 
     class Config:
         from_attributes = True
