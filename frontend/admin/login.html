@@ -402,8 +402,8 @@
         }
 
         function finalizarLogin() {
+            // Restaurante foi selecionado, salvar dados e redirecionar
             if (restauranteSelecionado) {
-                // Salvar token e informações do usuário
                 localStorage.setItem('token', usuarioLogado.access_token);
                 localStorage.setItem('user', JSON.stringify(usuarioLogado.user));
                 localStorage.setItem('restaurante_selecionado', JSON.stringify(restauranteSelecionado));
