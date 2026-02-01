@@ -20,6 +20,7 @@ class UsuarioCreate(BaseModel):
     email: EmailStr
     senha: str
     is_admin: bool = False
+    restaurantes: Optional[List[int]] = None  # IDs dos restaurantes
 
 
 class ClienteResponse(BaseModel):
@@ -89,6 +90,17 @@ def criar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
         ativo=True
     )
     db.add(novo_usuario)
+    db.flush()
+    
+    # Vincular aos restaurantes
+    if usuario.restaurantes:
+        from app.models import Tenant
+        tenants = db.query(Tenant).filter(
+            Tenant.id.in_(usuario.restaurantes),
+            Tenant.cliente_id == usuario.cliente_id
+        ).all()
+        novo_usuario.tenants.extend(tenants)
+    
     db.commit()
     db.refresh(novo_usuario)
     

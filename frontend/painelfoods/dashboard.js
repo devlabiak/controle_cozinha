@@ -148,8 +148,37 @@ async function delRestaurante(id) {
 }
 
 // ===== USUÁRIOS =====
+async function loadRestosForUser() {
+    try {
+        const empId = document.getElementById('usr-emp').value;
+        if (!empId) {
+            document.getElementById('usr-rests').innerHTML = '';
+            return;
+        }
+        
+        const rests = await api(`/admin/clientes/${empId}/restaurantes`);
+        let html = '';
+        rests.forEach(r => {
+            html += `<label style="display: block; margin: 8px 0; cursor: pointer;">
+                <input type="checkbox" name="rest-${r.id}" value="${r.id}" class="usr-rest-check">
+                ${r.nome}
+            </label>`;
+        });
+        document.getElementById('usr-rests').innerHTML = html || '<p>Nenhum restaurante para esta empresa</p>';
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
 async function addUsuario(e) {
     e.preventDefault();
+    
+    const rests = Array.from(document.querySelectorAll('.usr-rest-check:checked')).map(c => parseInt(c.value));
+    if (rests.length === 0) {
+        notify('Selecione ao menos um restaurante!', 'error');
+        return;
+    }
+    
     try {
         await api('/admin/usuarios', {
             method: 'POST',
@@ -158,7 +187,8 @@ async function addUsuario(e) {
                 nome: document.getElementById('usr-nome').value,
                 email: document.getElementById('usr-email').value,
                 senha: document.getElementById('usr-senha').value,
-                is_admin: document.getElementById('usr-admin').checked
+                is_admin: document.getElementById('usr-admin').checked,
+                restaurantes: rests
             })
         });
         notify('Usuário criado!');

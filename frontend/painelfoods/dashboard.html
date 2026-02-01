@@ -278,7 +278,11 @@
                     <form onsubmit="addUsuario(event)">
                         <div class="form-group">
                             <label>Empresa *</label>
-                            <select id="usr-emp" required></select>
+                            <select id="usr-emp" required onchange="loadRestosForUser()"></select>
+                        </div>
+                        <div class="form-group">
+                            <label>Restaurantes *</label>
+                            <div id="usr-rests" style="border: 1px solid #cbd5e0; border-radius: 6px; padding: 10px; max-height: 200px; overflow-y: auto;"></div>
                         </div>
                         <div class="form-group">
                             <label>Nome *</label>
