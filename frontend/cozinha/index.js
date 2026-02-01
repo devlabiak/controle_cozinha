@@ -174,13 +174,94 @@ async function loadProdutos() {
                 </div>
                 <div class="product-stock ${p.estoque_atual < p.estoque_minimo ? 'low' : ''}">
                     <strong>${p.estoque_atual} ${p.unidade_medida}</strong>
-                    ${p.estoque_atual < p.estoque_minimo ? '<span class="badge" style="background:#f56565;">Estoque baixo!</span>' : ''}
+                    ${p.estoque_atual < p.estoque_minimo ? '<span class="badge badge-danger">Estoque baixo!</span>' : ''}
                     ${p.estoque_minimo > 0 ? `<small>Mínimo: ${p.estoque_minimo}</small>` : ''}
+                </div>
+                <div class="product-actions">
+                    <button class="btn-action btn-entrada" onclick="openMovimentacao(${p.id}, '${p.nome}', ${p.estoque_atual}, '${p.unidade_medida}', 'entrada')">
+                        <i class="fas fa-plus"></i> Entrada
+                    </button>
+                    <button class="btn-action btn-saida" onclick="openMovimentacao(${p.id}, '${p.nome}', ${p.estoque_atual}, '${p.unidade_medida}', 'saida')">
+                        <i class="fas fa-minus"></i> Saída
+                    </button>
                 </div>
             </div>
         `).join('');
     } catch (err) {
-        showNotification('Erro ao carregar produtos', 'error');
+        console.error('Erro em loadProdutos:', err);
+        showNotification('Erro ao carregar produtos: ' + err.message, 'error');
+    }
+}
+
+// Modal de Movimentação
+function openMovimentacao(id, nome, estoqueAtual, unidade, tipo) {
+    document.getElementById('mov-alimento-id').value = id;
+    document.getElementById('mov-produto-nome').value = nome;
+    document.getElementById('mov-tipo').value = tipo;
+    document.getElementById('mov-quantidade').value = '';
+    document.getElementById('mov-observacao').value = '';
+    
+    const modal = document.getElementById('modal-movimentacao');
+    const title = document.getElementById('modal-title');
+    const estoqueInfo = document.getElementById('mov-estoque-info');
+    const btnSubmit = document.getElementById('btn-submit-mov');
+    
+    if (tipo === 'entrada') {
+        title.textContent = '➕ Registrar Entrada';
+        title.style.color = '#48bb78';
+        estoqueInfo.textContent = `Estoque atual: ${estoqueAtual} ${unidade}`;
+        btnSubmit.style.background = '#48bb78';
+        btnSubmit.textContent = 'Registrar Entrada';
+    } else {
+        title.textContent = '➖ Registrar Saída';
+        title.style.color = '#f56565';
+        estoqueInfo.textContent = `Estoque disponível: ${estoqueAtual} ${unidade}`;
+        btnSubmit.style.background = '#f56565';
+        btnSubmit.textContent = 'Registrar Saída';
+        document.getElementById('mov-quantidade').max = estoqueAtual;
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('modal-movimentacao').classList.remove('active');
+}
+
+async function submitMovimentacao(event) {
+    event.preventDefault();
+    
+    const alimentoId = parseInt(document.getElementById('mov-alimento-id').value);
+    const tipo = document.getElementById('mov-tipo').value;
+    const quantidade = parseFloat(document.getElementById('mov-quantidade').value);
+    const observacao = document.getElementById('mov-observacao').value;
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                alimento_id: alimentoId,
+                tipo: tipo,
+                quantidade: quantidade,
+                observacao: observacao || null
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao registrar movimentação');
+        }
+        
+        closeModal();
+        showNotification(`${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada com sucesso!`, 'success');
+        loadProdutos(); // Recarrega lista
+        
+    } catch (err) {
+        showNotification(err.message, 'error');
     }
 }
 
@@ -215,18 +296,33 @@ async function loadHistorico() {
         }
         
         empty.style.display = 'none';
-        tbody.innerHTML = movimentacoes.map(m => `
+        tbody.innerHTML = movimentacoes.map(m => {
+            const tipoIcon = m.tipo === 'entrada' ? '➕' : m.tipo === 'saida' ? '➖' : '🔄';
+            const tipoColor = m.tipo === 'entrada' ? '#48bb78' : m.tipo === 'saida' ? '#f56565' : '#ed8936';
+            
+            return `
             <tr>
                 <td>${new Date(m.data_hora).toLocaleString('pt-BR')}</td>
-                <td>${m.alimento_nome || 'N/A'}</td>
-                <td><span class="badge">${m.tipo}</span></td>
-                <td>${m.quantidade} ${m.unidade || ''}</td>
+                <td><strong>${m.alimento_nome || 'N/A'}</strong></td>
+                <td><span class="badge" style="background:${tipoColor};color:white;">${tipoIcon} ${m.tipo.toUpperCase()}</span></td>
+                <td style="text-align:center;">
+                    <div>${m.quantidade_anterior || 0}</div>
+                    <small style="color:#a0aec0;">anterior</small>
+                </td>
+                <td style="text-align:center;font-weight:bold;color:${tipoColor};">
+                    ${m.tipo === 'entrada' ? '+' : m.tipo === 'saida' ? '-' : ''}${m.quantidade}
+                </td>
+                <td style="text-align:center;">
+                    <div><strong>${m.quantidade_nova || 0}</strong></div>
+                    <small style="color:#a0aec0;">final</small>
+                </td>
                 <td>${m.usuario_nome || 'Sistema'}</td>
-                <td>${m.observacao || '-'}</td>
+                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;">${m.observacao || '-'}</td>
             </tr>
-        `).join('');
+        `}).join('');
     } catch (err) {
-        showNotification('Erro ao carregar histórico', 'error');
+        console.error('Erro em loadHistorico:', err);
+        showNotification('Erro ao carregar histórico: ' + err.message, 'error');
     }
 }
 
