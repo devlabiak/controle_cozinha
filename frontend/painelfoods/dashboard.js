@@ -325,6 +325,8 @@ async function editUsuario(id) {
         document.getElementById('usr-emp').value = user.cliente_id;
         document.getElementById('usr-nome').value = user.nome;
         document.getElementById('usr-email').value = user.email;
+        document.getElementById('usr-senha').value = ''; // Limpar senha
+        document.getElementById('usr-senha').removeAttribute('required'); // Senha opcional ao editar
         document.getElementById('usr-admin').checked = user.is_admin;
         
         // Carregar restaurantes e marcar os vinculados
@@ -338,9 +340,12 @@ async function editUsuario(id) {
             });
         }, 100);
         
-        // Mudar texto do botão
+        // Mudar texto do botão e mostrar cancelar
         const btn = document.querySelector('#usuarios form button[type="submit"]');
         if (btn) btn.textContent = 'Atualizar Usuário';
+        
+        const btnCancelar = document.getElementById('btn-cancelar-usuario');
+        if (btnCancelar) btnCancelar.style.display = 'inline-block';
         
         // Scroll para o formulário
         document.querySelector('#usuarios .form-card').scrollIntoView({ behavior: 'smooth' });
@@ -355,55 +360,13 @@ function cancelarEdicaoUsuario() {
     usuarioEditandoId = null;
     document.querySelector('#usuarios form').reset();
     document.getElementById('usr-rests').innerHTML = '';
+    document.getElementById('usr-senha').setAttribute('required', ''); // Senha obrigatória ao criar
+    
     const btn = document.querySelector('#usuarios form button[type="submit"]');
     if (btn) btn.textContent = 'Cadastrar Usuário';
-}
-
-let usuarioEditandoId = null;
-
-async function editUsuario(id) {
-    try {
-        const user = await api(`/admin/usuarios/${id}`);
-        
-        // Marcar que está editando
-        usuarioEditandoId = id;
-        
-        // Preencher formulário
-        document.getElementById('usr-emp').value = user.cliente_id;
-        document.getElementById('usr-nome').value = user.nome;
-        document.getElementById('usr-email').value = user.email;
-        document.getElementById('usr-admin').checked = user.is_admin;
-        
-        // Carregar restaurantes e marcar os vinculados
-        await loadRestosForUser();
-        
-        // Esperar um pouco para os checkboxes renderizarem
-        setTimeout(() => {
-            user.restaurantes.forEach(resto => {
-                const checkbox = document.querySelector(`input.usr-rest-check[value="${resto.tenant_id}"]`);
-                if (checkbox) checkbox.checked = true;
-            });
-        }, 100);
-        
-        // Mudar texto do botão
-        const btn = document.querySelector('#usuarios form button[type="submit"]');
-        if (btn) btn.textContent = 'Atualizar Usuário';
-        
-        // Scroll para o formulário
-        document.querySelector('#usuarios .form-card').scrollIntoView({ behavior: 'smooth' });
-        
-        notify('Editando usuário. Modifique e clique em Atualizar.', 'success');
-    } catch (e) {
-        notify(e.message, 'error');
-    }
-}
-
-function cancelarEdicaoUsuario() {
-    usuarioEditandoId = null;
-    document.querySelector('#usuarios form').reset();
-    document.getElementById('usr-rests').innerHTML = '';
-    const btn = document.querySelector('#usuarios form button[type="submit"]');
-    if (btn) btn.textContent = 'Cadastrar Usuário';
+    
+    const btnCancelar = document.getElementById('btn-cancelar-usuario');
+    if (btnCancelar) btnCancelar.style.display = 'none';
 }
 
 // Logout
