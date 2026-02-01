@@ -741,6 +741,19 @@
     </div>
 
     <script>
+        // Fallbacks globais para evitar ReferenceError caso o script principal falhe
+        window.editarCliente = window.editarCliente || function () {
+            alert('⚠️ Erro ao carregar edição de cliente. Atualize a página.');
+        };
+        window.editarRestaurante = window.editarRestaurante || function () {
+            alert('⚠️ Erro ao carregar edição de restaurante. Atualize a página.');
+        };
+        window.editarUsuario = window.editarUsuario || function () {
+            alert('⚠️ Erro ao carregar edição de usuário. Atualize a página.');
+        };
+        window.deletarRestaurante = window.deletarRestaurante || function () {
+            alert('⚠️ Erro ao carregar ação de deletar. Atualize a página.');
+        };
         const API_BASE = `${window.location.protocol}//${window.location.hostname}/api`;
         const TOKEN = localStorage.getItem('token');
 
