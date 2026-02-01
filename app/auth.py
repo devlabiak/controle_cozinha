@@ -66,7 +66,12 @@ async def get_current_user(
     
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.id == user_id, User.email == email).first()
+        from sqlalchemy.orm import joinedload
+        
+        user = db.query(User).options(joinedload(User.tenants)).filter(
+            User.id == user_id, 
+            User.email == email
+        ).first()
         
         print(f"🔍 Usuário encontrado no banco: {user is not None}")
         if user:
@@ -75,6 +80,9 @@ async def get_current_user(
         if user is None or not user.ativo:
             print(f"❌ Usuário None ou inativo")
             raise credentials_exception
+        
+        # Força carregamento dos tenants antes de fechar a sessão
+        _ = user.tenants
             
         return user
     finally:
