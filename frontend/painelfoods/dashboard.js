@@ -219,10 +219,18 @@ async function loadRestosForUser() {
         const rests = await api(`/admin/clientes/${empId}/restaurantes`);
         let html = '';
         rests.forEach(r => {
-            html += `<label style="display: block; margin: 8px 0; cursor: pointer;">
-                <input type="checkbox" name="rest-${r.id}" value="${r.id}" class="usr-rest-check">
-                ${r.nome}
-            </label>`;
+            html += `
+                <div style="display: flex; align-items: center; margin: 10px 0; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb;">
+                    <label style="flex: 1; cursor: pointer; display: flex; align-items: center;">
+                        <input type="checkbox" name="rest-${r.id}" value="${r.id}" class="usr-rest-check" style="margin-right: 8px;">
+                        <span style="font-weight: 500;">${r.nome}</span>
+                    </label>
+                    <label style="cursor: pointer; display: flex; align-items: center; margin-left: 15px; color: #6b7280; font-size: 13px;">
+                        <input type="checkbox" name="rest-admin-${r.id}" class="usr-rest-admin-check" data-tenant-id="${r.id}" style="margin-right: 5px;">
+                        Admin do Restaurante
+                    </label>
+                </div>
+            `;
         });
         document.getElementById('usr-rests').innerHTML = html || '<p>Nenhum restaurante para esta empresa</p>';
     } catch (e) {
@@ -233,18 +241,28 @@ async function loadRestosForUser() {
 async function addUsuario(e) {
     e.preventDefault();
     
-    const rests = Array.from(document.querySelectorAll('.usr-rest-check:checked')).map(c => parseInt(c.value));
-    if (rests.length === 0) {
+    const restsChecked = document.querySelectorAll('.usr-rest-check:checked');
+    if (restsChecked.length === 0) {
         notify('Selecione ao menos um restaurante!', 'error');
         return;
     }
+    
+    // Coletar restaurantes com roles
+    const restaurantes = Array.from(restsChecked).map(checkbox => {
+        const tenantId = parseInt(checkbox.value);
+        const adminCheckbox = document.querySelector(`input.usr-rest-admin-check[data-tenant-id="${tenantId}"]`);
+        return {
+            tenant_id: tenantId,
+            is_admin_restaurante: adminCheckbox ? adminCheckbox.checked : false
+        };
+    });
     
     const dados = {
         cliente_id: parseInt(document.getElementById('usr-emp').value),
         nome: document.getElementById('usr-nome').value,
         email: document.getElementById('usr-email').value,
         is_admin: document.getElementById('usr-admin').checked,
-        restaurantes: rests
+        restaurantes: restaurantes
     };
     
     // Só envia senha se não estiver editando ou se campo não estiver vazio
@@ -347,8 +365,15 @@ async function editUsuario(id) {
         // Esperar um pouco para os checkboxes renderizarem
         setTimeout(() => {
             user.restaurantes.forEach(resto => {
+                // Marcar restaurante vinculado
                 const checkbox = document.querySelector(`input.usr-rest-check[value="${resto.tenant_id}"]`);
                 if (checkbox) checkbox.checked = true;
+                
+                // Marcar se é admin do restaurante
+                if (resto.role === 'admin') {
+                    const adminCheckbox = document.querySelector(`input.usr-rest-admin-check[data-tenant-id="${resto.tenant_id}"]`);
+                    if (adminCheckbox) adminCheckbox.checked = true;
+                }
             });
         }, 100);
         
