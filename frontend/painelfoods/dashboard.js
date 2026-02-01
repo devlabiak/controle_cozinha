@@ -84,8 +84,12 @@ async function loadEmpresas() {
         const empresas = await api('/admin/clientes');
         console.log('Empresas recebidas:', empresas);
         
+        alert(`API retornou ${empresas ? empresas.length : 0} empresas`);
+        
         if (!empresas || empresas.length === 0) {
             console.warn('Nenhuma empresa retornada da API');
+            alert('ATENÇÃO: Nenhuma empresa cadastrada! Vá para a aba Empresas e cadastre uma empresa primeiro.');
+            return;
         }
         
         let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ação</th></tr></thead><tbody>';
@@ -124,8 +128,10 @@ async function loadEmpresas() {
             usrEmpSelect.innerHTML = opts;
             console.log('✓ usr-emp preenchido com', empresas.length, 'opções');
             console.log('✓ usr-emp.innerHTML:', usrEmpSelect.innerHTML.substring(0, 100));
+            alert(`usr-emp preenchido! Opções: ${usrEmpSelect.options.length}`);
         } else {
             console.warn('✗ usr-emp não encontrado');
+            alert('ERRO: Select usr-emp não encontrado no DOM!');
         }
         
     } catch (e) {
