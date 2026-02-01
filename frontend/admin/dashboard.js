@@ -1,727 +1,260 @@
-const API_BASE = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
+const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
-let usuarioAtual = JSON.parse(localStorage.getItem('user') || '{}');
 
-console.log('Dashboard Loaded:', { API_BASE, TOKEN: !!TOKEN, usuario: usuarioAtual.nome });
+if (!TOKEN) window.location.href = '/admin/login.html';
 
-// ===== NOTIFICATION SYSTEM =====
-function showNotification(message, type = 'success', duration = 4000) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    
-    const icons = {
-        success: 'fas fa-check-circle',
-        error: 'fas fa-exclamation-circle',
-        warning: 'fas fa-exclamation-triangle',
-        info: 'fas fa-info-circle'
-    };
-
-    notification.innerHTML = `
-        <i class="${icons[type]}"></i>
-        <span>${message}</span>
-    `;
-
-    document.body.appendChild(notification);
-
-    if (duration > 0) {
-        setTimeout(() => {
-            notification.remove();
-        }, duration);
-    }
-
-    return notification;
+// ===== NOTIFICAÇÃO =====
+function notify(msg, type = 'success') {
+    const div = document.createElement('div');
+    div.className = `notification ${type}`;
+    div.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${msg}`;
+    document.body.appendChild(div);
+    setTimeout(() => div.remove(), 3000);
 }
 
-// ===== CLEAR ERRORS =====
-function clearErrors() {
-    document.querySelectorAll('.error-message').forEach(el => {
-        el.classList.remove('show');
-    });
-    document.querySelectorAll('input, select, textarea').forEach(el => {
-        el.classList.remove('error');
-    });
-}
-
-// ===== VALIDATION =====
-function validarEmail(email) {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return regex.test(email);
-}
-
-// ===== NAVIGATION =====
-document.querySelectorAll('[data-section]').forEach(link => {
-    link.addEventListener('click', (e) => {
-        e.preventDefault();
-        navigateTo(link.dataset.section);
-    });
-});
-
-function navigateTo(section) {
-    // Hide all sections
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
-
-    // Show selected section
-    const sectionEl = document.getElementById(section);
-    if (sectionEl) {
-        sectionEl.classList.add('active');
-        document.querySelector(`[data-section="${section}"]`).classList.add('active');
-
-        // Update page title
-        const titles = {
-            'home': 'Dashboard',
-            'clientes': 'Gerenciar Clientes',
-            'restaurantes': 'Gerenciar Restaurantes',
-            'usuarios': 'Gerenciar Usuários'
-        };
-        document.getElementById('page-title').textContent = titles[section] || 'Dashboard';
-
-        // Load data if needed
-        if (section === 'clientes') carregarClientes();
-        if (section === 'restaurantes') {
-            carregarClientesSelect();
-            carregarRestaurantes();
+function api(url, options = {}) {
+    return fetch(`${API}${url}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${TOKEN}`,
+            ...options.headers
         }
-        if (section === 'usuarios') {
-            carregarClientesSelect();
-            carregarUsuarios();
-        }
-    }
-}
-
-// ===== AUTH =====
-function logout() {
-    if (confirm('Tem certeza que deseja sair?')) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/admin/login.html';
-    }
-}
-
-// ===== HELPERS =====
-function authHeaders() {
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${TOKEN}`
-    };
-    console.log('Auth Headers:', { Authorization: headers.Authorization ? 'Bearer ...' : 'MISSING' });
-    return headers;
-}
-
-// ===== LOAD CLIENTES SELECT =====
-async function carregarClientesSelect() {
-    try {
-        const response = await fetch(`${API_BASE}/admin/clientes`, {
-            headers: authHeaders()
-        });
-        
-        if (!response.ok) throw new Error('Erro ao carregar clientes');
-        
-        const clientes = await response.json();
-        
-        // Preencher select de restaurante
-        const selectRestaurante = document.getElementById('restaurante-cliente');
-        const selectUsuario = document.getElementById('usuario-cliente');
-        
-        selectRestaurante.innerHTML = '<option value="">Selecione um cliente</option>';
-        selectUsuario.innerHTML = '<option value="">Selecione um cliente</option>';
-        
-        clientes.forEach(cliente => {
-            const option1 = document.createElement('option');
-            option1.value = cliente.id;
-            option1.textContent = cliente.nome_empresa;
-            selectRestaurante.appendChild(option1);
-            
-            const option2 = document.createElement('option');
-            option2.value = cliente.id;
-            option2.textContent = cliente.nome_empresa;
-            selectUsuario.appendChild(option2);
-        });
-    } catch (error) {
-        console.error('Erro:', error);
-    }
+    }).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+    });
 }
 
 // ===== CLIENTES =====
-async function adicionarCliente(e) {
+async function loadClientes() {
+    try {
+        const clientes = await api('/admin/clientes');
+        const html = clientes.map(c => `
+            <tr>
+                <td>${c.nome_empresa}</td>
+                <td>${c.email}</td>
+                <td>${c.telefone || '-'}</td>
+                <td><button class="btn-small" onclick="editCliente(${c.id})">Editar</button>
+                    <button class="btn-small danger" onclick="delCliente(${c.id})">Deletar</button></td>
+            </tr>
+        `).join('');
+        document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+    } catch (e) {
+        document.getElementById('clientes-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
+    }
+}
+
+async function addCliente(e) {
     e.preventDefault();
-    clearErrors();
-
-    const nome = document.getElementById('cliente-nome').value.trim();
-    const email = document.getElementById('cliente-email').value.trim().toLowerCase();
-    const telefone = document.getElementById('cliente-telefone').value.trim() || null;
-    const cnpj = document.getElementById('cliente-cnpj').value.trim() || null;
-    const endereco = document.getElementById('cliente-endereco').value.trim() || null;
-    const cidade = document.getElementById('cliente-cidade').value.trim() || null;
-    const estado = document.getElementById('cliente-estado').value || null;
-    const ativo = document.getElementById('cliente-ativo').value === 'true';
-
-    if (!nome || !email) {
-        showNotification('Preencha os campos obrigatórios', 'error');
-        if (!nome) document.getElementById('cliente-nome').classList.add('error');
-        if (!email) document.getElementById('cliente-email').classList.add('error');
-        return;
-    }
-
-    if (!validarEmail(email)) {
-        showNotification('Email inválido', 'error');
-        document.getElementById('cliente-email').classList.add('error');
-        return;
-    }
-
     try {
-        const response = await fetch(`${API_BASE}/admin/clientes`, {
+        await api('/admin/clientes', {
             method: 'POST',
-            headers: authHeaders(),
             body: JSON.stringify({
-                nome_empresa: nome,
-                email,
-                telefone,
-                cnpj,
-                endereco,
-                cidade,
-                estado,
-                ativo
+                nome_empresa: document.getElementById('cli-nome').value,
+                email: document.getElementById('cli-email').value,
+                telefone: document.getElementById('cli-tel').value || null
             })
         });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showNotification('✓ Cliente cadastrado com sucesso!', 'success');
-            document.getElementById('form-cliente').reset();
-            carregarClientes();
-            carregarClientesSelect();
-        } else {
-            showNotification(data.detail || 'Erro ao cadastrar cliente', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro de conexão: ' + error.message, 'error');
+        notify('Cliente criado!');
+        e.target.reset();
+        loadClientes();
+    } catch (e) {
+        notify(e.message, 'error');
     }
 }
 
-async function carregarClientes() {
+async function editCliente(id) {
     try {
-        const response = await fetch(`${API_BASE}/admin/clientes`, {
-            headers: authHeaders()
-        });
-
-        if (!response.ok) {
-            console.error('Erro ao carregar clientes:', response.status, response.statusText);
-            throw new Error(`Erro ${response.status}: ${response.statusText}`);
-        }
-
-        const clientes = await response.json();
-        const container = document.getElementById('clientes-list');
-
-        if (clientes.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h3>Nenhum cliente cadastrado</h3>
-                    <p>Comece criando um novo cliente no formulário acima</p>
-                </div>
-            `;
-            return;
-        }
-
-        let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
-
-        clientes.forEach(cliente => {
-            const status = cliente.ativo ? 'active' : 'inactive';
-            const statusText = cliente.ativo ? 'Ativo' : 'Inativo';
-
-            html += `
-                <tr>
-                    <td>${cliente.nome_empresa}</td>
-                    <td>${cliente.email}</td>
-                    <td>${cliente.telefone || '-'}</td>
-                    <td><span class="status-badge ${status}">${statusText}</span></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon" title="Editar" onclick="editarCliente(${cliente.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon danger" title="Deletar" onclick="deletarCliente(${cliente.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Erro:', error);
-        document.getElementById('clientes-list').innerHTML = '<p style="text-align: center; color: #a0aec0;">Erro ao carregar clientes</p>';
-    }
-}
-
-async function editarCliente(id) {
-    try {
-        // Buscar dados atuais do cliente
-        const response = await fetch(`${API_BASE}/admin/clientes/${id}`, {
-            headers: authHeaders()
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar cliente');
-
-        const cliente = await response.json();
-
-        // Criar formulário modal simples
-        const novoNome = prompt('Nome da Empresa:', cliente.nome_empresa);
-        if (novoNome === null) return; // Cancelado
-
-        const novoEmail = prompt('Email:', cliente.email);
-        if (novoEmail === null) return;
-
-        const novoTelefone = prompt('Telefone:', cliente.telefone || '');
-        if (novoTelefone === null) return;
-
-        // Enviar atualização
-        const updateResponse = await fetch(`${API_BASE}/admin/clientes/${id}`, {
+        const c = await api(`/admin/clientes/${id}`);
+        const nome = prompt('Nome:', c.nome_empresa);
+        if (!nome) return;
+        await api(`/admin/clientes/${id}`, {
             method: 'PUT',
-            headers: authHeaders(),
-            body: JSON.stringify({
-                nome_empresa: novoNome,
-                email: novoEmail,
-                telefone: novoTelefone,
-                ativo: cliente.ativo
-            })
+            body: JSON.stringify({ nome_empresa: nome, email: c.email, telefone: c.telefone })
         });
-
-        if (updateResponse.ok) {
-            showNotification('✓ Cliente atualizado com sucesso!', 'success');
-            carregarClientes();
-        } else {
-            const error = await updateResponse.json();
-            showNotification(error.detail || 'Erro ao atualizar cliente', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro: ' + error.message, 'error');
+        notify('Atualizado!');
+        loadClientes();
+    } catch (e) {
+        notify(e.message, 'error');
     }
 }
 
-async function deletarCliente(id) {
-    if (!confirm('Tem certeza que deseja deletar este cliente?\n\nISSO VAI EXCLUIR:\n- Todos os restaurantes\n- Todos os usuários\n- Todos os dados associados')) return;
-
+async function delCliente(id) {
+    if (!confirm('Deletar este cliente?')) return;
     try {
-        const response = await fetch(`${API_BASE}/admin/clientes/${id}`, {
-            method: 'DELETE',
-            headers: authHeaders()
-        });
-
-        if (response.ok) {
-            showNotification('✓ Cliente deletado com sucesso!', 'success');
-            carregarClientes();
-            carregarClientesSelect();
-        } else {
-            const data = await response.json();
-            showNotification(data.detail || 'Erro ao deletar cliente', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro de conexão: ' + error.message, 'error');
+        await api(`/admin/clientes/${id}`, { method: 'DELETE' });
+        notify('Deletado!');
+        loadClientes();
+    } catch (e) {
+        notify(e.message, 'error');
     }
 }
 
 // ===== RESTAURANTES =====
-document.getElementById('restaurante-slug')?.addEventListener('input', (e) => {
-    document.getElementById('slug-preview').textContent = e.target.value.toLowerCase().replace(/\s+/g, '-') || 'restaurante';
+async function loadRestaurantes() {
+    try {
+        const rests = await api('/admin/restaurantes');
+        const html = rests.map(r => `
+            <tr>
+                <td>${r.nome}</td>
+                <td><code>${r.slug}</code></td>
+                <td>${r.cliente_id}</td>
+                <td><button class="btn-small" onclick="editRest(${r.id})">Editar</button>
+                    <button class="btn-small danger" onclick="delRest(${r.id})">Deletar</button></td>
+            </tr>
+        `).join('');
+        document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>Cliente</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+    } catch (e) {
+        document.getElementById('rests-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
+    }
+}
+
+async function loadClientesDropdown() {
+    try {
+        const clientes = await api('/admin/clientes');
+        const html = clientes.map(c => `<option value="${c.id}">${c.nome_empresa}</option>`).join('');
+        document.getElementById('rest-cliente').innerHTML = `<option value="">Selecione</option>${html}`;
+    } catch (e) {}
+}
+
+async function addRest(e) {
+    e.preventDefault();
+    try {
+        await api('/admin/restaurantes', {
+            method: 'POST',
+            body: JSON.stringify({
+                cliente_id: parseInt(document.getElementById('rest-cliente').value),
+                nome: document.getElementById('rest-nome').value,
+                slug: document.getElementById('rest-slug').value,
+                email: document.getElementById('rest-email').value
+            })
+        });
+        notify('Restaurante criado!');
+        e.target.reset();
+        loadRestaurantes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function editRest(id) {
+    try {
+        const r = await api(`/admin/restaurantes/${id}`);
+        const nome = prompt('Nome:', r.nome);
+        if (!nome) return;
+        await api(`/admin/restaurantes/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ cliente_id: r.cliente_id, nome, slug: r.slug, email: r.email })
+        });
+        notify('Atualizado!');
+        loadRestaurantes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function delRest(id) {
+    if (!confirm('Deletar este restaurante?')) return;
+    try {
+        await api(`/admin/restaurantes/${id}`, { method: 'DELETE' });
+        notify('Deletado!');
+        loadRestaurantes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+// ===== USUÁRIOS =====
+async function loadUsuarios() {
+    try {
+        const users = await api('/admin/usuarios');
+        const html = users.map(u => `
+            <tr>
+                <td>${u.nome}</td>
+                <td>${u.email}</td>
+                <td>${u.is_admin ? 'Sim' : 'Não'}</td>
+                <td><button class="btn-small" onclick="editUser(${u.id})">Editar</button>
+                    <button class="btn-small danger" onclick="delUser(${u.id})">Deletar</button></td>
+            </tr>
+        `).join('');
+        document.getElementById('users-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Admin</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+    } catch (e) {
+        document.getElementById('users-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
+    }
+}
+
+async function addUser(e) {
+    e.preventDefault();
+    try {
+        await api('/admin/usuarios', {
+            method: 'POST',
+            body: JSON.stringify({
+                cliente_id: parseInt(document.getElementById('user-cliente').value),
+                nome: document.getElementById('user-nome').value,
+                email: document.getElementById('user-email').value,
+                senha: document.getElementById('user-senha').value,
+                is_admin: document.getElementById('user-admin').checked
+            })
+        });
+        notify('Usuário criado!');
+        e.target.reset();
+        loadUsuarios();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function editUser(id) {
+    try {
+        const u = await api(`/admin/usuarios/${id}`);
+        const nome = prompt('Nome:', u.nome);
+        if (!nome) return;
+        await api(`/admin/usuarios/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ nome, email: u.email, is_admin: u.is_admin, ativo: u.ativo })
+        });
+        notify('Atualizado!');
+        loadUsuarios();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function delUser(id) {
+    if (!confirm('Deletar este usuário?')) return;
+    try {
+        await api(`/admin/usuarios/${id}`, { method: 'DELETE' });
+        notify('Deletado!');
+        loadUsuarios();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+// ===== NAVEGAÇÃO =====
+document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
+        const tab = btn.dataset.tab;
+        document.getElementById(tab).style.display = 'block';
+        btn.classList.add('active');
+        
+        if (tab === 'clientes') loadClientes();
+        if (tab === 'restaurantes') { loadClientesDropdown(); loadRestaurantes(); }
+        if (tab === 'usuarios') { loadClientesDropdown(); loadUsuarios(); }
+    });
 });
 
-async function adicionarRestaurante(e) {
-    e.preventDefault();
-    clearErrors();
+// ===== LOGOUT =====
+document.getElementById('logout').addEventListener('click', () => {
+    localStorage.clear();
+    window.location.href = '/admin/login.html';
+});
 
-    const cliente_id = document.getElementById('restaurante-cliente').value;
-    const nome = document.getElementById('restaurante-nome').value.trim();
-    const slug = document.getElementById('restaurante-slug').value.trim().toLowerCase().replace(/\s+/g, '-');
-    const email = document.getElementById('restaurante-email').value.trim().toLowerCase();
-    const telefone = document.getElementById('restaurante-telefone').value.trim() || null;
-    const cnpj = document.getElementById('restaurante-cnpj').value.trim() || null;
-    const endereco = document.getElementById('restaurante-endereco').value.trim() || null;
-    const cidade = document.getElementById('restaurante-cidade').value.trim() || null;
-    const ativo = document.getElementById('restaurante-ativo').value === 'true';
-
-    if (!cliente_id || !nome || !slug || !email) {
-        showNotification('Preencha os campos obrigatórios', 'error');
-        if (!cliente_id) document.getElementById('restaurante-cliente').classList.add('error');
-        if (!nome) document.getElementById('restaurante-nome').classList.add('error');
-        if (!slug) document.getElementById('restaurante-slug').classList.add('error');
-        if (!email) document.getElementById('restaurante-email').classList.add('error');
-        return;
-    }
-
-    if (!validarEmail(email)) {
-        showNotification('Email inválido', 'error');
-        document.getElementById('restaurante-email').classList.add('error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE}/admin/restaurantes`, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({
-                cliente_id: parseInt(cliente_id),
-                nome,
-                slug,
-                email,
-                telefone,
-                cnpj,
-                endereco,
-                cidade,
-                ativo
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showNotification('✓ Restaurante cadastrado com sucesso!', 'success');
-            document.getElementById('form-restaurante').reset();
-            carregarRestaurantes();
-        } else {
-            showNotification(data.detail || 'Erro ao cadastrar restaurante', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro de conexão: ' + error.message, 'error');
-    }
-}
-
-async function carregarRestaurantes() {
-    try {
-        const response = await fetch(`${API_BASE}/admin/restaurantes`, {
-            headers: authHeaders()
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar restaurantes');
-
-        const restaurantes = await response.json();
-        const container = document.getElementById('restaurantes-list');
-
-        if (restaurantes.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h3>Nenhum restaurante cadastrado</h3>
-                    <p>Comece criando um novo restaurante no formulário acima</p>
-                </div>
-            `;
-            return;
-        }
-
-        let html = '<table><thead><tr><th>Nome</th><th>Slug</th><th>Email</th><th>Cliente</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
-
-        restaurantes.forEach(r => {
-            const status = r.ativo ? 'active' : 'inactive';
-            const statusText = r.ativo ? 'Ativo' : 'Inativo';
-            const clienteNome = r.cliente?.nome_empresa || 'N/A';
-
-            html += `
-                <tr>
-                    <td>${r.nome}</td>
-                    <td><code style="background: #f7fafc; padding: 2px 6px; border-radius: 3px;">${r.slug}</code></td>
-                    <td>${r.email}</td>
-                    <td>${clienteNome}</td>
-                    <td><span class="status-badge ${status}">${statusText}</span></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon" title="Editar" onclick="editarRestaurante(${r.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon danger" title="Deletar" onclick="deletarRestaurante(${r.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Erro:', error);
-        document.getElementById('restaurantes-list').innerHTML = '<p style="text-align: center; color: #a0aec0;">Erro ao carregar restaurantes</p>';
-    }
-}
-
-async function editarRestaurante(id) {
-    try {
-        // Buscar dados atuais do restaurante
-        const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
-            headers: authHeaders()
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar restaurante');
-
-        const restaurante = await response.json();
-
-        // Criar formulário modal simples
-        const novoNome = prompt('Nome do Restaurante:', restaurante.nome);
-        if (novoNome === null) return; // Cancelado
-
-        const novoSlug = prompt('Slug (URL):', restaurante.slug);
-        if (novoSlug === null) return;
-
-        const novaDescricao = prompt('Descrição:', restaurante.descricao || '');
-        if (novaDescricao === null) return;
-
-        // Enviar atualização
-        const updateResponse = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
-            method: 'PUT',
-            headers: authHeaders(),
-            body: JSON.stringify({
-                nome: novoNome,
-                slug: novoSlug,
-                descricao: novaDescricao,
-                cliente_id: restaurante.cliente_id,
-                ativo: restaurante.ativo
-            })
-        });
-
-        if (updateResponse.ok) {
-            showNotification('✓ Restaurante atualizado com sucesso!', 'success');
-            carregarRestaurantes();
-        } else {
-            const error = await updateResponse.json();
-            showNotification(error.detail || 'Erro ao atualizar restaurante', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro: ' + error.message, 'error');
-    }
-}
-
-async function deletarRestaurante(id) {
-    if (!confirm('Tem certeza que deseja deletar este restaurante?\n\nISSO VAI EXCLUIR:\n- Todos os alimentos\n- Todos os lotes\n- Todos os registros de movimentação')) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/admin/restaurantes/${id}`, {
-            method: 'DELETE',
-            headers: authHeaders()
-        });
-
-        if (response.ok) {
-            showNotification('✓ Restaurante deletado com sucesso!', 'success');
-            carregarRestaurantes();
-        } else {
-            const data = await response.json();
-            showNotification(data.detail || 'Erro ao deletar restaurante', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro de conexão: ' + error.message, 'error');
-    }
-}
-
-// ===== USUARIOS =====
-async function adicionarUsuario(e) {
-    e.preventDefault();
-    clearErrors();
-
-    const cliente_id = document.getElementById('usuario-cliente').value;
-    const nome = document.getElementById('usuario-nome').value.trim();
-    const email = document.getElementById('usuario-email').value.trim().toLowerCase();
-    const senha = document.getElementById('usuario-senha').value;
-    const is_admin = document.getElementById('usuario-admin').value === 'true';
-    const ativo = document.getElementById('usuario-ativo').value === 'true';
-
-    if (!cliente_id || !nome || !email || !senha) {
-        showNotification('Preencha os campos obrigatórios', 'error');
-        if (!cliente_id) document.getElementById('usuario-cliente').classList.add('error');
-        if (!nome) document.getElementById('usuario-nome').classList.add('error');
-        if (!email) document.getElementById('usuario-email').classList.add('error');
-        if (!senha) document.getElementById('usuario-senha').classList.add('error');
-        return;
-    }
-
-    if (senha.length < 6) {
-        showNotification('Senha deve ter no mínimo 6 caracteres', 'error');
-        document.getElementById('usuario-senha').classList.add('error');
-        return;
-    }
-
-    if (!validarEmail(email)) {
-        showNotification('Email inválido', 'error');
-        document.getElementById('usuario-email').classList.add('error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`${API_BASE}/admin/usuarios`, {
-            method: 'POST',
-            headers: authHeaders(),
-            body: JSON.stringify({
-                cliente_id: parseInt(cliente_id),
-                nome,
-                email,
-                senha,
-                is_admin,
-                ativo
-            })
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            showNotification('✓ Usuário cadastrado com sucesso!', 'success');
-            document.getElementById('form-usuario').reset();
-            carregarUsuarios();
-        } else {
-            showNotification(data.detail || 'Erro ao cadastrar usuário', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro de conexão: ' + error.message, 'error');
-    }
-}
-
-async function carregarUsuarios() {
-    try {
-        const response = await fetch(`${API_BASE}/admin/usuarios`, {
-            headers: authHeaders()
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar usuários');
-
-        const usuarios = await response.json();
-        const container = document.getElementById('usuarios-list');
-
-        if (usuarios.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i>
-                    <h3>Nenhum usuário cadastrado</h3>
-                    <p>Comece criando um novo usuário no formulário acima</p>
-async function editarUsuario(id) {
-    try {
-        // Buscar dados atuais do usuário
-        const response = await fetch(`${API_BASE}/admin/usuarios/${id}`, {
-            headers: authHeaders()
-        });
-
-        if (!response.ok) throw new Error('Erro ao carregar usuário');
-
-        const usuario = await response.json();
-
-        // Criar formulário modal simples
-        const novoNome = prompt('Nome:', usuario.nome);
-        if (novoNome === null) return; // Cancelado
-
-        const novoEmail = prompt('Email:', usuario.email);
-        if (novoEmail === null) return;
-
-        const isAdminStr = prompt('É Admin do SaaS? (sim/não):', usuario.is_admin ? 'sim' : 'não');
-        if (isAdminStr === null) return;
-        const isAdmin = isAdminStr.toLowerCase() === 'sim';
-
-        const ativoStr = prompt('Usuário Ativo? (sim/não):', usuario.ativo ? 'sim' : 'não');
-        if (ativoStr === null) return;
-        const ativo = ativoStr.toLowerCase() === 'sim';
-
-        // Enviar atualização
-        const updateResponse = await fetch(`${API_BASE}/admin/usuarios/${id}`, {
-            method: 'PUT',
-            headers: authHeaders(),
-            body: JSON.stringify({
-                nome: novoNome,
-                email: novoEmail,
-                is_admin: isAdmin,
-                ativo: ativo
-            })
-        });
-
-        if (updateResponse.ok) {
-            showNotification('✓ Usuário atualizado com sucesso!', 'success');
-            carregarUsuarios();
-        } else {
-            const error = await updateResponse.json();
-            showNotification(error.detail || 'Erro ao atualizar usuário', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro: ' + error.message, 'error');
-    }
-            return;
-        }
-
-        let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Cliente</th><th>Admin</th><th>Status</th><th>Ações</th></tr></thead><tbody>';
-
-        usuarios.forEach(u => {
-            const status = u.ativo ? 'active' : 'inactive';
-            const statusText = u.ativo ? 'Ativo' : 'Inativo';
-            const adminText = u.is_admin ? 'Sim' : 'Não';
-            const clienteNome = u.cliente?.nome_empresa || 'N/A';
-
-            html += `
-                <tr>
-                    <td>${u.nome}</td>
-                    <td>${u.email}</td>
-                    <td>${clienteNome}</td>
-                    <td>${adminText}</td>
-                    <td><span class="status-badge ${status}">${statusText}</span></td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-icon" title="Editar" onclick="editarUsuario(${u.id})">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon danger" title="Deletar" onclick="deletarUsuario(${u.id})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    } catch (error) {
-        console.error('Erro:', error);
-        document.getElementById('usuarios-list').innerHTML = '<p style="text-align: center; color: #a0aec0;">Erro ao carregar usuários</p>';
-    }
-}
-
-function editarUsuario(id) {
-    showNotification('Edição em desenvolvimento', 'info');
-}
-
-async function deletarUsuario(id) {
-    if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
-
-    try {
-        const response = await fetch(`${API_BASE}/admin/usuarios/${id}`, {
-            method: 'DELETE',
-            headers: authHeaders()
-        });
-
-        if (response.ok) {
-            showNotification('✓ Usuário deletado com sucesso!', 'success');
-            carregarUsuarios();
-        } else {
-            const data = await response.json();
-            showNotification(data.detail || 'Erro ao deletar usuário', 'error');
-        }
-    } catch (error) {
-        showNotification('Erro de conexão: ' + error.message, 'error');
-    }
-}
-
-// ===== INITIALIZATION =====
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOMContentLoaded:', { TOKEN: !!TOKEN, usuario: usuarioAtual.nome });
-    
-    if (!TOKEN) {
-        console.warn('Token não encontrado, redirecionando para login');
-        window.location.href = '/admin/login.html';
-        return;
-    }
-
-    // Não redirecionar infinitamente
-    document.getElementById('user-name').textContent = usuarioAtual.nome || 'Administrador';
-    
-    // Carregar dados iniciais
-    console.log('Carregando dados iniciais...');
-    carregarClientesSelect();
-    navigateTo('home');
+// Carrega página inicial
+window.addEventListener('DOMContentLoaded', () => {
+    loadClientes();
 });
