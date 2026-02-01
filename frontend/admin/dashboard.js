@@ -1,7 +1,12 @@
 const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
 
-if (!TOKEN) window.location.href = '/admin/login.html';
+console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)' });
+
+if (!TOKEN) {
+    alert('Sessão expirada! Faça login novamente.');
+    window.location.href = '/admin/login.html';
+}
 
 // ===== NOTIFICAÇÃO =====
 function notify(msg, type = 'success') {
@@ -20,9 +25,19 @@ function api(url, options = {}) {
             'Authorization': `Bearer ${TOKEN}`,
             ...options.headers
         }
-    }).then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
+    }).then(async r => {
+        const text = await r.text();
+        const data = text ? JSON.parse(text) : null;
+        
+        if (!r.ok) {
+            const msg = data?.detail || `HTTP ${r.status}`;
+            console.error('API Error:', msg, data);
+            throw new Error(msg);
+        }
+        return data;
+    }).catch(e => {
+        console.error('Request Error:', e);
+        throw e;
     });
 }
 

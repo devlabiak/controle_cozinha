@@ -171,7 +171,7 @@ def criar_restaurante(restaurante: RestauranteCreate, db: Session = Depends(get_
 
 
 @router.get("/restaurantes", response_model=List[RestauranteResponse])
-def listar_restaurantes(cliente_id: int | None = None, db: Session = Depends(get_db)):
+def listar_restaurantes(cliente_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Lista restaurantes (opcionalmente por cliente)"""
     query = db.query(Tenant).filter(Tenant.ativo == True)
     
