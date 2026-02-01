@@ -593,10 +593,37 @@
                     </form>
                 </div>
 
-                <!-- 3. EDITAR PRODUTOS -->
+                <!-- 3. ENTRADA DE PRODUTO NO ESTOQUE -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h3 style="color:#10b981;margin-bottom:15px;">
+                        <i class="fas fa-dolly"></i> 3. Entrada de Produto no Estoque
+                    </h3>
+                    <form id="form-entrada">
+                        <div style="display:grid;grid-template-columns:3fr 1fr auto;gap:15px;align-items:end;">
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Produto</label>
+                                <select id="entrada-produto" required style="width:100%;">
+                                    <option value="">Selecione o produto...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">Quantidade</label>
+                                <input type="number" id="entrada-quantidade" step="0.01" min="0.01" required placeholder="Ex: 50">
+                            </div>
+                            <button type="submit" class="btn-success">
+                                <i class="fas fa-plus"></i> Registrar Entrada
+                            </button>
+                        </div>
+                        <div style="margin-top:10px;">
+                            <textarea id="entrada-obs" rows="2" placeholder="Observação (opcional): Ex: Recebimento fornecedor XYZ, Nota fiscal 12345..." style="width:100%;"></textarea>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 4. EDITAR PRODUTOS -->
                 <div class="card" style="margin-bottom:20px;">
                     <h3 style="color:#8b5cf6;margin-bottom:15px;">
-                        <i class="fas fa-edit"></i> 3. Editar Produto
+                        <i class="fas fa-edit"></i> 4. Editar Características do Produto
                     </h3>
                     <form id="form-editar">
                         <input type="hidden" id="editar-id">
@@ -643,10 +670,10 @@
                     </form>
                 </div>
 
-                <!-- 4. AJUSTAR ESTOQUE -->
+                <!-- 5. AJUSTAR ESTOQUE MANUALMENTE -->
                 <div class="card">
-                    <h3 style="color:#10b981;margin-bottom:15px;">
-                        <i class="fas fa-exchange-alt"></i> 4. Ajustar Estoque Manualmente
+                    <h3 style="color:#ef4444;margin-bottom:15px;">
+                        <i class="fas fa-exchange-alt"></i> 5. Ajustar Estoque Manualmente (Correções)
                     </h3>
                     <form id="form-ajuste">
                         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:15px;margin-bottom:10px;">
@@ -655,7 +682,6 @@
                             </select>
                             <select id="ajuste-tipo" required>
                                 <option value="">Tipo *</option>
-                                <option value="entrada">➕ Entrada</option>
                                 <option value="saida">➖ Saída</option>
                                 <option value="ajuste">🔄 Ajuste</option>
                             </select>
@@ -664,7 +690,7 @@
                                 <i class="fas fa-check"></i> Registrar
                             </button>
                         </div>
-                        <textarea id="ajuste-obs" rows="2" placeholder="Observação (opcional): Ex: Recebimento fornecedor, Preparação prato, Correção de inventário..." style="width:100%;"></textarea>
+                        <textarea id="ajuste-obs" rows="2" placeholder="Observação (opcional): Ex: Perda/quebra, Preparação prato, Correção inventário..." style="width:100%;"></textarea>
                     </form>
                 </div>
 
@@ -710,6 +736,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012240"></script>
+    <script src="index.js?v=202602012300"></script>
 </body>
 </html>

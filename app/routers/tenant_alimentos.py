@@ -257,7 +257,7 @@ def criar_movimentacao(
         tenant_id=tenant_id,
         alimento_id=dados.alimento_id,
         usuario_id=current_user.id,
-        tipo=tipo_enum,
+        tipo=dados.tipo,  # Usa string diretamente do request
         quantidade=dados.quantidade,
         quantidade_anterior=quantidade_anterior,
         quantidade_nova=quantidade_nova,

@@ -265,7 +265,7 @@ async function loadProdutosSelects() {
         const produtos = await response.json();
         
         // Preenche todos os selects
-        const selects = ['ajuste-produto', 'minimo-produto', 'editar-select'];
+        const selects = ['ajuste-produto', 'minimo-produto', 'editar-select', 'entrada-produto'];
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
@@ -350,7 +350,44 @@ document.getElementById('form-estoque-minimo')?.addEventListener('submit', async
     }
 });
 
-// 3. EDITAR PRODUTO
+// 3. ENTRADA DE PRODUTO NO ESTOQUE
+document.getElementById('form-entrada')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const alimentoId = parseInt(document.getElementById('entrada-produto').value);
+    const quantidade = parseFloat(document.getElementById('entrada-quantidade').value);
+    const observacao = document.getElementById('entrada-obs').value;
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify({
+                alimento_id: alimentoId,
+                tipo: 'entrada',
+                quantidade: quantidade,
+                observacao: observacao || null
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao registrar entrada');
+        }
+        
+        showNotification('Entrada registrada com sucesso!', 'success');
+        document.getElementById('form-entrada').reset();
+        loadEstoque();
+        loadProdutosSelects();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+});
+
+// 4. EDITAR PRODUTO
 function carregarProdutoEdicao() {
     const select = document.getElementById('editar-select');
     const option = select.options[select.selectedIndex];
@@ -435,7 +472,7 @@ async function deletarProduto() {
     }
 }
 
-// 4. AJUSTAR ESTOQUE
+// 5. AJUSTAR ESTOQUE MANUALMENTE
 document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     
