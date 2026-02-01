@@ -390,6 +390,9 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             z-index: 10000;
             animation: slideIn 0.3s ease-out;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
         }
         @keyframes slideIn {
             from { transform: translateX(400px); opacity: 0; }
@@ -400,6 +403,9 @@
         }
         .notification.error {
             background: #f56565;
+        }
+        .notification.warning {
+            background: #f59e0b;
         }
         
         /* Tabela de estoque simplificada */
@@ -780,6 +786,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012335"></script>
+    <script src="index.js?v=202602012345"></script>
 </body>
 </html>

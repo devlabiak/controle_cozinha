@@ -101,6 +101,7 @@ function showMainArea() {
     document.getElementById('rest-name').textContent = tenantName;
     
     loadEstoque();
+    iniciarAlertas(); // Inicia verificação automática de estoque baixo
 }
 
 // ==================== NAVEGAÇÃO POR ABAS ====================
@@ -601,19 +602,82 @@ document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => 
 });
 
 // ==================== UTILITÁRIOS ====================
-function showNotification(message, type = 'success') {
+function showNotification(message, type = 'success', duration = 3000) {
     const notif = document.getElementById('notification');
-    notif.textContent = message;
+    notif.innerHTML = message; // Mudado para innerHTML para suportar HTML
     notif.className = `notification ${type}`;
     notif.style.display = 'block';
     
-    setTimeout(() => {
-        notif.style.display = 'none';
-    }, 3000);
+    if (duration > 0) {
+        setTimeout(() => {
+            notif.style.display = 'none';
+        }, duration);
+    }
+}
+
+// ==================== ALERTAS AUTOMÁTICOS ====================
+async function verificarEstoqueBaixo() {
+    if (!tenantId) return;
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/alimentos`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const produtos = await response.json();
+        
+        const produtosBaixos = produtos.filter(p => 
+            p.quantidade_minima > 0 && 
+            p.quantidade_estoque <= p.quantidade_minima &&
+            p.ativo
+        );
+        
+        if (produtosBaixos.length > 0) {
+            const lista = produtosBaixos.map(p => 
+                `<div style="margin:5px 0;padding:5px;background:rgba(255,255,255,0.1);border-radius:4px;">
+                    <strong>${p.nome}</strong>: ${p.quantidade_estoque.toFixed(1)} ${p.unidade_medida} 
+                    <small>(mín: ${p.quantidade_minima})</small>
+                </div>`
+            ).join('');
+            
+            const mensagem = `
+                <div style="text-align:left;">
+                    <strong style="font-size:16px;">⚠️ ALERTA DE ESTOQUE BAIXO</strong>
+                    <div style="margin-top:10px;">${lista}</div>
+                </div>
+            `;
+            
+            showNotification(mensagem, 'error', 8000); // 8 segundos
+        }
+    } catch (err) {
+        console.error('Erro ao verificar estoque baixo:', err);
+    }
+}
+
+// Inicia verificação automática a cada 5 minutos (300000ms)
+let alertInterval;
+function iniciarAlertas() {
+    if (alertInterval) clearInterval(alertInterval);
+    
+    // Verifica imediatamente ao carregar
+    setTimeout(() => verificarEstoqueBaixo(), 3000); // Aguarda 3s após login
+    
+    // Depois verifica a cada 5 minutos
+    alertInterval = setInterval(() => {
+        verificarEstoqueBaixo();
+    }, 300000); // 5 minutos
+}
+
+// Para os alertas quando trocar de restaurante ou fazer logout
+function pararAlertas() {
+    if (alertInterval) {
+        clearInterval(alertInterval);
+        alertInterval = null;
+    }
 }
 
 // Trocar restaurante
 document.getElementById('trocar-rest')?.addEventListener('click', () => {
+    pararAlertas(); // Para verificações automáticas
     localStorage.removeItem('selectedTenantId');
     localStorage.removeItem('selectedTenantName');
     showSelector();
@@ -621,6 +685,7 @@ document.getElementById('trocar-rest')?.addEventListener('click', () => {
 
 // Logout
 document.getElementById('logout')?.addEventListener('click', () => {
+    pararAlertas(); // Para verificações automáticas
     localStorage.clear();
     window.location.href = '/painelfoods/login.html';
 });
