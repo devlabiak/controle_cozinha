@@ -113,6 +113,11 @@ document.addEventListener('click', (e) => {
 });
 
 function showTab(tabName) {
+    // Para o scanner se estava rodando e não for a aba utilizar
+    if (tabName !== 'utilizar' && typeof html5QrScanner !== 'undefined' && html5QrScanner) {
+        pararScanner();
+    }
+    
     // Remove active de todas as abas e seções
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-section').forEach(c => c.classList.remove('active'));
@@ -936,17 +941,3 @@ document.getElementById('btn-confirmar-uso')?.addEventListener('click', async ()
         btnConfirmar.innerHTML = '<i class="fas fa-check"></i> Confirmar Utilização';
     }
 });
-
-// Para o scanner ao trocar de aba
-const originalShowTab = showTab;
-function showTab(tabName) {
-    // Para o scanner se estava rodando
-    if (tabName !== 'utilizar' && html5QrScanner) {
-        pararScanner();
-    }
-    
-    // Chama função original
-    if (typeof originalShowTab === 'function') {
-        originalShowTab(tabName);
-    }
-}
