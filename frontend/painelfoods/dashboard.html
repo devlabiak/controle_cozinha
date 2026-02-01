@@ -275,6 +275,10 @@
             <div id="usuarios" class="section">
                 <div class="form-card">
                     <h2>+ Novo Usuário</h2>
+                    <div id="usuario-editando-aviso" style="display:none; background: #fef3c7; border: 2px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <strong style="color: #92400e; font-size: 16px;">✏️ EDITANDO USUÁRIO:</strong>
+                        <div id="usuario-editando-info" style="margin-top: 8px; color: #78350f; font-size: 14px;"></div>
+                    </div>
                     <form onsubmit="addUsuario(event)">
                         <div class="form-group">
                             <label>Empresa *</label>

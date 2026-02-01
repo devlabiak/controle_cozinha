@@ -321,6 +321,18 @@ async function editUsuario(id) {
         // Marcar que está editando
         usuarioEditandoId = id;
         
+        // Mostrar aviso de edição
+        const aviso = document.getElementById('usuario-editando-aviso');
+        const avisoInfo = document.getElementById('usuario-editando-info');
+        if (aviso && avisoInfo) {
+            avisoInfo.innerHTML = `
+                <strong>Nome:</strong> ${user.nome}<br>
+                <strong>Email:</strong> ${user.email}<br>
+                <strong>ID:</strong> ${user.id}
+            `;
+            aviso.style.display = 'block';
+        }
+        
         // Preencher formulário
         document.getElementById('usr-emp').value = user.cliente_id;
         document.getElementById('usr-nome').value = user.nome;
@@ -350,7 +362,7 @@ async function editUsuario(id) {
         // Scroll para o formulário
         document.querySelector('#usuarios .form-card').scrollIntoView({ behavior: 'smooth' });
         
-        notify('Editando usuário. Modifique e clique em Atualizar.', 'success');
+        notify('Modo de edição ativado. Revise os dados e clique em Atualizar.', 'success');
     } catch (e) {
         notify(e.message, 'error');
     }
@@ -361,6 +373,10 @@ function cancelarEdicaoUsuario() {
     document.querySelector('#usuarios form').reset();
     document.getElementById('usr-rests').innerHTML = '';
     document.getElementById('usr-senha').setAttribute('required', ''); // Senha obrigatória ao criar
+    
+    // Ocultar aviso de edição
+    const aviso = document.getElementById('usuario-editando-aviso');
+    if (aviso) aviso.style.display = 'none';
     
     const btn = document.querySelector('#usuarios form button[type="submit"]');
     if (btn) btn.textContent = 'Cadastrar Usuário';
