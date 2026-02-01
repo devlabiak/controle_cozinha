@@ -56,8 +56,10 @@ def verify_token(token: str) -> dict:
         )
 
 
-def get_current_user(token: str, db: Session) -> User:
+async def get_current_user(token: str) -> User:
     """Obtém o usuário atual baseado no token"""
+    from app.database import SessionLocal
+    
     payload = verify_token(token)
     user_id = payload.get("sub")
     
@@ -67,14 +69,18 @@ def get_current_user(token: str, db: Session) -> User:
             detail="Token inválido"
         )
     
-    user = db.query(User).filter(User.id == int(user_id)).first()
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário não encontrado"
-        )
-    
-    return user
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Usuário não encontrado"
+            )
+        
+        return user
+    finally:
+        db.close()
 
 
 def check_role_access(user_id: int, tenant_id: int, required_role: str, db: Session) -> bool:
