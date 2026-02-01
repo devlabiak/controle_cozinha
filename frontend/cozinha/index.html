@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cozinha - WL Soluções</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -462,6 +463,7 @@
             <div class="nav-tabs">
                 <button class="nav-tab active" data-tab="estoque"><i class="fas fa-boxes"></i> Estoque</button>
                 <button class="nav-tab" data-tab="historico"><i class="fas fa-history"></i> Histórico</button>
+                <button class="nav-tab" data-tab="utilizar"><i class="fas fa-qrcode"></i> Utilizar Produto</button>
                 <button class="nav-tab" data-tab="gerenciar"><i class="fas fa-cogs"></i> Gerenciar</button>
             </div>
 
@@ -500,6 +502,71 @@
                     <i class="fas fa-box-open"></i>
                     <p>Nenhum produto cadastrado</p>
                     <button class="btn-primary" onclick="showTab('gerenciar')"><i class="fas fa-plus"></i> Cadastrar Primeiro Produto</button>
+                </div>
+            </div>
+
+            <!-- ABA: UTILIZAR PRODUTO (SCANNER QR) -->
+            <div id="tab-utilizar" class="tab-section">
+                <div class="card">
+                    <h2 style="color:#667eea;margin-bottom:20px;">
+                        <i class="fas fa-qrcode"></i> Scanner QR Code - Utilizar Produto
+                    </h2>
+                    <p style="color:#718096;margin-bottom:20px;">Escaneie o QR code da etiqueta do produto para dar baixa no estoque</p>
+                    
+                    <!-- Scanner Controls -->
+                    <div style="display:flex;gap:15px;margin-bottom:20px;">
+                        <button id="btn-iniciar-scanner" class="btn-primary">
+                            <i class="fas fa-camera"></i> Iniciar Câmera
+                        </button>
+                        <button id="btn-parar-scanner" class="btn-secondary" style="display:none;">
+                            <i class="fas fa-stop"></i> Parar Câmera
+                        </button>
+                    </div>
+                    
+                    <!-- Scanner Area -->
+                    <div id="scanner-container" style="display:none;">
+                        <div id="qr-reader" style="width:100%;max-width:500px;margin:0 auto 20px;"></div>
+                        <div id="scanner-status" style="padding:10px;background:#f7fafc;border-radius:8px;text-align:center;color:#4a5568;font-weight:600;">
+                            📷 Aponte a câmera para o QR Code
+                        </div>
+                    </div>
+                    
+                    <!-- Product Info Card -->
+                    <div id="produto-qr-card" class="card" style="display:none;margin-top:20px;border:2px solid #667eea;">
+                        <h3 style="color:#667eea;margin-bottom:15px;">
+                            <i class="fas fa-box"></i> <span id="qr-produto-nome"></span>
+                        </h3>
+                        
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:20px;">
+                            <div>
+                                <label style="color:#718096;font-size:13px;font-weight:600;">Categoria</label>
+                                <p id="qr-produto-categoria" style="margin:0;font-weight:600;"></p>
+                            </div>
+                            <div>
+                                <label style="color:#718096;font-size:13px;font-weight:600;">Quantidade</label>
+                                <p id="qr-produto-quantidade" style="margin:0;font-weight:600;color:#10b981;"></p>
+                            </div>
+                            <div>
+                                <label style="color:#718096;font-size:13px;font-weight:600;">Data Produção</label>
+                                <p id="qr-produto-producao" style="margin:0;font-weight:600;"></p>
+                            </div>
+                            <div>
+                                <label style="color:#718096;font-size:13px;font-weight:600;">Validade</label>
+                                <p id="qr-produto-validade" style="margin:0;font-weight:600;"></p>
+                            </div>
+                        </div>
+                        
+                        <div id="qr-validade-badge" style="padding:10px;border-radius:8px;text-align:center;margin-bottom:20px;font-weight:700;"></div>
+                        
+                        <div style="display:flex;gap:15px;justify-content:flex-end;">
+                            <button id="btn-cancelar-qr" class="btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button id="btn-confirmar-uso" class="btn-success">
+                                <i class="fas fa-check"></i> Confirmar Utilização
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -664,6 +731,20 @@
                                 <i class="fas fa-plus"></i> Registrar Entrada
                             </button>
                         </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:15px;">
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">
+                                    <i class="fas fa-calendar"></i> Data Produção/Embalagem (opcional)
+                                </label>
+                                <input type="date" id="entrada-data-producao" style="width:100%;">
+                            </div>
+                            <div>
+                                <label style="display:block;margin-bottom:5px;font-weight:600;color:#4a5568;">
+                                    <i class="fas fa-exclamation-triangle"></i> Data Validade (opcional)
+                                </label>
+                                <input type="date" id="entrada-data-validade" style="width:100%;">
+                            </div>
+                        </div>
                         <div style="margin-top:10px;">
                             <textarea id="entrada-obs" rows="2" placeholder="Observação (opcional): Ex: Recebimento fornecedor XYZ, Nota fiscal 12345..." style="width:100%;"></textarea>
                         </div>
@@ -786,6 +867,6 @@
         </div>
     </div>
 
-    <script src="index.js?v=202602012345"></script>
+    <script src="index.js?v=202602020001"></script>
 </body>
 </html>

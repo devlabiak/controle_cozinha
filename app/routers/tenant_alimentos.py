@@ -1,5 +1,6 @@
 from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List, Optional
@@ -10,6 +11,11 @@ from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
 from app.auth import get_current_user
 from app.middleware import get_tenant_id
 from pydantic import BaseModel
+import qrcode
+import io
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import mm
 
 router = APIRouter(prefix="/api/tenant", tags=["Tenant - Gestão de Alimentos"])
 
@@ -209,6 +215,9 @@ def criar_movimentacao(
     current_user: User = Depends(get_current_user)
 ):
     """Registra uma movimentação de estoque"""
+    import uuid
+    from datetime import datetime as dt
+    
     # Verifica se o usuário tem acesso ao tenant
     user_tenants = [t.id for t in current_user.tenants]
     if tenant_id not in user_tenants:
@@ -252,6 +261,29 @@ def criar_movimentacao(
             detail="Tipo de movimentação inválido"
         )
     
+    # Gera QR code único se for entrada
+    qr_code_gerado = None
+    data_producao = None
+    data_validade = None
+    
+    if dados.tipo == 'entrada':
+        qr_code_gerado = str(uuid.uuid4())
+        
+        # Parse datas se fornecidas
+        if dados.data_producao:
+            try:
+                data_producao = dt.fromisoformat(dados.data_producao.replace('Z', '+00:00')).date()
+            except:
+                data_producao = dt.now().date()
+        else:
+            data_producao = dt.now().date()
+            
+        if dados.data_validade:
+            try:
+                data_validade = dt.fromisoformat(dados.data_validade.replace('Z', '+00:00')).date()
+            except:
+                pass
+    
     # Cria a movimentação
     movimentacao = MovimentacaoEstoque(
         tenant_id=tenant_id,
@@ -261,7 +293,12 @@ def criar_movimentacao(
         quantidade=dados.quantidade,
         quantidade_anterior=quantidade_anterior,
         quantidade_nova=quantidade_nova,
-        motivo=dados.observacao
+        motivo=dados.observacao,
+        qr_code_gerado=qr_code_gerado,
+        data_producao=data_producao,
+        data_validade=data_validade,
+        etiqueta_impressa=False,
+        usado=False
     )
     
     # Atualiza o estoque do alimento
@@ -269,8 +306,13 @@ def criar_movimentacao(
     
     db.add(movimentacao)
     db.commit()
+    db.refresh(movimentacao)
     
-    return {"message": "Movimentação registrada com sucesso"}
+    return {
+        "message": "Movimentação registrada com sucesso",
+        "movimentacao_id": movimentacao.id,
+        "qr_code_gerado": qr_code_gerado
+    }
 
 
 @router.get("/{tenant_id}/movimentacoes", response_model=List[MovimentacaoResponse])
@@ -340,3 +382,247 @@ def listar_movimentacoes(
         })
     
     return movimentacoes
+
+
+# ==================== ETIQUETAS E QR CODE ====================
+@router.get("/{tenant_id}/movimentacoes/{movimentacao_id}/etiqueta")
+def gerar_etiqueta_pdf(
+    tenant_id: int,
+    movimentacao_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Gera PDF com etiqueta e QR code para impressão"""
+    # Verifica acesso ao tenant
+    user_tenants = [t.id for t in current_user.tenants]
+    if tenant_id not in user_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
+    
+    # Busca a movimentação
+    movimentacao = db.query(MovimentacaoEstoque).join(Alimento).filter(
+        MovimentacaoEstoque.id == movimentacao_id,
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == 'entrada'
+    ).first()
+    
+    if not movimentacao:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Movimentação não encontrada ou não é uma entrada"
+        )
+    
+    if not movimentacao.qr_code_gerado:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Movimentação não possui QR code gerado"
+        )
+    
+    alimento = movimentacao.alimento
+    
+    # Gera QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=2)
+    qr.add_data(movimentacao.qr_code_gerado)
+    qr.make(fit=True)
+    qr_img = qr.make_image(fill_color="black", back_color="white")
+    
+    # Converte QR code para bytes
+    qr_buffer = io.BytesIO()
+    qr_img.save(qr_buffer, format='PNG')
+    qr_buffer.seek(0)
+    
+    # Cria PDF
+    pdf_buffer = io.BytesIO()
+    c = canvas.Canvas(pdf_buffer, pagesize=(80*mm, 60*mm))  # Etiqueta 80x60mm
+    
+    # Desenha QR code
+    c.drawInlineImage(qr_buffer, 5*mm, 25*mm, width=25*mm, height=25*mm)
+    
+    # Adiciona texto
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(35*mm, 50*mm, alimento.nome[:30])  # Nome truncado
+    
+    c.setFont("Helvetica", 9)
+    c.drawString(35*mm, 45*mm, f"Qtd: {movimentacao.quantidade} {alimento.unidade_medida or 'un'}")
+    
+    if movimentacao.data_producao:
+        c.drawString(35*mm, 40*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
+    
+    if movimentacao.data_validade:
+        c.setFillColorRGB(0.8, 0, 0)  # Vermelho
+        c.drawString(35*mm, 35*mm, f"Validade: {movimentacao.data_validade.strftime('%d/%m/%Y')}")
+    
+    # Código de barras textual (UUID simplificado)
+    c.setFillColorRGB(0, 0, 0)
+    c.setFont("Courier", 6)
+    c.drawString(5*mm, 2*mm, movimentacao.qr_code_gerado[:36])
+    
+    c.save()
+    
+    # Marca como impressa
+    movimentacao.etiqueta_impressa = True
+    db.commit()
+    
+    pdf_buffer.seek(0)
+    return Response(
+        content=pdf_buffer.getvalue(),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=etiqueta_{movimentacao_id}.pdf"}
+    )
+
+
+@router.post("/{tenant_id}/qrcode/validar")
+def validar_qrcode(
+    tenant_id: int,
+    qr_code: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Valida QR code e retorna informações do produto"""
+    from pydantic import BaseModel
+    
+    class QRCodeRequest(BaseModel):
+        qr_code: str
+    
+    # Verifica acesso ao tenant
+    user_tenants = [t.id for t in current_user.tenants]
+    if tenant_id not in user_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
+    
+    # Busca movimentação pelo QR code
+    movimentacao = db.query(MovimentacaoEstoque).join(Alimento).filter(
+        MovimentacaoEstoque.qr_code_gerado == qr_code,
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == 'entrada'
+    ).first()
+    
+    if not movimentacao:
+        return {
+            "valido": False,
+            "mensagem": "QR Code não encontrado ou inválido"
+        }
+    
+    if movimentacao.usado:
+        return {
+            "valido": False,
+            "mensagem": "Este QR Code já foi utilizado"
+        }
+    
+    alimento = movimentacao.alimento
+    
+    # Verifica validade
+    status_validade = "válido"
+    if movimentacao.data_validade:
+        from datetime import date
+        hoje = date.today()
+        if movimentacao.data_validade < hoje:
+            status_validade = "vencido"
+        elif (movimentacao.data_validade - hoje).days <= 3:
+            status_validade = "vencendo"
+    
+    return {
+        "valido": True,
+        "movimentacao_id": movimentacao.id,
+        "alimento_nome": alimento.nome,
+        "quantidade": movimentacao.quantidade,
+        "unidade_medida": alimento.unidade_medida or "un",
+        "data_producao": movimentacao.data_producao.isoformat() if movimentacao.data_producao else None,
+        "data_validade": movimentacao.data_validade.isoformat() if movimentacao.data_validade else None,
+        "status_validade": status_validade,
+        "categoria": alimento.categoria
+    }
+
+
+@router.post("/{tenant_id}/qrcode/usar")
+def usar_qrcode(
+    tenant_id: int,
+    qr_code: str,
+    quantidade_usada: Optional[float] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Dá baixa no estoque usando QR code escaneado"""
+    from pydantic import BaseModel
+    
+    class QRCodeUsarRequest(BaseModel):
+        qr_code: str
+        quantidade_usada: Optional[float] = None
+    
+    # Verifica acesso ao tenant
+    user_tenants = [t.id for t in current_user.tenants]
+    if tenant_id not in user_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
+    
+    # Busca movimentação pelo QR code
+    movimentacao_entrada = db.query(MovimentacaoEstoque).join(Alimento).filter(
+        MovimentacaoEstoque.qr_code_gerado == qr_code,
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == 'entrada'
+    ).first()
+    
+    if not movimentacao_entrada:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="QR Code não encontrado"
+        )
+    
+    if movimentacao_entrada.usado:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este QR Code já foi utilizado"
+        )
+    
+    alimento = movimentacao_entrada.alimento
+    
+    # Quantidade a dar baixa (se não especificada, usa a quantidade total da entrada)
+    qtd_baixa = quantidade_usada if quantidade_usada else movimentacao_entrada.quantidade
+    
+    # Verifica se há estoque suficiente
+    estoque_atual = alimento.quantidade_estoque or 0
+    if estoque_atual < qtd_baixa:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Estoque insuficiente. Disponível: {estoque_atual}"
+        )
+    
+    # Registra saída
+    quantidade_anterior = estoque_atual
+    quantidade_nova = estoque_atual - qtd_baixa
+    
+    movimentacao_saida = MovimentacaoEstoque(
+        tenant_id=tenant_id,
+        alimento_id=alimento.id,
+        usuario_id=current_user.id,
+        tipo='saida',
+        quantidade=qtd_baixa,
+        quantidade_anterior=quantidade_anterior,
+        quantidade_nova=quantidade_nova,
+        motivo=f"Baixa via QR Code scanner",
+        qr_code_usado=qr_code
+    )
+    
+    # Atualiza estoque
+    alimento.quantidade_estoque = quantidade_nova
+    
+    # Marca entrada como usada
+    movimentacao_entrada.usado = True
+    
+    db.add(movimentacao_saida)
+    db.commit()
+    
+    return {
+        "sucesso": True,
+        "mensagem": "Baixa realizada com sucesso",
+        "produto": alimento.nome,
+        "quantidade_baixa": qtd_baixa,
+        "estoque_anterior": quantidade_anterior,
+        "estoque_novo": quantidade_nova
+    }

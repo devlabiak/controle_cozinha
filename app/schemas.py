@@ -204,6 +204,8 @@ class MovimentacaoEstoqueBase(BaseModel):
 
 class MovimentacaoEstoqueCreate(MovimentacaoEstoqueBase):
     lote_id: Optional[int] = None
+    data_producao: Optional[str] = None  # Data de produção/embalagem (ISO format)
+    data_validade: Optional[str] = None  # Data de validade (ISO format)
 
 
 class MovimentacaoEstoqueResponse(MovimentacaoEstoqueBase):
@@ -214,6 +216,11 @@ class MovimentacaoEstoqueResponse(MovimentacaoEstoqueBase):
     quantidade_anterior: Optional[float] = None
     quantidade_nova: Optional[float] = None
     qr_code_usado: Optional[str] = None
+    qr_code_gerado: Optional[str] = None
+    data_producao: Optional[str] = None
+    data_validade: Optional[str] = None
+    etiqueta_impressa: Optional[bool] = None
+    usado: Optional[bool] = None
     localizacao: Optional[str] = None
     created_at: datetime
 

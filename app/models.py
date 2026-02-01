@@ -199,6 +199,13 @@ class MovimentacaoEstoque(Base):
     qr_code_usado = Column(String(100))  # Se foi via QR code
     localizacao = Column(String(255))  # Localização GPS (opcional)
     
+    # Campos para etiquetas com QR code (entradas)
+    qr_code_gerado = Column(String(100), unique=True, index=True)  # UUID único para etiqueta
+    data_producao = Column(Date)  # Data de produção/embalagem
+    data_validade = Column(Date)  # Data de validade
+    etiqueta_impressa = Column(Boolean, default=False)  # Se já foi impressa
+    usado = Column(Boolean, default=False)  # Se já foi escaneado e dado baixa
+    
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
 
