@@ -50,8 +50,10 @@ async function loadClientes() {
                 <td>${c.nome_empresa}</td>
                 <td>${c.email}</td>
                 <td>${c.telefone || '-'}</td>
-                <td><button class="btn-small" onclick="editCliente(${c.id})">Editar</button>
-                    <button class="btn-small danger" onclick="delCliente(${c.id})">Deletar</button></td>
+                <td>
+                    <button class="btn-small" onclick="editCliente(${c.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small danger" onclick="delCliente(${c.id})"><i class="fas fa-trash"></i> Deletar</button>
+                </td>
             </tr>
         `).join('');
         document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
@@ -142,8 +144,10 @@ async function loadRestaurantes() {
                 <td>${r.nome}</td>
                 <td><code>${r.slug}</code></td>
                 <td>${r.cliente_id}</td>
-                <td><button class="btn-small" onclick="editRest(${r.id})">Editar</button>
-                    <button class="btn-small danger" onclick="delRest(${r.id})">Deletar</button></td>
+                <td>
+                    <button class="btn-small" onclick="editRest(${r.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small danger" onclick="delRest(${r.id})"><i class="fas fa-trash"></i> Deletar</button>
+                </td>
             </tr>
         `).join('');
         document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>Cliente</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
@@ -241,8 +245,10 @@ async function loadUsuarios() {
                 <td>${u.nome}</td>
                 <td>${u.email}</td>
                 <td>${u.is_admin ? 'Sim' : 'Não'}</td>
-                <td><button class="btn-small" onclick="editUser(${u.id})">Editar</button>
-                    <button class="btn-small danger" onclick="delUser(${u.id})">Deletar</button></td>
+                <td>
+                    <button class="btn-small" onclick="editUser(${u.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small danger" onclick="delUser(${u.id})"><i class="fas fa-trash"></i> Deletar</button>
+                </td>
             </tr>
         `).join('');
         document.getElementById('users-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Admin</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
