@@ -487,18 +487,22 @@
                 if (response.ok && data.access_token) {
                     usuarioLogado = data;
 
+                    // Salvar token e user
+                    localStorage.setItem('token', data.access_token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    mostrarAlerta('✓ Login realizado com sucesso!', 'success');
+                    
                     // Se é admin, vai para o painel de admin
                     if (data.user.is_admin) {
-                        localStorage.setItem('token', data.access_token);
-                        localStorage.setItem('user', JSON.stringify(data.user));
-
-                        mostrarAlerta('✓ Login realizado com sucesso!', 'success');
                         setTimeout(() => {
                             window.location.href = '/admin/dashboard.html';
                         }, 1000);
                     } else {
-                        // Se não é admin, mostrar seletor de restaurante
-                        mostrarSeletorRestaurante(data.user.restaurantes);
+                        // Se não é admin, vai direto para o painel cozinha (seletor lá)
+                        setTimeout(() => {
+                            window.location.href = '/cozinha/index.html';
+                        }, 1000);
                     }
                 } else {
                     mostrarAlerta('❌ ' + (data.detail || 'Erro ao fazer login'), 'error');
