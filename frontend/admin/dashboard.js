@@ -1,7 +1,8 @@
+// Dashboard Admin - v2026.02.01.02 (CNPJ + Email Opcional)
 const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
 
-console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)' });
+console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.01.02' });
 
 if (!TOKEN) {
     alert('Sessão expirada! Faça login novamente.');
