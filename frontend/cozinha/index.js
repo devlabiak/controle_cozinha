@@ -471,13 +471,18 @@ function updateEntradaPlaceholder() {
     const input = document.getElementById('entrada-quantidade');
     const calcInfo = document.getElementById('entrada-calc-info');
     
+    // Remove qualquer listener anterior
+    const oldListener = input._updateCalcInfoListener;
+    if (oldListener) {
+        input.removeEventListener('input', oldListener);
+        delete input._updateCalcInfoListener;
+    }
+    
     if (formato === 'embalagens' && tipoEmb) {
         input.placeholder = `Ex: 5`;
         input.step = '1';
         input.min = '1';
         input.value = ''; // Limpa o valor anterior
-        input.removeEventListener('input', updateCalcInfo); // Remove listener anterior
-        input.addEventListener('input', updateCalcInfo);
         
         function updateCalcInfo() {
             const qtd = parseInt(input.value);
@@ -488,12 +493,16 @@ function updateEntradaPlaceholder() {
                 calcInfo.style.display = 'none';
             }
         }
+        
+        // Armazena referência ao listener para poder remover depois
+        input._updateCalcInfoListener = updateCalcInfo;
+        input.addEventListener('input', updateCalcInfo);
     } else {
         input.placeholder = 'Ex: 50';
         input.step = '0.01';
         input.min = '0.01';
         input.value = ''; // Limpa o valor anterior
-        calcInfo.style.display = 'none';
+        calcInfo.style.display = 'none'; // Esconde o cálculo
     }
 }
 
