@@ -1090,6 +1090,7 @@ async function onScanSuccessUtilizar(decodedText) {
         
         if (response.ok && data.valido) {
             playBeep(); // Toca bipe de sucesso
+            showNotification('✅ QR Code lido com sucesso!', 'success');
             currentLoteUtilizar = data;
             displayProductInfoUtilizar(data);
             updateScannerStatusUtilizar('ready', '✅ QR Code válido!');
