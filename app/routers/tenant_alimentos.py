@@ -430,30 +430,40 @@ def gerar_etiqueta_pdf(
     qr.make(fit=True)
     qr_img = qr.make_image(fill_color="black", back_color="white")
     
-    # Cria PDF
+    # Cria PDF otimizado para impressora térmica (apenas preto e branco)
     pdf_buffer = io.BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=(80*mm, 60*mm))  # Etiqueta 80x60mm
     
-    # Desenha QR code (passa o objeto PIL Image diretamente)
+    # Desenha QR code
     c.drawInlineImage(qr_img, 5*mm, 25*mm, width=25*mm, height=25*mm)
     
-    # Adiciona texto
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(35*mm, 50*mm, alimento.nome[:30])  # Nome truncado
+    # Adiciona texto - APENAS PRETO (impressora térmica)
+    c.setFillColorRGB(0, 0, 0)
     
+    # Nome do produto (fonte maior e bold)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(35*mm, 52*mm, alimento.nome[:25])
+    
+    # Quantidade
     c.setFont("Helvetica", 9)
-    c.drawString(35*mm, 45*mm, f"Qtd: {movimentacao.quantidade} {alimento.unidade_medida or 'un'}")
+    c.drawString(35*mm, 46*mm, f"Qtd: {movimentacao.quantidade} {alimento.unidade_medida or 'un'}")
     
+    # Data de produção
     if movimentacao.data_producao:
         c.drawString(35*mm, 40*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
     
+    # Data de validade (destaque com *** mas ainda preto)
     if movimentacao.data_validade:
-        c.setFillColorRGB(0.8, 0, 0)  # Vermelho
-        c.drawString(35*mm, 35*mm, f"Validade: {movimentacao.data_validade.strftime('%d/%m/%Y')}")
+        c.setFont("Helvetica-Bold", 9)
+        c.drawString(35*mm, 34*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
     
-    # Código de barras textual (UUID simplificado)
-    c.setFillColorRGB(0, 0, 0)
-    c.setFont("Courier", 6)
+    # Rodapé - categoria se houver
+    c.setFont("Helvetica", 7)
+    if alimento.categoria:
+        c.drawString(35*mm, 28*mm, f"Cat: {alimento.categoria}")
+    
+    # UUID simplificado no rodapé (para debug)
+    c.setFont("Courier", 5)
     c.drawString(5*mm, 2*mm, movimentacao.qr_code_gerado[:36])
     
     c.save()
