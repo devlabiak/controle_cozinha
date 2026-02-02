@@ -1014,14 +1014,20 @@ function exibirDadosProdutoQR(data) {
     document.getElementById('qr-produto-quantidade').textContent = `${data.quantidade} ${data.unidade_medida}`;
     
     if (data.data_producao) {
-        const dataProducao = new Date(data.data_producao);
+        // Extrai YYYY-MM-DD e cria data local sem conversão de timezone
+        const dateOnly = data.data_producao.split('T')[0];
+        const [year, month, day] = dateOnly.split('-');
+        const dataProducao = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         document.getElementById('qr-produto-producao').textContent = dataProducao.toLocaleDateString('pt-BR');
     } else {
         document.getElementById('qr-produto-producao').textContent = '-';
     }
     
     if (data.data_validade) {
-        const dataValidade = new Date(data.data_validade);
+        // Extrai YYYY-MM-DD e cria data local sem conversão de timezone
+        const dateOnly = data.data_validade.split('T')[0];
+        const [year, month, day] = dateOnly.split('-');
+        const dataValidade = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         document.getElementById('qr-produto-validade').textContent = dataValidade.toLocaleDateString('pt-BR');
     } else {
         document.getElementById('qr-produto-validade').textContent = '-';
