@@ -55,15 +55,17 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             )
     
     # Para usuários admin, não tem tenant_id fixo
-    # Para usuários de cliente, retorna os tenants que tem acesso (somente os ativos)
+    # Para usuários de cliente, retorna os tenants que tem acesso (apenas os ativos no token)
     tenant_ids = [t.id for t in user.tenants if t.ativo] if user.tenants else []
+    # Mas retorna todos os restaurantes (incluindo bloqueados) para o frontend exibir
     restaurantes = [
         {
             "id": t.id,
             "nome": t.nome,
-            "slug": t.slug
+            "slug": t.slug,
+            "ativo": t.ativo
         }
-        for t in user.tenants if t.ativo
+        for t in user.tenants
     ] if user.tenants else []
     
     # Cria token
