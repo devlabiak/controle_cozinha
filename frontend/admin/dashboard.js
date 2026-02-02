@@ -181,11 +181,17 @@ async function loadRestaurantes() {
                     </span>
                 </td>
                 <td>
-                    <button class="btn-small" onclick="editRest(${r.id})"><i class="fas fa-edit"></i> Editar</button>
-                    <button class="btn-small ${r.ativo ? 'danger' : 'success'}" onclick="toggleStatusRest(${r.id}, ${r.ativo})">
-                        <i class="fas fa-${r.ativo ? 'ban' : 'check'}"></i> ${r.ativo ? 'Bloquear' : 'Desbloquear'}
-                    </button>
-                    <button class="btn-small danger" onclick="delRest(${r.id})"><i class="fas fa-trash"></i> Deletar</button>
+                    <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                        <button class="btn-small" onclick="editRest(${r.id})" title="Editar restaurante">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-small ${r.ativo ? 'danger' : 'success'}" onclick="toggleStatusRest(${r.id}, ${r.ativo})" title="${r.ativo ? 'Bloquear restaurante' : 'Desbloquear restaurante'}">
+                            <i class="fas fa-${r.ativo ? 'ban' : 'check'}"></i>
+                        </button>
+                        <button class="btn-small danger" onclick="delRest(${r.id})" title="Deletar restaurante">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `).join('');
