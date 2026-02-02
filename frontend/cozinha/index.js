@@ -84,6 +84,18 @@ async function checkPermissionsAndShowMain() {
         const response = await fetch('/api/auth/me', {
             headers: { 'Authorization': 'Bearer ' + token }
         });
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token inválido ou expirado
+                console.error('Token inválido ou expirado');
+                localStorage.clear();
+                window.location.href = '/painelfoods/login.html';
+                return;
+            }
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
         const data = await response.json();
         
         const resto = data.restaurantes.find(r => r.id == tenantId);
@@ -91,7 +103,12 @@ async function checkPermissionsAndShowMain() {
         
         showMainArea();
     } catch (err) {
-        showNotification('Erro ao verificar permissões', 'error');
+        console.error('Erro em checkPermissionsAndShowMain:', err);
+        showNotification('Erro ao verificar permissões. Faça login novamente.', 'error');
+        setTimeout(() => {
+            localStorage.clear();
+            window.location.href = '/painelfoods/login.html';
+        }, 2000);
     }
 }
 
