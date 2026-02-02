@@ -1,8 +1,8 @@
-// Dashboard Admin - v2026.02.01.02 (CNPJ + Email Opcional)
+// Dashboard Admin - v2026.02.01.03 (CNPJ + Email Opcional + Editar Usuários)
 const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
 
-console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.01.02' });
+console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.01.03' });
 
 if (!TOKEN) {
     alert('Sessão expirada! Faça login novamente.');
@@ -293,13 +293,47 @@ async function addUser(e) {
 async function editUser(id) {
     try {
         const u = await api(`/admin/usuarios/${id}`);
-        const nome = prompt('Nome:', u.nome);
-        if (!nome) return;
+        
+        // Preencher modal
+        document.getElementById('edit-user-id').value = u.id;
+        document.getElementById('edit-user-nome').value = u.nome;
+        document.getElementById('edit-user-email').value = u.email;
+        document.getElementById('edit-user-senha').value = ''; // Sempre vazio
+        document.getElementById('edit-user-admin').checked = u.is_admin;
+        document.getElementById('edit-user-ativo').checked = u.ativo;
+        
+        // Abrir modal
+        document.getElementById('modal-edit-user').classList.add('active');
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function salvarUserEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-user-id').value;
+    const novaSenha = document.getElementById('edit-user-senha').value;
+    
+    const dados = {
+        nome: document.getElementById('edit-user-nome').value,
+        email: document.getElementById('edit-user-email').value,
+        is_admin: document.getElementById('edit-user-admin').checked,
+        ativo: document.getElementById('edit-user-ativo').checked
+    };
+    
+    // Adicionar senha somente se foi preenchida
+    if (novaSenha) {
+        dados.senha = novaSenha;
+    }
+    
+    try {
         await api(`/admin/usuarios/${id}`, {
             method: 'PUT',
-            body: JSON.stringify({ nome, email: u.email, is_admin: u.is_admin, ativo: u.ativo })
+            body: JSON.stringify(dados)
         });
-        notify('Atualizado!');
+        
+        notify('Usuário atualizado com sucesso!');
+        fecharModal('modal-edit-user');
         loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');
