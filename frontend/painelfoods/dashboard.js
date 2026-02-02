@@ -328,6 +328,8 @@ function toggleEmpresaField() {
     const restaurantesGroup = document.getElementById('user-restaurantes-group');
     const empresaSelect = document.getElementById('user-cliente');
     
+    console.log('toggleEmpresaField chamado, isAdmin:', isAdmin);
+    
     if (isAdmin) {
         empresaGroup.style.display = 'none';
         empresaSelect.removeAttribute('required');
@@ -336,8 +338,11 @@ function toggleEmpresaField() {
         empresaGroup.style.display = 'block';
         empresaSelect.setAttribute('required', 'required');
         restaurantesGroup.style.display = 'block';
+        console.log('Mostrando campo restaurantes');
         // Carregar restaurantes da empresa selecionada
-        carregarRestaurantesUsuario();
+        if (empresaSelect.value) {
+            carregarRestaurantesUsuario();
+        }
     }
 }
 
