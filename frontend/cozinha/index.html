@@ -12,6 +12,17 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #f5f7fa;
         }
+        
+        /* Remove spinners de inputs numéricos inteiros */
+        input[type="number"][step="1"]::-webkit-inner-spin-button,
+        input[type="number"][step="1"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"][step="1"] {
+            -moz-appearance: textfield;
+        }
+        
         .container {
             max-width: 1400px;
             margin: 0 auto;
