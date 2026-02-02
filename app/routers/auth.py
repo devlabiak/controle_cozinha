@@ -45,16 +45,25 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
                 detail="Empresa bloqueada. Entre em contato com o suporte."
             )
     
+    # Verificar se usuário não-admin tem pelo menos um restaurante ativo
+    if not user.is_admin and user.tenants:
+        restaurantes_ativos = [t for t in user.tenants if t.ativo]
+        if not restaurantes_ativos:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Todos os restaurantes estão bloqueados. Entre em contato com o suporte."
+            )
+    
     # Para usuários admin, não tem tenant_id fixo
-    # Para usuários de cliente, retorna os tenants que tem acesso
-    tenant_ids = [t.id for t in user.tenants] if user.tenants else []
+    # Para usuários de cliente, retorna os tenants que tem acesso (somente os ativos)
+    tenant_ids = [t.id for t in user.tenants if t.ativo] if user.tenants else []
     restaurantes = [
         {
             "id": t.id,
             "nome": t.nome,
             "slug": t.slug
         }
-        for t in user.tenants
+        for t in user.tenants if t.ativo
     ] if user.tenants else []
     
     # Cria token
