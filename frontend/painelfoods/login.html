@@ -221,6 +221,19 @@
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
         }
 
+        .restaurante-opcao.bloqueado {
+            background: #f5f5f5;
+            border-color: #e0e0e0;
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .restaurante-opcao.bloqueado:hover {
+            border-color: #e0e0e0;
+            background: #f5f5f5;
+            box-shadow: none;
+        }
+
         .restaurante-opcao.selected {
             border-color: #667eea;
             background: #edf2f7;
@@ -232,9 +245,28 @@
             margin-bottom: 5px;
         }
 
+        .restaurante-opcao.bloqueado .restaurante-nome {
+            color: #999;
+        }
+
         .restaurante-slug {
             font-size: 12px;
             color: #718096;
+        }
+
+        .restaurante-opcao.bloqueado .restaurante-slug {
+            color: #999;
+        }
+
+        .badge-bloqueado {
+            display: inline-block;
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 8px;
         }
 
         .modal-footer {
@@ -345,9 +377,12 @@
                 return false;
             }
 
-            if (restaurantes.length === 1) {
-                // Apenas um restaurante, ir direto
-                restauranteSelecionado = restaurantes[0];
+            // Verificar se tem pelo menos um restaurante ativo
+            const restaurantesAtivos = restaurantes.filter(r => r.ativo !== false);
+            
+            if (restaurantesAtivos.length === 1 && restaurantes.length === 1) {
+                // Apenas um restaurante ativo, ir direto
+                restauranteSelecionado = restaurantesAtivos[0];
                 finalizarLogin();
                 return;
             }
@@ -358,12 +393,21 @@
 
             restaurantes.forEach(r => {
                 const div = document.createElement('div');
-                div.className = 'restaurante-opcao';
+                const bloqueado = r.ativo === false;
+                div.className = bloqueado ? 'restaurante-opcao bloqueado' : 'restaurante-opcao';
+                
                 div.innerHTML = `
                     <div class="restaurante-nome">${r.nome}</div>
                     <div class="restaurante-slug">@${r.slug}</div>
+                    ${bloqueado ? '<span class="badge-bloqueado">🔒 Bloqueado</span>' : ''}
                 `;
+                
                 div.addEventListener('click', () => {
+                    if (bloqueado) {
+                        mostrarAlerta('⚠️ Restaurante bloqueado. Entre em contato com o administrador do sistema.', 'error');
+                        return;
+                    }
+                    
                     // Remover seleção anterior
                     document.querySelectorAll('.restaurante-opcao').forEach(el => {
                         el.classList.remove('selected');
