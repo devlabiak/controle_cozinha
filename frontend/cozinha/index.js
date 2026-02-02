@@ -1044,6 +1044,16 @@ function displayProductInfoUtilizar(data) {
     
     document.getElementById('quantidade-disponivel-utilizar').textContent = `${data.quantidade} ${data.unidade_medida}`;
     
+    // Se foi usado parcialmente, mostra informação adicional
+    if (data.quantidade_usada && data.quantidade_usada > 0) {
+        const infoExtra = document.createElement('div');
+        infoExtra.style.fontSize = '12px';
+        infoExtra.style.color = '#666';
+        infoExtra.style.marginTop = '5px';
+        infoExtra.textContent = `Original: ${data.quantidade_original} ${data.unidade_medida} • Usado: ${data.quantidade_usada}`;
+        document.getElementById('quantidade-disponivel-utilizar').appendChild(infoExtra);
+    }
+    
     const badge = document.getElementById('status-badge-utilizar');
     const daysToExpire = getDaysToExpireUtilizar(data.data_validade);
     

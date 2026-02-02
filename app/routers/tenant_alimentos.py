@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from typing import List, Optional
 from datetime import datetime
 from app.database import get_db
@@ -523,10 +523,20 @@ def validar_qrcode(
             "mensagem": "QR Code não encontrado ou inválido"
         }
     
-    if movimentacao.usado:
+    # Calcula quantidade já usada deste lote
+    total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
+        MovimentacaoEstoque.qr_code_usado == qr_code,
+        MovimentacaoEstoque.tipo == 'saida',
+        MovimentacaoEstoque.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    # Quantidade disponível neste lote
+    quantidade_disponivel = movimentacao_entrada.quantidade - total_usado
+    
+    if quantidade_disponivel <= 0:
         return {
             "valido": False,
-            "mensagem": "Este QR Code já foi utilizado"
+            "mensagem": "Este lote já foi completamente utilizado"
         }
     
     alimento = movimentacao.alimento
@@ -555,7 +565,9 @@ def validar_qrcode(
         "valido": True,
         "movimentacao_id": movimentacao.id,
         "alimento_nome": alimento.nome,
-        "quantidade": movimentacao.quantidade,
+        "quantidade": quantidade_disponivel,
+        "quantidade_original": movimentacao.quantidade,
+        "quantidade_usada": total_usado,
         "unidade_medida": alimento.unidade_medida or "un",
         "data_producao": data_prod_str,
         "data_validade": data_val_str,
@@ -608,22 +620,44 @@ def usar_qrcode(
             detail="QR Code não encontrado"
         )
     
-    if movimentacao_entrada.usado:
-        print(f"❌ QR Code já utilizado")
+    # Calcula quantidade já usada deste lote
+    total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
+        MovimentacaoEstoque.qr_code_usado == qr_code,
+        MovimentacaoEstoque.tipo == 'saida',
+        MovimentacaoEstoque.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    # Quantidade disponível neste lote específico
+    quantidade_disponivel_lote = movimentacao_entrada.quantidade - total_usado
+    
+    print(f"🔵 Quantidade original do lote: {movimentacao_entrada.quantidade}")
+    print(f"🔵 Total já usado deste lote: {total_usado}")
+    print(f"🔵 Disponível neste lote: {quantidade_disponivel_lote}")
+    
+    if quantidade_disponivel_lote <= 0:
+        print(f"❌ Lote completamente utilizado")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Este QR Code já foi utilizado"
+            detail="Este lote já foi completamente utilizado"
         )
     
     alimento = movimentacao_entrada.alimento
     
-    # Quantidade a dar baixa (se não especificada, usa a quantidade total da entrada)
-    qtd_baixa = quantidade_usada if quantidade_usada else movimentacao_entrada.quantidade
+    # Quantidade a dar baixa (se não especificada, usa a quantidade disponível do lote)
+    qtd_baixa = quantidade_usada if quantidade_usada else quantidade_disponivel_lote
+    
+    # Não pode usar mais do que está disponível no lote
+    if qtd_baixa > quantidade_disponivel_lote:
+        print(f"❌ Quantidade solicitada maior que disponível no lote: {qtd_baixa} > {quantidade_disponivel_lote}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Quantidade indisponível neste lote. Disponível: {quantidade_disponivel_lote}"
+        )
     
     print(f"🔵 Produto: {alimento.nome}")
-    print(f"🔵 Quantidade baixa: {qtd_baixa}")
+    print(f"🔵 Quantidade a dar baixa: {qtd_baixa}")
     
-    # Verifica se há estoque suficiente
+    # Verifica se há estoque suficiente no total
     estoque_atual = alimento.quantidade_estoque or 0
     if estoque_atual < qtd_baixa:
         print(f"❌ Estoque insuficiente: {estoque_atual} < {qtd_baixa}")
@@ -653,14 +687,18 @@ def usar_qrcode(
     # Atualiza estoque
     alimento.quantidade_estoque = quantidade_nova
     
-    # Marca entrada como usada
-    movimentacao_entrada.usado = True
+    # NÃO marca entrada como usada - permite uso parcial
+    # movimentacao_entrada.usado = True  <- REMOVIDO
     
     db.add(movimentacao_saida)
     db.commit()
     
+    # Calcula quanto ainda resta disponível neste lote
+    quantidade_restante_lote = quantidade_disponivel_lote - qtd_baixa
+    
     print(f"✅ Baixa realizada com sucesso!")
-    print(f"✅ Estoque: {quantidade_anterior} -> {quantidade_nova}")
+    print(f"✅ Estoque geral: {quantidade_anterior} -> {quantidade_nova}")
+    print(f"✅ Restante neste lote: {quantidade_restante_lote}")
     
     resultado = {
         "sucesso": True,
@@ -668,7 +706,9 @@ def usar_qrcode(
         "produto": alimento.nome,
         "quantidade_baixa": qtd_baixa,
         "estoque_anterior": quantidade_anterior,
-        "estoque_novo": quantidade_nova
+        "estoque_novo": quantidade_nova,
+        "lote_restante": quantidade_restante_lote,
+        "lote_original": movimentacao_entrada.quantidade
     }
     
     print(f"✅ Retornando:", resultado)
