@@ -1181,7 +1181,16 @@ function displayProductInfoUtilizar(data) {
     // Armazena a unidade para uso nas funções de incremento/decremento
     quantityInput.dataset.isUnidade = isUnidade;
     
-    document.getElementById('product-card-utilizar').classList.add('show');
+    const productCard = document.getElementById('product-card-utilizar');
+    productCard.classList.add('show');
+    
+    // Aguarda um momento para o card aparecer, então rola suavemente até ele
+    setTimeout(() => {
+        productCard.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start'
+        });
+    }, 100);
 }
 
 async function confirmUsageUtilizar() {
