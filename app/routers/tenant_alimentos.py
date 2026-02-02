@@ -573,6 +573,12 @@ def usar_qrcode(
     current_user: User = Depends(get_current_user)
 ):
     """Dá baixa no estoque usando QR code escaneado"""
+    print(f"🔵 Endpoint /qrcode/usar chamado")
+    print(f"🔵 tenant_id: {tenant_id}")
+    print(f"🔵 qr_code: {qr_code}")
+    print(f"🔵 quantidade_usada: {quantidade_usada}")
+    print(f"🔵 user: {current_user.email}")
+    
     from pydantic import BaseModel
     
     class QRCodeUsarRequest(BaseModel):
@@ -582,6 +588,7 @@ def usar_qrcode(
     # Verifica acesso ao tenant
     user_tenants = [t.id for t in current_user.tenants]
     if tenant_id not in user_tenants:
+        print(f"❌ Acesso negado - tenant_id {tenant_id} não está em {user_tenants}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
@@ -595,12 +602,14 @@ def usar_qrcode(
     ).first()
     
     if not movimentacao_entrada:
+        print(f"❌ QR Code não encontrado: {qr_code}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="QR Code não encontrado"
         )
     
     if movimentacao_entrada.usado:
+        print(f"❌ QR Code já utilizado")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este QR Code já foi utilizado"
@@ -611,9 +620,13 @@ def usar_qrcode(
     # Quantidade a dar baixa (se não especificada, usa a quantidade total da entrada)
     qtd_baixa = quantidade_usada if quantidade_usada else movimentacao_entrada.quantidade
     
+    print(f"🔵 Produto: {alimento.nome}")
+    print(f"🔵 Quantidade baixa: {qtd_baixa}")
+    
     # Verifica se há estoque suficiente
     estoque_atual = alimento.quantidade_estoque or 0
     if estoque_atual < qtd_baixa:
+        print(f"❌ Estoque insuficiente: {estoque_atual} < {qtd_baixa}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Estoque insuficiente. Disponível: {estoque_atual}"
@@ -622,6 +635,8 @@ def usar_qrcode(
     # Registra saída
     quantidade_anterior = estoque_atual
     quantidade_nova = estoque_atual - qtd_baixa
+    
+    print(f"🔵 Criando movimentação de saída...")
     
     movimentacao_saida = MovimentacaoEstoque(
         tenant_id=tenant_id,
@@ -644,7 +659,10 @@ def usar_qrcode(
     db.add(movimentacao_saida)
     db.commit()
     
-    return {
+    print(f"✅ Baixa realizada com sucesso!")
+    print(f"✅ Estoque: {quantidade_anterior} -> {quantidade_nova}")
+    
+    resultado = {
         "sucesso": True,
         "mensagem": "Baixa realizada com sucesso",
         "produto": alimento.nome,
@@ -652,3 +670,7 @@ def usar_qrcode(
         "estoque_anterior": quantidade_anterior,
         "estoque_novo": quantidade_nova
     }
+    
+    print(f"✅ Retornando:", resultado)
+    
+    return resultado

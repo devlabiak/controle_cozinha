@@ -1035,8 +1035,16 @@ async function confirmUsageUtilizar() {
         return;
     }
     
+    console.log('🔵 Iniciando confirmação de uso...');
+    console.log('QR Code:', currentQRDataUtilizar);
+    console.log('Quantidade:', quantidade);
+    console.log('Tenant ID:', tenantId);
+    
     try {
-        const response = await fetch(`/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRDataUtilizar)}&quantidade_usada=${quantidade}`, {
+        const url = `/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRDataUtilizar)}&quantidade_usada=${quantidade}`;
+        console.log('🔵 URL:', url);
+        
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1044,13 +1052,26 @@ async function confirmUsageUtilizar() {
             }
         });
         
+        console.log('🔵 Response status:', response.status);
+        console.log('🔵 Response ok:', response.ok);
+        
+        const responseText = await response.text();
+        console.log('🔵 Response text:', responseText);
+        
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
+            let errorData;
+            try {
+                errorData = JSON.parse(responseText);
+            } catch {
+                errorData = { detail: 'Erro desconhecido' };
+            }
+            console.error('❌ Erro na resposta:', errorData);
             showNotification(errorData.detail || errorData.mensagem || 'Erro ao dar baixa', 'error');
             return;
         }
         
-        const data = await response.json();
+        const data = JSON.parse(responseText);
+        console.log('🔵 Dados recebidos:', data);
         
         if (data.sucesso) {
             showNotification(`✓ Baixa realizada com sucesso!\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${currentLoteUtilizar.unidade_medida}`, 'success');
@@ -1060,7 +1081,7 @@ async function confirmUsageUtilizar() {
             showNotification(data.mensagem || 'Erro ao processar', 'error');
         }
     } catch (error) {
-        console.error('Erro ao confirmar uso:', error);
+        console.error('❌ Erro ao confirmar uso:', error);
         showNotification('Erro ao conectar ao servidor: ' + error.message, 'error');
     }
 }
