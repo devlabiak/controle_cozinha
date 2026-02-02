@@ -547,8 +547,8 @@ def validar_qrcode(
         "alimento_nome": alimento.nome,
         "quantidade": movimentacao.quantidade,
         "unidade_medida": alimento.unidade_medida or "un",
-        "data_producao": movimentacao.data_producao.isoformat() if movimentacao.data_producao else None,
-        "data_validade": movimentacao.data_validade.isoformat() if movimentacao.data_validade else None,
+        "data_producao": movimentacao.data_producao.strftime('%Y-%m-%d') if movimentacao.data_producao else None,
+        "data_validade": movimentacao.data_validade.strftime('%Y-%m-%d') if movimentacao.data_validade else None,
         "status_validade": status_validade,
         "categoria": alimento.categoria
     }
