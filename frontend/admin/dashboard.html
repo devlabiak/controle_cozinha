@@ -376,6 +376,22 @@
         .modal-close:hover {
             color: #f56565;
         }
+        
+        /* Checkboxes */
+        input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -473,15 +489,15 @@
                     <input type="password" id="edit-user-senha" minlength="6" placeholder="Mínimo 6 caracteres">
                 </div>
                 <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="edit-user-admin">
-                        É Admin do SaaS?
+                        <span>É Admin do SaaS?</span>
                     </label>
                 </div>
                 <div class="form-group">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="edit-user-ativo">
-                        Usuário Ativo?
+                        <span>Usuário Ativo?</span>
                     </label>
                 </div>
                 <div class="btn-group">
@@ -632,9 +648,9 @@
                                 <input type="password" id="user-senha" minlength="6" required>
                             </div>
                             <div class="form-group">
-                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <label class="checkbox-label">
                                     <input type="checkbox" id="user-admin">
-                                    É Admin do SaaS?
+                                    <span>É Admin do SaaS?</span>
                                 </label>
                             </div>
                         </div>
