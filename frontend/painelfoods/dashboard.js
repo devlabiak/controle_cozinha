@@ -325,16 +325,77 @@ async function toggleStatusRest(id, ativoAtual) {
 function toggleEmpresaField() {
     const isAdmin = document.getElementById('user-admin').checked;
     const empresaGroup = document.getElementById('user-empresa-group');
+    const restaurantesGroup = document.getElementById('user-restaurantes-group');
     const empresaSelect = document.getElementById('user-cliente');
     
     if (isAdmin) {
         empresaGroup.style.display = 'none';
         empresaSelect.removeAttribute('required');
+        restaurantesGroup.style.display = 'none';
     } else {
         empresaGroup.style.display = 'block';
         empresaSelect.setAttribute('required', 'required');
+        restaurantesGroup.style.display = 'block';
+        // Carregar restaurantes da empresa selecionada
+        carregarRestaurantesUsuario();
     }
 }
+
+// Carregar restaurantes ao selecionar empresa
+document.getElementById('user-cliente')?.addEventListener('change', carregarRestaurantesUsuario);
+
+async function carregarRestaurantesUsuario() {
+    const clienteId = document.getElementById('user-cliente').value;
+    const container = document.getElementById('user-restaurantes-list');
+    
+    if (!clienteId) {
+        container.innerHTML = '<p style="color: #999; font-size: 13px;">Selecione uma empresa primeiro</p>';
+        return;
+    }
+    
+    try {
+        const restaurantes = await api(`/admin/clientes/${clienteId}/restaurantes`);
+        
+        if (restaurantes.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-size: 13px;">Esta empresa não possui restaurantes cadastrados</p>';
+            return;
+        }
+        
+        container.innerHTML = restaurantes.map(r => `
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="restaurante" value="${r.id}" style="width: 18px; height: 18px;" onchange="toggleRestaurantePermissao(${r.id})">
+                    <span style="font-weight: 600; color: #2d3748; flex: 1;">${r.nome}</span>
+                </label>
+                <div id="permissao-${r.id}" style="display: none; margin-top: 10px; margin-left: 28px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="role-${r.id}" value="leitura" checked style="width: 16px; height: 16px;">
+                        <span style="color: #4a5568;">🔍 <strong>Leitura</strong> - Visualiza e usa QR codes</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 5px;">
+                        <input type="radio" name="role-${r.id}" value="admin" style="width: 16px; height: 16px;">
+                        <span style="color: #4a5568;">👑 <strong>Administrador</strong> - Gerencia tudo</span>
+                    </label>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        container.innerHTML = `<p style="color: red;">Erro ao carregar restaurantes: ${e.message}</p>`;
+    }
+}
+
+function toggleRestaurantePermissao(restauranteId) {
+    const checkbox = document.querySelector(`input[name="restaurante"][value="${restauranteId}"]`);
+    const permissaoDiv = document.getElementById(`permissao-${restauranteId}`);
+    
+    if (checkbox.checked) {
+        permissaoDiv.style.display = 'block';
+    } else {
+        permissaoDiv.style.display = 'none';
+    }
+}
+
+window.toggleRestaurantePermissao = toggleRestaurantePermissao;
 
 async function loadUsuarios() {
     try {
@@ -402,6 +463,25 @@ async function addUser(e) {
         // Apenas adicionar cliente_id se não for admin do SaaS
         if (!isAdmin) {
             dados.cliente_id = parseInt(document.getElementById('user-cliente').value);
+            
+            // Coletar restaurantes selecionados com permissões
+            const restaurantesSelecionados = [];
+            const checkboxes = document.querySelectorAll('input[name="restaurante"]:checked');
+            
+            checkboxes.forEach(checkbox => {
+                const restauranteId = parseInt(checkbox.value);
+                const isAdminRestaurante = document.querySelector(`input[name="role-${restauranteId}"]:checked`)?.value === 'admin';
+                
+                restaurantesSelecionados.push({
+                    tenant_id: restauranteId,
+                    is_admin_restaurante: isAdminRestaurante
+                });
+            });
+            
+            // Adicionar restaurantes ao payload
+            if (restaurantesSelecionados.length > 0) {
+                dados.restaurantes = restaurantesSelecionados;
+            }
         } else {
             dados.cliente_id = null; // Admin do SaaS não tem empresa
         }
@@ -410,9 +490,10 @@ async function addUser(e) {
             method: 'POST',
             body: JSON.stringify(dados)
         });
-        notify('Usuário criado!');
+        notify('Usuário criado com sucesso!');
         e.target.reset();
         toggleEmpresaField(); // Resetar visibilidade do campo
+        document.getElementById('user-restaurantes-list').innerHTML = '';
         loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');
