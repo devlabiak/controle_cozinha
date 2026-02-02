@@ -999,6 +999,34 @@ let html5QrScannerUtilizar = null;
 let currentQRDataUtilizar = null;
 let currentLoteUtilizar = null;
 
+// Função para tocar bipe de sucesso
+function playBeep() {
+    try {
+        // Cria um contexto de áudio
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        // Configura o som
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Frequência do bipe (Hz) - 800Hz é um som agradável
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        // Volume e duração
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+        
+        // Toca o som
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (err) {
+        console.error('Erro ao tocar bipe:', err);
+    }
+}
+
 // Auto-start scanner quando a aba é ativada
 document.querySelector('[data-tab="utilizar"]')?.addEventListener('click', () => {
     setTimeout(() => {
@@ -1055,6 +1083,7 @@ async function onScanSuccessUtilizar(decodedText) {
         const data = await response.json();
         
         if (response.ok && data.valido) {
+            playBeep(); // Toca bipe de sucesso
             currentLoteUtilizar = data;
             displayProductInfoUtilizar(data);
             updateScannerStatusUtilizar('ready', '✅ QR Code válido!');
