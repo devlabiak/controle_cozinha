@@ -1,12 +1,15 @@
-console.log('=== DASHBOARD.JS CARREGADO ===', new Date().toLocaleTimeString());
-
-const API = `${window.location.protocol}//${window.location.hostname}/api`;
+// Dashboard Admin - v2026.02.01.02 (CNPJ + Email Opcional)
+const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
 
+console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.01.02' });
+
 if (!TOKEN) {
-    window.location.href = '/painelfoods/login.html';
+    alert('Sessão expirada! Faça login novamente.');
+    window.location.href = '/admin/login.html';
 }
 
+// ===== NOTIFICAÇÃO =====
 function notify(msg, type = 'success') {
     const div = document.createElement('div');
     div.className = `notification ${type}`;
@@ -15,163 +18,170 @@ function notify(msg, type = 'success') {
     setTimeout(() => div.remove(), 3000);
 }
 
-async function api(path, opts = {}) {
-    const res = await fetch(`${API}${path}`, {
-        ...opts,
+function api(url, options = {}) {
+    return fetch(`${API}${url}`, {
+        ...options,
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${TOKEN}`,
-            ...opts.headers
+            ...options.headers
         }
+    }).then(async r => {
+        const text = await r.text();
+        const data = text ? JSON.parse(text) : null;
+        
+        if (!r.ok) {
+            const msg = data?.detail || `HTTP ${r.status}`;
+            console.error('API Error:', msg, data);
+            throw new Error(msg);
+        }
+        return data;
+    }).catch(e => {
+        console.error('Request Error:', e);
+        throw e;
     });
-
-    const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
-
-    if (!res.ok) {
-        throw new Error(data?.detail || `Erro ${res.status}`);
-    }
-    return data;
 }
 
-// Navegação
-document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        console.log('Clicou em:', btn.dataset.section);
-        
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-        
-        btn.classList.add('active');
-        const sec = btn.dataset.section;
-        document.getElementById(sec).classList.add('active');
-        
-        console.log('Carregando:', sec);
-        if (sec === 'empresas') loadEmpresas();
-        if (sec === 'restaurantes') { loadEmpresas(); loadRestaurantes(); }
-        if (sec === 'usuarios') { 
-            console.log('=== ABA USUÁRIOS CLICADA ===');
-            console.log('Chamando loadEmpresas()...');
-            loadEmpresas().then(() => {
-                console.log('loadEmpresas() concluído');
-                loadUsuarios();
-            }).catch(err => {
-                console.error('Erro em loadEmpresas():', err);
-            });
-        }
-    });
-});
+// ===== CLIENTES =====
+async function loadClientes() {
+    try {
+        const clientes = await api('/admin/clientes');
+        const html = clientes.map(c => `
+            <tr>
+                <td>${c.nome_empresa}</td>
+                <td>${c.cnpj || '-'}</td>
+                <td>${c.email || '-'}</td>
+                <td>${c.telefone || '-'}</td>
+                <td>
+                    <button class="btn-small" onclick="editCliente(${c.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small danger" onclick="delCliente(${c.id})"><i class="fas fa-trash"></i> Deletar</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>CNPJ</th><th>Email</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+    } catch (e) {
+        document.getElementById('clientes-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
+    }
+}
 
-// ===== EMPRESAS =====
-async function addEmpresa(e) {
+async function addCliente(e) {
     e.preventDefault();
     try {
         await api('/admin/clientes', {
             method: 'POST',
             body: JSON.stringify({
-                nome_empresa: document.getElementById('emp-nome').value,
-                email: document.getElementById('emp-email').value,
-                telefone: document.getElementById('emp-tel').value || null
+                nome_empresa: document.getElementById('cli-nome').value,
+                cnpj: document.getElementById('cli-cnpj').value || null,
+                email: document.getElementById('cli-email').value || null,
+                telefone: document.getElementById('cli-tel').value || null
             })
         });
-        notify('Empresa criada!');
+        notify('Cliente criado!');
         e.target.reset();
-        loadEmpresas();
+        loadClientes();
     } catch (e) {
         notify(e.message, 'error');
     }
 }
 
-async function loadEmpresas() {
-    console.log('=== loadEmpresas INICIADO ===' + new Date().toLocaleTimeString());
+async function editCliente(id) {
     try {
-        console.log('loadEmpresas iniciado');
-        const empresas = await api('/admin/clientes') || [];
-        console.log('Empresas recebidas:', empresas);
-        console.log('Número de empresas:', empresas.length);
+        const c = await api(`/admin/clientes/${id}`);
         
-        let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ação</th></tr></thead><tbody>';
-        if (empresas.length === 0) {
-            html += '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">Nenhuma empresa cadastrada</td></tr>';
-        }
-        empresas.forEach(e => {
-            html += `<tr><td>${e.nome_empresa}</td><td>${e.email}</td><td>${e.telefone || '-'}</td><td><button class="btn-sm danger" onclick="delEmpresa(${e.id})">Deletar</button></td></tr>`;
-        });
-        html += '</tbody></table>';
-        const empresasListEl = document.getElementById('empresas-list');
-        if (empresasListEl) empresasListEl.innerHTML = html;
+        // Preencher modal
+        document.getElementById('edit-cli-id').value = c.id;
+        document.getElementById('edit-cli-nome').value = c.nome_empresa;
+        document.getElementById('edit-cli-cnpj').value = c.cnpj || '';
+        document.getElementById('edit-cli-email').value = c.email || '';
+        document.getElementById('edit-cli-tel').value = c.telefone || '';
         
-        // Popular select de restaurantes e usuários
-        let opts = '<option value="">Selecione uma empresa</option>';
-        empresas.forEach(e => {
-            opts += `<option value="${e.id}">${e.nome_empresa}</option>`;
-        });
-        
-        console.log('Options HTML:', opts);
-        console.log('Número de empresas:', empresas.length);
-        
-        // Popular selects de forma síncrona
-        const restEmpSelect = document.querySelector('select#rest-emp');
-        const usrEmpSelect = document.querySelector('select#usr-emp');
-        
-        console.log('Procurando select#rest-emp:', restEmpSelect);
-        console.log('Procurando select#usr-emp:', usrEmpSelect);
-        console.log('select#usr-emp visível?', usrEmpSelect ? window.getComputedStyle(usrEmpSelect.parentElement.parentElement).display : 'N/A');
-        
-        if (restEmpSelect) {
-            restEmpSelect.innerHTML = opts;
-            console.log('✓ rest-emp preenchido com', empresas.length, 'opções');
-        } else {
-            console.warn('✗ rest-emp não encontrado');
-        }
-        
-        if (usrEmpSelect) {
-            console.log('✓ usr-emp ENCONTRADO!');
-            console.log('  - Elemento:', usrEmpSelect);
-            console.log('  - Pai:', usrEmpSelect.parentElement);
-            console.log('  - Display do pai:', window.getComputedStyle(usrEmpSelect.parentElement).display);
-            console.log('  - Seção ativa:', document.getElementById('usuarios').classList.contains('active'));
-            console.log('  - innerHTML ANTES:', usrEmpSelect.innerHTML);
-            
-            usrEmpSelect.innerHTML = opts;
-            
-            console.log('  - innerHTML DEPOIS:', usrEmpSelect.innerHTML.substring(0, 150));
-            console.log('  - options.length:', usrEmpSelect.options.length);
-            console.log('✓ usr-emp preenchido com', empresas.length, 'opções');
-        } else {
-            console.warn('✗ usr-emp não encontrado');
-        }
-        
+        // Abrir modal
+        document.getElementById('modal-edit-cliente').classList.add('active');
     } catch (e) {
-        console.error('=== ERRO em loadEmpresas ===');
-        console.error('Mensagem:', e.message);
-        console.error('Stack:', e.stack);
         notify(e.message, 'error');
     }
 }
 
-async function delEmpresa(id) {
-    if (!confirm('Deletar empresa? Isso vai deletar restaurantes e usuários também!')) return;
+async function salvarClienteEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-cli-id').value;
+    
+    try {
+        await api(`/admin/clientes/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                nome_empresa: document.getElementById('edit-cli-nome').value,
+                cnpj: document.getElementById('edit-cli-cnpj').value || null,
+                email: document.getElementById('edit-cli-email').value || null,
+                telefone: document.getElementById('edit-cli-tel').value || null
+            })
+        });
+        
+        notify('Empresa atualizada com sucesso!');
+        fecharModal('modal-edit-cliente');
+        loadClientes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+function fecharModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+
+async function delCliente(id) {
+    if (!confirm('Deletar este cliente?')) return;
     try {
         await api(`/admin/clientes/${id}`, { method: 'DELETE' });
         notify('Deletado!');
-        loadEmpresas();
+        loadClientes();
     } catch (e) {
         notify(e.message, 'error');
     }
 }
 
 // ===== RESTAURANTES =====
-async function addRestaurante(e) {
+async function loadRestaurantes() {
+    try {
+        const rests = await api('/admin/restaurantes');
+        const html = rests.map(r => `
+            <tr>
+                <td>${r.nome}</td>
+                <td><code>${r.slug}</code></td>
+                <td>${r.cnpj || '-'}</td>
+                <td>${r.email || '-'}</td>
+                <td>
+                    <button class="btn-small" onclick="editRest(${r.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small danger" onclick="delRest(${r.id})"><i class="fas fa-trash"></i> Deletar</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>CNPJ</th><th>Email</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+    } catch (e) {
+        document.getElementById('rests-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
+    }
+}
+
+async function loadClientesDropdown() {
+    try {
+        const clientes = await api('/admin/clientes');
+        const html = clientes.map(c => `<option value="${c.id}">${c.nome_empresa}</option>`).join('');
+        document.getElementById('rest-cliente').innerHTML = `<option value="">Selecione</option>${html}`;
+    } catch (e) {}
+}
+
+async function addRest(e) {
     e.preventDefault();
     try {
         await api('/admin/restaurantes', {
             method: 'POST',
             body: JSON.stringify({
-                cliente_id: parseInt(document.getElementById('rest-emp').value),
+                cliente_id: parseInt(document.getElementById('rest-cliente').value),
                 nome: document.getElementById('rest-nome').value,
                 slug: document.getElementById('rest-slug').value,
-                email: document.getElementById('rest-email').value
+                cnpj: document.getElementById('rest-cnpj').value || null,
+                email: document.getElementById('rest-email').value || null,
+                telefone: document.getElementById('rest-tel').value || null
             })
         });
         notify('Restaurante criado!');
@@ -182,22 +192,53 @@ async function addRestaurante(e) {
     }
 }
 
-async function loadRestaurantes() {
+async function editRest(id) {
     try {
-        const rests = await api('/admin/restaurantes');
-        let html = '<table><thead><tr><th>Nome</th><th>Slug</th><th>Email</th><th>Ação</th></tr></thead><tbody>';
-        rests.forEach(r => {
-            html += `<tr><td>${r.nome}</td><td><code>${r.slug}</code></td><td>${r.email}</td><td><button class="btn-sm danger" onclick="delRestaurante(${r.id})">Deletar</button></td></tr>`;
-        });
-        html += '</tbody></table>';
-        document.getElementById('restaurantes-list').innerHTML = html;
+        const r = await api(`/admin/restaurantes/${id}`);
+        
+        // Preencher modal
+        document.getElementById('edit-rest-id').value = r.id;
+        document.getElementById('edit-rest-cliente-id').value = r.cliente_id;
+        document.getElementById('edit-rest-nome').value = r.nome;
+        document.getElementById('edit-rest-slug').value = r.slug;
+        document.getElementById('edit-rest-cnpj').value = r.cnpj || '';
+        document.getElementById('edit-rest-email').value = r.email || '';
+        document.getElementById('edit-rest-tel').value = r.telefone || '';
+        
+        // Abrir modal
+        document.getElementById('modal-edit-rest').classList.add('active');
     } catch (e) {
         notify(e.message, 'error');
     }
 }
 
-async function delRestaurante(id) {
-    if (!confirm('Deletar restaurante?')) return;
+async function salvarRestEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-rest-id').value;
+    
+    try {
+        await api(`/admin/restaurantes/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                cliente_id: parseInt(document.getElementById('edit-rest-cliente-id').value),
+                nome: document.getElementById('edit-rest-nome').value,
+                slug: document.getElementById('edit-rest-slug').value,
+                cnpj: document.getElementById('edit-rest-cnpj').value || null,
+                email: document.getElementById('edit-rest-email').value || null,
+                telefone: document.getElementById('edit-rest-tel').value || null
+            })
+        });
+        
+        notify('Restaurante atualizado com sucesso!');
+        fecharModal('modal-edit-rest');
+        loadRestaurantes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function delRest(id) {
+    if (!confirm('Deletar este restaurante?')) return;
     try {
         await api(`/admin/restaurantes/${id}`, { method: 'DELETE' });
         notify('Deletado!');
@@ -208,119 +249,65 @@ async function delRestaurante(id) {
 }
 
 // ===== USUÁRIOS =====
-async function loadRestosForUser() {
+async function loadUsuarios() {
     try {
-        const empId = document.getElementById('usr-emp').value;
-        if (!empId) {
-            document.getElementById('usr-rests').innerHTML = '';
-            return;
-        }
-        
-        const rests = await api(`/admin/clientes/${empId}/restaurantes`);
-        let html = '';
-        rests.forEach(r => {
-            html += `
-                <div style="display: flex; align-items: center; margin: 10px 0; padding: 10px; border: 1px solid #e5e7eb; border-radius: 6px; background: #f9fafb;">
-                    <label style="flex: 1; cursor: pointer; display: flex; align-items: center;">
-                        <input type="checkbox" name="rest-${r.id}" value="${r.id}" class="usr-rest-check" style="margin-right: 8px;">
-                        <span style="font-weight: 500;">${r.nome}</span>
-                    </label>
-                    <label style="cursor: pointer; display: flex; align-items: center; margin-left: 15px; color: #6b7280; font-size: 13px;">
-                        <input type="checkbox" name="rest-admin-${r.id}" class="usr-rest-admin-check" data-tenant-id="${r.id}" style="margin-right: 5px;">
-                        Admin do Restaurante
-                    </label>
-                </div>
-            `;
-        });
-        document.getElementById('usr-rests').innerHTML = html || '<p>Nenhum restaurante para esta empresa</p>';
+        const users = await api('/admin/usuarios');
+        const html = users.map(u => `
+            <tr>
+                <td>${u.nome}</td>
+                <td>${u.email}</td>
+                <td>${u.is_admin ? 'Sim' : 'Não'}</td>
+                <td>
+                    <button class="btn-small" onclick="editUser(${u.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small danger" onclick="delUser(${u.id})"><i class="fas fa-trash"></i> Deletar</button>
+                </td>
+            </tr>
+        `).join('');
+        document.getElementById('users-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Admin</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
     } catch (e) {
-        notify(e.message, 'error');
+        document.getElementById('users-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
     }
 }
 
-async function addUsuario(e) {
+async function addUser(e) {
     e.preventDefault();
-    
-    const restsChecked = document.querySelectorAll('.usr-rest-check:checked');
-    if (restsChecked.length === 0) {
-        notify('Selecione ao menos um restaurante!', 'error');
-        return;
-    }
-    
-    // Coletar restaurantes com roles
-    const restaurantes = Array.from(restsChecked).map(checkbox => {
-        const tenantId = parseInt(checkbox.value);
-        const adminCheckbox = document.querySelector(`input.usr-rest-admin-check[data-tenant-id="${tenantId}"]`);
-        return {
-            tenant_id: tenantId,
-            is_admin_restaurante: adminCheckbox ? adminCheckbox.checked : false
-        };
-    });
-    
-    const dados = {
-        cliente_id: parseInt(document.getElementById('usr-emp').value),
-        nome: document.getElementById('usr-nome').value,
-        email: document.getElementById('usr-email').value,
-        is_admin: document.getElementById('usr-admin').checked,
-        restaurantes: restaurantes
-    };
-    
-    // Só envia senha se não estiver editando ou se campo não estiver vazio
-    const senhaField = document.getElementById('usr-senha');
-    if (!usuarioEditandoId || senhaField.value) {
-        dados.senha = senhaField.value;
-    }
-    
     try {
-        if (usuarioEditandoId) {
-            // Editando
-            await api(`/admin/usuarios/${usuarioEditandoId}`, {
-                method: 'PUT',
-                body: JSON.stringify(dados)
-            });
-            notify('Usuário atualizado!');
-            cancelarEdicaoUsuario();
-        } else {
-            // Criando novo
-            await api('/admin/usuarios', {
-                method: 'POST',
-                body: JSON.stringify(dados)
-            });
-            notify('Usuário criado!');
-        }
-        
+        await api('/admin/usuarios', {
+            method: 'POST',
+            body: JSON.stringify({
+                cliente_id: parseInt(document.getElementById('user-cliente').value),
+                nome: document.getElementById('user-nome').value,
+                email: document.getElementById('user-email').value,
+                senha: document.getElementById('user-senha').value,
+                is_admin: document.getElementById('user-admin').checked
+            })
+        });
+        notify('Usuário criado!');
         e.target.reset();
-        document.getElementById('usr-rests').innerHTML = '';
         loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');
     }
 }
 
-async function loadUsuarios() {
+async function editUser(id) {
     try {
-        const users = await api('/admin/usuarios');
-        let html = '<table><thead><tr><th>Nome</th><th>Email</th><th>Admin</th><th>Ação</th></tr></thead><tbody>';
-        users.forEach(u => {
-            html += `<tr>
-                <td>${u.nome}</td>
-                <td>${u.email}</td>
-                <td>${u.is_admin ? 'Sim' : 'Não'}</td>
-                <td>
-                    <button class="btn-sm" onclick="editUsuario(${u.id})" style="margin-right:5px;">Editar</button>
-                    <button class="btn-sm danger" onclick="delUsuario(${u.id})">Deletar</button>
-                </td>
-            </tr>`;
+        const u = await api(`/admin/usuarios/${id}`);
+        const nome = prompt('Nome:', u.nome);
+        if (!nome) return;
+        await api(`/admin/usuarios/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ nome, email: u.email, is_admin: u.is_admin, ativo: u.ativo })
         });
-        html += '</tbody></table>';
-        document.getElementById('usuarios-list').innerHTML = html;
+        notify('Atualizado!');
+        loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');
     }
 }
 
-async function delUsuario(id) {
-    if (!confirm('Deletar usuário?')) return;
+async function delUser(id) {
+    if (!confirm('Deletar este usuário?')) return;
     try {
         await api(`/admin/usuarios/${id}`, { method: 'DELETE' });
         notify('Deletado!');
@@ -330,94 +317,38 @@ async function delUsuario(id) {
     }
 }
 
-let usuarioEditandoId = null;
-
-async function editUsuario(id) {
-    try {
-        const user = await api(`/admin/usuarios/${id}`);
+// ===== NAVEGAÇÃO =====
+document.querySelectorAll('[data-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+        document.querySelectorAll('[data-tab]').forEach(b => b.classList.remove('active'));
+        const tab = btn.dataset.tab;
+        document.getElementById(tab).style.display = 'block';
+        btn.classList.add('active');
         
-        // Marcar que está editando
-        usuarioEditandoId = id;
-        
-        // Mostrar aviso de edição
-        const aviso = document.getElementById('usuario-editando-aviso');
-        const avisoInfo = document.getElementById('usuario-editando-info');
-        if (aviso && avisoInfo) {
-            avisoInfo.innerHTML = `
-                <strong>Nome:</strong> ${user.nome}<br>
-                <strong>Email:</strong> ${user.email}<br>
-                <strong>ID:</strong> ${user.id}
-            `;
-            aviso.style.display = 'block';
-        }
-        
-        // Preencher formulário
-        document.getElementById('usr-emp').value = user.cliente_id;
-        document.getElementById('usr-nome').value = user.nome;
-        document.getElementById('usr-email').value = user.email;
-        document.getElementById('usr-senha').value = ''; // Limpar senha
-        document.getElementById('usr-senha').removeAttribute('required'); // Senha opcional ao editar
-        document.getElementById('usr-admin').checked = user.is_admin;
-        
-        // Carregar restaurantes e marcar os vinculados
-        await loadRestosForUser();
-        
-        // Esperar um pouco para os checkboxes renderizarem
-        setTimeout(() => {
-            user.restaurantes.forEach(resto => {
-                // Marcar restaurante vinculado
-                const checkbox = document.querySelector(`input.usr-rest-check[value="${resto.tenant_id}"]`);
-                if (checkbox) checkbox.checked = true;
-                
-                // Marcar se é admin do restaurante
-                if (resto.role === 'admin') {
-                    const adminCheckbox = document.querySelector(`input.usr-rest-admin-check[data-tenant-id="${resto.tenant_id}"]`);
-                    if (adminCheckbox) adminCheckbox.checked = true;
-                }
-            });
-        }, 100);
-        
-        // Mudar texto do botão e mostrar cancelar
-        const btn = document.querySelector('#usuarios form button[type="submit"]');
-        if (btn) btn.textContent = 'Atualizar Usuário';
-        
-        const btnCancelar = document.getElementById('btn-cancelar-usuario');
-        if (btnCancelar) btnCancelar.style.display = 'inline-block';
-        
-        // Scroll para o formulário
-        document.querySelector('#usuarios .form-card').scrollIntoView({ behavior: 'smooth' });
-        
-        notify('Modo de edição ativado. Revise os dados e clique em Atualizar.', 'success');
-    } catch (e) {
-        notify(e.message, 'error');
-    }
-}
-
-function cancelarEdicaoUsuario() {
-    usuarioEditandoId = null;
-    document.querySelector('#usuarios form').reset();
-    document.getElementById('usr-rests').innerHTML = '';
-    document.getElementById('usr-senha').setAttribute('required', ''); // Senha obrigatória ao criar
-    
-    // Ocultar aviso de edição
-    const aviso = document.getElementById('usuario-editando-aviso');
-    if (aviso) aviso.style.display = 'none';
-    
-    const btn = document.querySelector('#usuarios form button[type="submit"]');
-    if (btn) btn.textContent = 'Cadastrar Usuário';
-    
-    const btnCancelar = document.getElementById('btn-cancelar-usuario');
-    if (btnCancelar) btnCancelar.style.display = 'none';
-}
-
-// Logout
-document.getElementById('logout').addEventListener('click', () => {
-    localStorage.clear();
-    window.location.href = '/painelfoods/login.html';
+        if (tab === 'clientes') loadClientes();
+        if (tab === 'restaurantes') { loadClientesDropdown(); loadRestaurantes(); }
+        if (tab === 'usuarios') { loadClientesDropdown(); loadUsuarios(); }
+    });
 });
 
-// Carregar dados da aba ativa inicial (empresas)
-const abaInicial = document.querySelector('.nav-btn.active');
-if (abaInicial && abaInicial.dataset.section === 'empresas') {
-    loadEmpresas();
-}
+// ===== LOGOUT =====
+document.getElementById('logout').addEventListener('click', () => {
+    localStorage.clear();
+    window.location.href = '/admin/login.html';
+});
+
+// Carrega página inicial
+window.addEventListener('DOMContentLoaded', () => {
+    loadClientes();
+    
+    // Fechar modal ao clicar fora do conteúdo
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
+});
