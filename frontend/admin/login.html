@@ -380,6 +380,12 @@
             // Verificar se tem pelo menos um restaurante ativo
             const restaurantesAtivos = restaurantes.filter(r => r.ativo !== false);
             
+            if (restaurantesAtivos.length === 0) {
+                // Todos os restaurantes estão bloqueados
+                mostrarAlerta('⚠️ Todos os restaurantes estão bloqueados. Entre em contato com o administrador.', 'error');
+                return false;
+            }
+            
             if (restaurantesAtivos.length === 1 && restaurantes.length === 1) {
                 // Apenas um restaurante ativo, ir direto
                 restauranteSelecionado = restaurantesAtivos[0];
@@ -427,6 +433,12 @@
         function finalizarLogin() {
             // Restaurante foi selecionado, salvar dados e redirecionar
             if (restauranteSelecionado) {
+                // Validar se o restaurante está ativo
+                if (restauranteSelecionado.ativo === false) {
+                    mostrarAlerta('⚠️ Restaurante bloqueado. Entre em contato com o administrador do sistema.', 'error');
+                    return;
+                }
+                
                 localStorage.setItem('token', usuarioLogado.access_token);
                 localStorage.setItem('user', JSON.stringify(usuarioLogado.user));
                 localStorage.setItem('selectedTenantId', restauranteSelecionado.id);
