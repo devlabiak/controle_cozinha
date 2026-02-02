@@ -17,8 +17,10 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
     Endpoint de login.
     Aceita email e senha, retorna token JWT e lista de restaurantes disponíveis.
     """
-    # Busca usuário pelo email
-    user = db.query(User).filter(User.email == credentials.email).first()
+    from sqlalchemy.orm import joinedload
+    
+    # Busca usuário pelo email com restaurantes carregados
+    user = db.query(User).options(joinedload(User.tenants)).filter(User.email == credentials.email).first()
     
     if not user or not verify_password(credentials.senha, user.senha_hash):
         raise HTTPException(
