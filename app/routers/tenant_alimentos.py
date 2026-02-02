@@ -531,7 +531,7 @@ def validar_qrcode(
     ).scalar() or 0
     
     # Quantidade disponível neste lote
-    quantidade_disponivel = movimentacao_entrada.quantidade - total_usado
+    quantidade_disponivel = movimentacao.quantidade - total_usado
     
     if quantidade_disponivel <= 0:
         return {
