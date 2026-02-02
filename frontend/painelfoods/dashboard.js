@@ -1,8 +1,8 @@
-// Dashboard Admin - v2026.02.01.03 (CNPJ + Email Opcional + Editar Usuários)
+// Dashboard Admin - v2026.02.02.05 (Gestão de Usuários com Permissões de Restaurante)
 const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
 
-console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.01.03' });
+console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.02.05' });
 
 if (!TOKEN) {
     alert('Sessão expirada! Faça login novamente.');
