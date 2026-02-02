@@ -1074,7 +1074,8 @@ async function confirmUsageUtilizar() {
         console.log('🔵 Dados recebidos:', data);
         
         if (data.sucesso) {
-            showNotification(`✓ Baixa realizada com sucesso!\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${currentLoteUtilizar.unidade_medida}`, 'success');
+            const unidadeMedida = currentLoteUtilizar?.unidade_medida || '';
+            showNotification(`✓ Baixa realizada com sucesso!\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${unidadeMedida}`, 'success');
             cancelScanUtilizar();
             await carregarEstoque();
         } else {
@@ -1097,7 +1098,8 @@ function cancelScanUtilizar() {
     updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
 }
 
-function incrementQuantityUtilizar() {
+// Torna as funções globais acessíveis no HTML
+window.incrementQuantityUtilizar = function() {
     const input = document.getElementById('quantity-input-utilizar');
     const newValue = parseFloat(input.value) + 0.5;
     if (newValue <= parseFloat(input.max)) {
@@ -1105,13 +1107,16 @@ function incrementQuantityUtilizar() {
     }
 }
 
-function decrementQuantityUtilizar() {
+window.decrementQuantityUtilizar = function() {
     const input = document.getElementById('quantity-input-utilizar');
     const newValue = parseFloat(input.value) - 0.5;
     if (newValue >= 0.1) {
         input.value = newValue.toFixed(1);
     }
 }
+
+window.cancelScanUtilizar = cancelScanUtilizar;
+window.confirmUsageUtilizar = confirmUsageUtilizar;
 
 function getDaysToExpireUtilizar(dateString) {
     if (!dateString) return 0;
