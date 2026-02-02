@@ -726,6 +726,7 @@
                 <button class="nav-tab" data-tab="historico"><i class="fas fa-history"></i> Histórico</button>
                 <button class="nav-tab" data-tab="utilizar"><i class="fas fa-qrcode"></i> Utilizar Produto</button>
                 <button class="nav-tab" data-tab="gerenciar"><i class="fas fa-cogs"></i> Gerenciar</button>
+                <button class="nav-tab" data-tab="usuarios"><i class="fas fa-users"></i> Usuários</button>
             </div>
 
             <!-- ABA: ESTOQUE -->
@@ -1426,10 +1427,121 @@
                 </div>
 
             </div>
+            
+            <!-- ABA: USUÁRIOS -->
+            <div id="tab-usuarios" class="tab-section">
+                <div class="card" style="margin-bottom:20px;">
+                    <h3 style="color:#667eea;margin-bottom:15px;">
+                        <i class="fas fa-users"></i> Gerenciar Usuários do Restaurante
+                    </h3>
+                    <p style="color:#718096;margin-bottom:20px;">
+                        Adicione e gerencie usuários que terão acesso a este restaurante. Defina se cada usuário será <strong>Administrador</strong> (pode cadastrar produtos e gerenciar estoque) ou <strong>Leitura</strong> (apenas visualiza e utiliza QR codes).
+                    </p>
+                    
+                    <!-- Lista de usuários -->
+                    <div style="margin-bottom:20px;">
+                        <h4 style="color:#4a5568;margin-bottom:10px;"><i class="fas fa-list"></i> Usuários Cadastrados</h4>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Nome</th>
+                                        <th>Email</th>
+                                        <th>Permissão</th>
+                                        <th>Status</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-usuarios"></tbody>
+                            </table>
+                        </div>
+                        <div id="empty-usuarios" class="empty-state" style="display:none;">
+                            <i class="fas fa-user-slash"></i>
+                            <p>Nenhum usuário cadastrado</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Formulário novo usuário -->
+                    <div style="background:#f7fafc;padding:20px;border-radius:8px;">
+                        <h4 style="color:#4a5568;margin-bottom:15px;"><i class="fas fa-user-plus"></i> Adicionar Novo Usuário</h4>
+                        <form id="form-usuario">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+                                <div class="form-group">
+                                    <label>Nome Completo *</label>
+                                    <input type="text" id="usuario-nome" placeholder="Nome do usuário" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="usuario-email" placeholder="email@exemplo.com" required>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px;">
+                                <div class="form-group">
+                                    <label>Senha *</label>
+                                    <input type="password" id="usuario-senha" placeholder="Mínimo 6 caracteres" required minlength="6">
+                                </div>
+                                <div class="form-group">
+                                    <label>Tipo de Acesso</label>
+                                    <select id="usuario-permissao" required>
+                                        <option value="false">🔍 Leitura (Apenas visualiza e usa QR)</option>
+                                        <option value="true">👑 Administrador (Gerencia tudo)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-primary" style="width:100%;">
+                                <i class="fas fa-plus-circle"></i> Adicionar Usuário
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Notificações -->
         <div id="notification" class="notification" style="display:none;"></div>
+    </div>
+
+    <!-- Modal Editar Usuário -->
+    <div id="modal-usuario" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-user-edit"></i> Editar Usuário</h2>
+                <button class="modal-close" onclick="closeModalUsuario()">&times;</button>
+            </div>
+            <form id="form-editar-usuario" onsubmit="submitEditarUsuario(event)">
+                <input type="hidden" id="edit-usuario-id">
+                
+                <div class="form-group">
+                    <label>Nome Completo *</label>
+                    <input type="text" id="edit-usuario-nome" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="edit-usuario-email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Nova Senha (deixe vazio para não alterar)</label>
+                    <input type="password" id="edit-usuario-senha" placeholder="Deixe vazio para manter a senha atual" minlength="6">
+                </div>
+                
+                <div class="form-group">
+                    <label>Tipo de Acesso</label>
+                    <select id="edit-usuario-permissao" required>
+                        <option value="false">🔍 Leitura (Apenas visualiza e usa QR)</option>
+                        <option value="true">👑 Administrador (Gerencia tudo)</option>
+                    </select>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeModalUsuario()">Cancelar</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Modal de Movimentação -->

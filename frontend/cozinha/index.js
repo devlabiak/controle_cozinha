@@ -152,7 +152,7 @@ function showMainArea() {
     
     // Detecta aba pela URL hash ou abre estoque por padrão
     const tabFromHash = window.location.hash.replace('#', '') || 'estoque';
-    const validTabs = ['estoque', 'entrada', 'utilizar', 'historico', 'gerenciar'];
+    const validTabs = ['estoque', 'entrada', 'utilizar', 'historico', 'gerenciar', 'usuarios'];
     const initialTab = validTabs.includes(tabFromHash) ? tabFromHash : 'estoque';
     
     // Define estado inicial no histórico
@@ -179,6 +179,12 @@ function aplicarPermissoes() {
         const tabGerenciar = document.querySelector('[data-tab="gerenciar"]');
         if (tabGerenciar) {
             tabGerenciar.style.display = 'none';
+        }
+        
+        // Oculta aba de usuários
+        const tabUsuarios = document.querySelector('[data-tab="usuarios"]');
+        if (tabUsuarios) {
+            tabUsuarios.style.display = 'none';
         }
         
         // Adiciona mensagem informativa no início da aba entrada
@@ -210,6 +216,12 @@ function aplicarPermissoes() {
         const tabGerenciar = document.querySelector('[data-tab="gerenciar"]');
         if (tabGerenciar) {
             tabGerenciar.style.display = '';
+        }
+        
+        // Garante que aba usuários está visível
+        const tabUsuarios = document.querySelector('[data-tab="usuarios"]');
+        if (tabUsuarios) {
+            tabUsuarios.style.display = '';
         }
     }
 }
@@ -262,6 +274,7 @@ function showTab(tabName, pushState = true) {
         if (tabName === 'estoque') loadEstoque();
         if (tabName === 'historico') loadHistorico();
         if (tabName === 'gerenciar') loadProdutosSelects();
+        if (tabName === 'usuarios') loadUsuarios();
     } catch (error) {
         console.error('Erro ao trocar aba:', error);
         // Em caso de erro, volta para estoque
@@ -1356,3 +1369,193 @@ function getDaysToExpireUtilizar(dateString) {
     const diffTime = expireDate - today;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
+
+// ==================== ABA: USUÁRIOS ====================
+async function loadUsuarios() {
+    if (!isAdminRestaurante) {
+        // Se não é admin, não mostra a aba
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/usuarios`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const usuarios = await response.json();
+        
+        const tbody = document.getElementById('tbody-usuarios');
+        const empty = document.getElementById('empty-usuarios');
+        
+        if (usuarios.length === 0) {
+            tbody.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        
+        empty.style.display = 'none';
+        tbody.innerHTML = usuarios.map(u => `
+            <tr>
+                <td>${u.nome}</td>
+                <td>${u.email}</td>
+                <td>
+                    ${u.is_admin_restaurante ? 
+                        '<span style="color:#10b981;font-weight:600;"><i class="fas fa-crown"></i> Administrador</span>' : 
+                        '<span style="color:#6366f1;"><i class="fas fa-eye"></i> Leitura</span>'}
+                </td>
+                <td>
+                    ${u.ativo ? 
+                        '<span style="color:#10b981;">● Ativo</span>' : 
+                        '<span style="color:#ef4444;">● Inativo</span>'}
+                </td>
+                <td>
+                    <button class="btn-sm btn-primary" onclick="editarUsuario(${u.id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn-sm btn-danger" onclick="removerUsuario(${u.id}, '${u.nome}')">
+                        <i class="fas fa-user-minus"></i> Remover
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        showNotification('Erro ao carregar usuários: ' + err.message, 'error');
+    }
+}
+
+// Formulário de novo usuário
+document.getElementById('form-usuario')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const dados = {
+        nome: document.getElementById('usuario-nome').value,
+        email: document.getElementById('usuario-email').value,
+        senha: document.getElementById('usuario-senha').value,
+        is_admin_restaurante: document.getElementById('usuario-permissao').value === 'true'
+    };
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/usuarios`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(dados)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Usuário adicionado com sucesso!', 'success');
+            document.getElementById('form-usuario').reset();
+            loadUsuarios();
+        } else {
+            showNotification(data.detail || 'Erro ao adicionar usuário', 'error');
+        }
+    } catch (err) {
+        showNotification('Erro ao conectar: ' + err.message, 'error');
+    }
+});
+
+async function editarUsuario(usuarioId) {
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/usuarios`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        const usuarios = await response.json();
+        const usuario = usuarios.find(u => u.id === usuarioId);
+        
+        if (!usuario) {
+            showNotification('Usuário não encontrado', 'error');
+            return;
+        }
+        
+        document.getElementById('edit-usuario-id').value = usuario.id;
+        document.getElementById('edit-usuario-nome').value = usuario.nome;
+        document.getElementById('edit-usuario-email').value = usuario.email;
+        document.getElementById('edit-usuario-senha').value = '';
+        document.getElementById('edit-usuario-permissao').value = usuario.is_admin_restaurante ? 'true' : 'false';
+        
+        document.getElementById('modal-usuario').style.display = 'flex';
+    } catch (err) {
+        showNotification('Erro ao carregar dados do usuário: ' + err.message, 'error');
+    }
+}
+
+async function submitEditarUsuario(e) {
+    e.preventDefault();
+    
+    const usuarioId = document.getElementById('edit-usuario-id').value;
+    const dados = {
+        nome: document.getElementById('edit-usuario-nome').value,
+        email: document.getElementById('edit-usuario-email').value,
+        is_admin_restaurante: document.getElementById('edit-usuario-permissao').value === 'true'
+    };
+    
+    const senha = document.getElementById('edit-usuario-senha').value;
+    if (senha) {
+        dados.senha = senha;
+    }
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/usuarios/${usuarioId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(dados)
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showNotification('Usuário atualizado com sucesso!', 'success');
+            closeModalUsuario();
+            loadUsuarios();
+        } else {
+            showNotification(data.detail || 'Erro ao atualizar usuário', 'error');
+        }
+    } catch (err) {
+        showNotification('Erro ao conectar: ' + err.message, 'error');
+    }
+}
+
+async function removerUsuario(usuarioId, nome) {
+    if (!confirm(`Tem certeza que deseja remover o acesso de "${nome}" a este restaurante?\n\nEsta ação não pode ser desfeita.`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/usuarios/${usuarioId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        
+        if (response.ok) {
+            showNotification('Usuário removido com sucesso!', 'success');
+            loadUsuarios();
+        } else {
+            const data = await response.json();
+            showNotification(data.detail || 'Erro ao remover usuário', 'error');
+        }
+    } catch (err) {
+        showNotification('Erro ao conectar: ' + err.message, 'error');
+    }
+}
+
+function closeModalUsuario() {
+    document.getElementById('modal-usuario').style.display = 'none';
+    document.getElementById('form-editar-usuario').reset();
+}
+
+window.editarUsuario = editarUsuario;
+window.submitEditarUsuario = submitEditarUsuario;
+window.removerUsuario = removerUsuario;
+window.closeModalUsuario = closeModalUsuario;
