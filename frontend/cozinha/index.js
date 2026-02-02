@@ -307,8 +307,42 @@ async function loadProdutosSelects() {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         const produtos = await response.json();
-        
-        // Preenche todos os selects
+// Ajusta step do input de quantidade baseado na unidade de medida
+function ajustarStepQuantidade(selectId, inputId) {
+    const select = document.getElementById(selectId);
+    const input = document.getElementById(inputId);
+    
+    if (!select || !input) return;
+    
+    const option = select.options[select.selectedIndex];
+    const unidade = option?.dataset?.unidade || '';
+    const isUnidade = unidade.toLowerCase() === 'unidade' || unidade.toLowerCase() === 'un';
+    
+    if (isUnidade) {
+        input.step = '1';
+        input.min = '1';
+        if (input.value && parseFloat(input.value) < 1) {
+            input.value = '1';
+        }
+    } else {
+        input.step = '0.01';
+        input.min = '0.01';
+    }
+}
+
+// Listeners para ajustar step quando produto for selecionado
+document.getElementById('entrada-produto')?.addEventListener('change', function() {
+    const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
+    if (formato !== 'embalagens') {
+        ajustarStepQuantidade('entrada-produto', 'entrada-quantidade');
+    }
+});
+
+document.getElementById('ajuste-produto')?.addEventListener('change', function() {
+    ajustarStepQuantidade('ajuste-produto', 'ajuste-quantidade');
+});
+
+// Preenche todos os selects
         const selects = ['ajuste-produto', 'minimo-produto', 'editar-select', 'entrada-produto', 'excluir-produto'];
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
@@ -1016,8 +1050,19 @@ function displayProductInfoUtilizar(data) {
     }
     
     const quantityInput = document.getElementById('quantity-input-utilizar');
-    quantityInput.value = 1;
+    const isUnidade = data.unidade_medida && (data.unidade_medida.toLowerCase() === 'unidade' || data.unidade_medida.toLowerCase() === 'un');
+    
+    if (isUnidade) {
+        quantityInput.step = '1';
+        quantityInput.value = 1;
+    } else {
+        quantityInput.step = '0.1';
+        quantityInput.value = 1;
+    }
     quantityInput.max = data.quantidade;
+    
+    // Armazena a unidade para uso nas funções de incremento/decremento
+    quantityInput.dataset.isUnidade = isUnidade;
     
     document.getElementById('product-card-utilizar').classList.add('show');
 }
@@ -1101,17 +1146,24 @@ function cancelScanUtilizar() {
 // Torna as funções globais acessíveis no HTML
 window.incrementQuantityUtilizar = function() {
     const input = document.getElementById('quantity-input-utilizar');
-    const newValue = parseFloat(input.value) + 0.5;
+    const isUnidade = input.dataset.isUnidade === 'true';
+    const incremento = isUnidade ? 1 : 0.5;
+    const newValue = parseFloat(input.value) + incremento;
+    
     if (newValue <= parseFloat(input.max)) {
-        input.value = newValue.toFixed(1);
+        input.value = isUnidade ? Math.round(newValue) : newValue.toFixed(1);
     }
 }
 
 window.decrementQuantityUtilizar = function() {
     const input = document.getElementById('quantity-input-utilizar');
-    const newValue = parseFloat(input.value) - 0.5;
-    if (newValue >= 0.1) {
-        input.value = newValue.toFixed(1);
+    const isUnidade = input.dataset.isUnidade === 'true';
+    const decremento = isUnidade ? 1 : 0.5;
+    const minimo = isUnidade ? 1 : 0.1;
+    const newValue = parseFloat(input.value) - decremento;
+    
+    if (newValue >= minimo) {
+        input.value = isUnidade ? Math.round(newValue) : newValue.toFixed(1);
     }
 }
 
