@@ -402,8 +402,11 @@
 
             restaurantes.forEach(r => {
                 const div = document.createElement('div');
+                // Se ativo é undefined, considerar como true (API antiga)
                 const bloqueado = r.ativo === false;
                 div.className = bloqueado ? 'restaurante-opcao bloqueado' : 'restaurante-opcao';
+                
+                console.log('Renderizando restaurante:', r.nome, 'ativo:', r.ativo, 'bloqueado:', bloqueado);
                 
                 div.innerHTML = `
                     <div class="restaurante-nome">${r.nome}</div>
