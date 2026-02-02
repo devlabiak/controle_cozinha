@@ -48,7 +48,8 @@ async function loadClientes() {
         const html = clientes.map(c => `
             <tr>
                 <td>${c.nome_empresa}</td>
-                <td>${c.email}</td>
+                <td>${c.cnpj || '-'}</td>
+                <td>${c.email || '-'}</td>
                 <td>${c.telefone || '-'}</td>
                 <td>
                     <button class="btn-small" onclick="editCliente(${c.id})"><i class="fas fa-edit"></i> Editar</button>
@@ -56,7 +57,7 @@ async function loadClientes() {
                 </td>
             </tr>
         `).join('');
-        document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+        document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>CNPJ</th><th>Email</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
     } catch (e) {
         document.getElementById('clientes-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
     }
@@ -69,7 +70,8 @@ async function addCliente(e) {
             method: 'POST',
             body: JSON.stringify({
                 nome_empresa: document.getElementById('cli-nome').value,
-                email: document.getElementById('cli-email').value,
+                cnpj: document.getElementById('cli-cnpj').value || null,
+                email: document.getElementById('cli-email').value || null,
                 telefone: document.getElementById('cli-tel').value || null
             })
         });
@@ -88,7 +90,8 @@ async function editCliente(id) {
         // Preencher modal
         document.getElementById('edit-cli-id').value = c.id;
         document.getElementById('edit-cli-nome').value = c.nome_empresa;
-        document.getElementById('edit-cli-email').value = c.email;
+        document.getElementById('edit-cli-cnpj').value = c.cnpj || '';
+        document.getElementById('edit-cli-email').value = c.email || '';
         document.getElementById('edit-cli-tel').value = c.telefone || '';
         
         // Abrir modal
@@ -107,7 +110,8 @@ async function salvarClienteEdit(e) {
             method: 'PUT',
             body: JSON.stringify({
                 nome_empresa: document.getElementById('edit-cli-nome').value,
-                email: document.getElementById('edit-cli-email').value,
+                cnpj: document.getElementById('edit-cli-cnpj').value || null,
+                email: document.getElementById('edit-cli-email').value || null,
                 telefone: document.getElementById('edit-cli-tel').value || null
             })
         });
@@ -143,14 +147,15 @@ async function loadRestaurantes() {
             <tr>
                 <td>${r.nome}</td>
                 <td><code>${r.slug}</code></td>
-                <td>${r.cliente_id}</td>
+                <td>${r.cnpj || '-'}</td>
+                <td>${r.email || '-'}</td>
                 <td>
                     <button class="btn-small" onclick="editRest(${r.id})"><i class="fas fa-edit"></i> Editar</button>
                     <button class="btn-small danger" onclick="delRest(${r.id})"><i class="fas fa-trash"></i> Deletar</button>
                 </td>
             </tr>
         `).join('');
-        document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>Cliente</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+        document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>CNPJ</th><th>Email</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
     } catch (e) {
         document.getElementById('rests-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
     }
@@ -173,7 +178,9 @@ async function addRest(e) {
                 cliente_id: parseInt(document.getElementById('rest-cliente').value),
                 nome: document.getElementById('rest-nome').value,
                 slug: document.getElementById('rest-slug').value,
-                email: document.getElementById('rest-email').value
+                cnpj: document.getElementById('rest-cnpj').value || null,
+                email: document.getElementById('rest-email').value || null,
+                telefone: document.getElementById('rest-tel').value || null
             })
         });
         notify('Restaurante criado!');
@@ -193,7 +200,9 @@ async function editRest(id) {
         document.getElementById('edit-rest-cliente-id').value = r.cliente_id;
         document.getElementById('edit-rest-nome').value = r.nome;
         document.getElementById('edit-rest-slug').value = r.slug;
-        document.getElementById('edit-rest-email').value = r.email;
+        document.getElementById('edit-rest-cnpj').value = r.cnpj || '';
+        document.getElementById('edit-rest-email').value = r.email || '';
+        document.getElementById('edit-rest-tel').value = r.telefone || '';
         
         // Abrir modal
         document.getElementById('modal-edit-rest').classList.add('active');
@@ -213,7 +222,9 @@ async function salvarRestEdit(e) {
                 cliente_id: parseInt(document.getElementById('edit-rest-cliente-id').value),
                 nome: document.getElementById('edit-rest-nome').value,
                 slug: document.getElementById('edit-rest-slug').value,
-                email: document.getElementById('edit-rest-email').value
+                cnpj: document.getElementById('edit-rest-cnpj').value || null,
+                email: document.getElementById('edit-rest-email').value || null,
+                telefone: document.getElementById('edit-rest-tel').value || null
             })
         });
         

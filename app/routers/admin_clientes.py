@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/admin", tags=["Admin - Clientes/Restaurantes"])
 
 class ClienteCreate(BaseModel):
     nome_empresa: str
-    email: EmailStr
+    email: Optional[EmailStr] = None
     telefone: Optional[str] = None
     cnpj: Optional[str] = None
     endereco: Optional[str] = None
@@ -41,7 +41,7 @@ class RestauranteCreate(BaseModel):
     cliente_id: int
     nome: str
     slug: str
-    email: str
+    email: Optional[str] = None
     telefone: Optional[str] = None
     cnpj: Optional[str] = None
     endereco: Optional[str] = None

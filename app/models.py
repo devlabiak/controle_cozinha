@@ -41,7 +41,7 @@ class Cliente(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     nome_empresa = Column(String(255), nullable=False)  # Nome do negócio/proprietário
-    email = Column(String(255), unique=True, nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=True, index=True)
     telefone = Column(String(20))
     cnpj = Column(String(20), unique=True, nullable=True)
     endereco = Column(String(255))
@@ -64,7 +64,7 @@ class Tenant(Base):
     cliente_id = Column(Integer, ForeignKey("clientes.id", ondelete="CASCADE"), nullable=False, index=True)
     nome = Column(String(255), nullable=False)
     slug = Column(String(100), unique=True, nullable=False, index=True)  # subdomínio
-    email = Column(String(255), nullable=False)
+    email = Column(String(255), nullable=True)
     telefone = Column(String(20))
     cnpj = Column(String(20))
     endereco = Column(String(255))
