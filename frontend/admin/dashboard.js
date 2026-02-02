@@ -47,18 +47,26 @@ async function loadClientes() {
     try {
         const clientes = await api('/admin/clientes');
         const html = clientes.map(c => `
-            <tr>
+            <tr style="${!c.ativo ? 'background: #fee; opacity: 0.7;' : ''}">
                 <td>${c.nome_empresa}</td>
                 <td>${c.cnpj || '-'}</td>
                 <td>${c.email || '-'}</td>
                 <td>${c.telefone || '-'}</td>
                 <td>
+                    <span style="padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; ${c.ativo ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #742a2a;'}">
+                        ${c.ativo ? '✓ Ativa' : '✖ Bloqueada'}
+                    </span>
+                </td>
+                <td>
                     <button class="btn-small" onclick="editCliente(${c.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small ${c.ativo ? 'danger' : 'success'}" onclick="toggleStatusCliente(${c.id}, ${c.ativo})">
+                        <i class="fas fa-${c.ativo ? 'ban' : 'check'}"></i> ${c.ativo ? 'Bloquear' : 'Desbloquear'}
+                    </button>
                     <button class="btn-small danger" onclick="delCliente(${c.id})"><i class="fas fa-trash"></i> Deletar</button>
                 </td>
             </tr>
         `).join('');
-        document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>CNPJ</th><th>Email</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+        document.getElementById('clientes-list').innerHTML = `<table><thead><tr><th>Nome</th><th>CNPJ</th><th>Email</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
     } catch (e) {
         document.getElementById('clientes-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
     }
@@ -134,6 +142,23 @@ async function delCliente(id) {
     try {
         await api(`/admin/clientes/${id}`, { method: 'DELETE' });
         notify('Deletado!');
+        loadClientes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function toggleStatusCliente(id, ativoAtual) {
+    const acao = ativoAtual ? 'bloquear' : 'desbloquear';
+    const confirmMsg = ativoAtual 
+        ? '⚠️ Bloquear esta empresa?\n\nTodos os usuários desta empresa perderão acesso ao sistema.'
+        : '✅ Desbloquear esta empresa?\n\nOs usuários poderão acessar o sistema novamente.';
+    
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+        const result = await api(`/admin/clientes/${id}/toggle-status`, { method: 'PATCH' });
+        notify(result.message, 'success');
         loadClientes();
     } catch (e) {
         notify(e.message, 'error');

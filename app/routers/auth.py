@@ -33,6 +33,16 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
             detail="Usuário inativo"
         )
     
+    # Verificar se o cliente (empresa) está ativo
+    if user.cliente_id:
+        from app.models import Cliente
+        cliente = db.query(Cliente).filter(Cliente.id == user.cliente_id).first()
+        if cliente and not cliente.ativo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Empresa bloqueada. Entre em contato com o suporte."
+            )
+    
     # Para usuários admin, não tem tenant_id fixo
     # Para usuários de cliente, retorna os tenants que tem acesso
     tenant_ids = [t.id for t in user.tenants] if user.tenants else []

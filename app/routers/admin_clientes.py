@@ -131,6 +131,28 @@ def deletar_cliente(cliente_id: int, db: Session = Depends(get_db)):
     db.commit()
 
 
+@router.patch("/clientes/{cliente_id}/toggle-status")
+def toggle_status_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    """Bloqueia ou desbloqueia uma empresa"""
+    cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
+    if not cliente:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Cliente não encontrado"
+        )
+    
+    cliente.ativo = not cliente.ativo
+    db.commit()
+    db.refresh(cliente)
+    
+    return {
+        "id": cliente.id,
+        "nome_empresa": cliente.nome_empresa,
+        "ativo": cliente.ativo,
+        "message": "Empresa bloqueada" if not cliente.ativo else "Empresa desbloqueada"
+    }
+
+
 # ==================== RESTAURANTES ====================
 
 @router.post("/restaurantes", response_model=RestauranteResponse)
