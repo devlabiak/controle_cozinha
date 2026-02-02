@@ -662,7 +662,15 @@
                 </div>
                 
                 <div class="table-container">
-                    <h3>Usuários Cadastrados</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3>Usuários Cadastrados</h3>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <label style="margin: 0; font-weight: 600;">Filtrar por Empresa:</label>
+                            <select id="filter-user-cliente" onchange="loadUsuarios()" style="padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px; min-width: 200px;">
+                                <option value="">Todas as Empresas</option>
+                            </select>
+                        </div>
+                    </div>
                     <div id="users-list"></div>
                 </div>
             </div>

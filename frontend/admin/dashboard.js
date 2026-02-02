@@ -166,7 +166,24 @@ async function loadClientesDropdown() {
     try {
         const clientes = await api('/admin/clientes');
         const html = clientes.map(c => `<option value="${c.id}">${c.nome_empresa}</option>`).join('');
-        document.getElementById('rest-cliente').innerHTML = `<option value="">Selecione</option>${html}`;
+        
+        // Preencher select de restaurante
+        const restSelect = document.getElementById('rest-cliente');
+        if (restSelect) {
+            restSelect.innerHTML = `<option value="">Selecione</option>${html}`;
+        }
+        
+        // Preencher select de usuário
+        const userSelect = document.getElementById('user-cliente');
+        if (userSelect) {
+            userSelect.innerHTML = `<option value="">Selecione</option>${html}`;
+        }
+        
+        // Preencher select de filtro de usuários
+        const filterSelect = document.getElementById('filter-user-cliente');
+        if (filterSelect) {
+            filterSelect.innerHTML = `<option value="">Todas as Empresas</option>${html}`;
+        }
     } catch (e) {}
 }
 
@@ -252,10 +269,23 @@ async function delRest(id) {
 async function loadUsuarios() {
     try {
         const users = await api('/admin/usuarios');
-        const html = users.map(u => `
+        const filterClienteId = document.getElementById('filter-user-cliente').value;
+        
+        // Filtrar por empresa se selecionado
+        const filteredUsers = filterClienteId 
+            ? users.filter(u => u.cliente_id == filterClienteId)
+            : users;
+        
+        // Carregar clientes para exibir nome da empresa
+        const clientes = await api('/admin/clientes');
+        const clientesMap = {};
+        clientes.forEach(c => clientesMap[c.id] = c.nome_empresa);
+        
+        const html = filteredUsers.map(u => `
             <tr>
                 <td>${u.nome}</td>
                 <td>${u.email}</td>
+                <td>${clientesMap[u.cliente_id] || '-'}</td>
                 <td>${u.is_admin ? 'Sim' : 'Não'}</td>
                 <td>
                     <button class="btn-small" onclick="editUser(${u.id})"><i class="fas fa-edit"></i> Editar</button>
@@ -263,7 +293,25 @@ async function loadUsuarios() {
                 </td>
             </tr>
         `).join('');
-        document.getElementById('users-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Email</th><th>Admin</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+        
+        const totalMsg = filterClienteId 
+            ? `${filteredUsers.length} usuário(s) encontrado(s)`
+            : `Total: ${filteredUsers.length} usuário(s)`;
+        
+        document.getElementById('users-list').innerHTML = `
+            <div style="margin-bottom: 10px; color: #666; font-size: 14px;">${totalMsg}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Empresa</th>
+                        <th>Admin</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>${html}</tbody>
+            </table>`;
     } catch (e) {
         document.getElementById('users-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
     }
