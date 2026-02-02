@@ -1044,17 +1044,24 @@ async function confirmUsageUtilizar() {
             }
         });
         
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
+            showNotification(errorData.detail || errorData.mensagem || 'Erro ao dar baixa', 'error');
+            return;
+        }
+        
         const data = await response.json();
         
-        if (response.ok && data.sucesso) {
-            showNotification('✓ Baixa realizada com sucesso!', 'success');
+        if (data.sucesso) {
+            showNotification(`✓ Baixa realizada com sucesso!\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${currentLoteUtilizar.unidade_medida}`, 'success');
             cancelScanUtilizar();
             await carregarEstoque();
         } else {
-            showNotification(data.detail || data.mensagem || 'Erro ao dar baixa', 'error');
+            showNotification(data.mensagem || 'Erro ao processar', 'error');
         }
     } catch (error) {
-        showNotification('Erro ao conectar ao servidor', 'error');
+        console.error('Erro ao confirmar uso:', error);
+        showNotification('Erro ao conectar ao servidor: ' + error.message, 'error');
     }
 }
 

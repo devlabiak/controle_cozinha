@@ -821,16 +821,23 @@
                     }
                 });
                 
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: 'Erro desconhecido' }));
+                    showToast(errorData.detail || errorData.mensagem || 'Erro ao dar baixa', 'error');
+                    return;
+                }
+                
                 const data = await response.json();
                 
-                if (response.ok && data.sucesso) {
-                    showToast('✓ Baixa realizada com sucesso!', 'success');
+                if (data.sucesso) {
+                    showToast(`✓ Baixa realizada! ${data.produto} - ${data.quantidade_baixa}`, 'success');
                     cancelScan();
                 } else {
-                    showToast(data.detail || data.mensagem || 'Erro ao dar baixa', 'error');
+                    showToast(data.mensagem || 'Erro ao processar', 'error');
                 }
             } catch (error) {
-                showToast('Erro ao conectar ao servidor', 'error');
+                console.error('Erro ao confirmar uso:', error);
+                showToast('Erro de conexão: ' + error.message, 'error');
             }
         }
         
