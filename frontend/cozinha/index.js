@@ -1036,17 +1036,12 @@ async function confirmUsageUtilizar() {
     }
     
     try {
-        const response = await fetch(`/api/qrcode/usar`, {
+        const response = await fetch(`/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRDataUtilizar)}&quantidade_usada=${quantidade}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
-            },
-            body: JSON.stringify({
-                qr_code: currentQRDataUtilizar,
-                quantidade: quantidade,
-                motivo: 'Uso via scanner'
-            })
+            }
         });
         
         const data = await response.json();
@@ -1056,7 +1051,7 @@ async function confirmUsageUtilizar() {
             cancelScanUtilizar();
             await carregarEstoque();
         } else {
-            showNotification(data.mensagem || 'Erro ao dar baixa', 'error');
+            showNotification(data.detail || data.mensagem || 'Erro ao dar baixa', 'error');
         }
     } catch (error) {
         showNotification('Erro ao conectar ao servidor', 'error');

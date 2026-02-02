@@ -807,23 +807,18 @@
                 return;
             }
             
-            if (quantidade > currentLote.quantidade_disponivel) {
+            if (quantidade > currentLote.quantidade) {
                 showToast('Quantidade indisponível no lote', 'error');
                 return;
             }
             
             try {
-                const response = await fetch(`${BASE_URL}/api/qrcode/usar`, {
+                const response = await fetch(`${BASE_URL}/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRCode)}&quantidade_usada=${quantidade}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        qr_code: currentQRCode,
-                        quantidade: quantidade,
-                        motivo: 'Uso via scanner mobile'
-                    })
+                    }
                 });
                 
                 const data = await response.json();
@@ -832,7 +827,7 @@
                     showToast('✓ Baixa realizada com sucesso!', 'success');
                     cancelScan();
                 } else {
-                    showToast(data.mensagem || 'Erro ao dar baixa', 'error');
+                    showToast(data.detail || data.mensagem || 'Erro ao dar baixa', 'error');
                 }
             } catch (error) {
                 showToast('Erro ao conectar ao servidor', 'error');
