@@ -296,7 +296,7 @@ async function loadProdutosSelects() {
         const produtos = await response.json();
         
         // Preenche todos os selects
-        const selects = ['ajuste-produto', 'minimo-produto', 'editar-select', 'entrada-produto'];
+        const selects = ['ajuste-produto', 'minimo-produto', 'editar-select', 'entrada-produto', 'excluir-produto'];
         selects.forEach(selectId => {
             const select = document.getElementById(selectId);
             if (select) {
@@ -676,6 +676,56 @@ document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => 
         showNotification(err.message, 'error');
     }
 });
+
+// 6. EXCLUIR PRODUTO
+async function confirmarExclusaoProduto() {
+    const select = document.getElementById('excluir-produto');
+    const produtoId = select.value;
+    
+    if (!produtoId) {
+        showNotification('Selecione um produto para excluir', 'error');
+        return;
+    }
+    
+    const option = select.options[select.selectedIndex];
+    const nomeProduto = option.dataset.nome;
+    
+    const confirmacao = confirm(
+        `⚠️ ATENÇÃO: AÇÃO IRREVERSÍVEL!\n\n` +
+        `Você está prestes a excluir permanentemente:\n\n` +
+        `Produto: ${nomeProduto}\n\n` +
+        `Esta ação irá:\n` +
+        `• Remover o produto do sistema\n` +
+        `• Apagar todo o histórico de movimentações\n` +
+        `• Perder todas as etiquetas geradas\n\n` +
+        `Deseja realmente continuar?`
+    );
+    
+    if (!confirmacao) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/alimentos/${produtoId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao excluir produto');
+        }
+        
+        showNotification(`Produto "${nomeProduto}" excluído com sucesso!`, 'success');
+        document.getElementById('excluir-produto').value = '';
+        loadEstoque();
+        loadProdutosSelects();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
 
 // ==================== UTILITÁRIOS ====================
 function showNotification(message, type = 'success', duration = 3000) {
