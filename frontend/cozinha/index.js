@@ -130,7 +130,20 @@ function showMainArea() {
     document.getElementById('main-area').classList.add('active');
     document.getElementById('rest-name').textContent = tenantName;
     
-    loadEstoque();
+    // Detecta aba pela URL hash ou abre estoque por padrão
+    const tabFromHash = window.location.hash.replace('#', '') || 'estoque';
+    const validTabs = ['estoque', 'entrada', 'utilizar', 'historico', 'gerenciar'];
+    const initialTab = validTabs.includes(tabFromHash) ? tabFromHash : 'estoque';
+    
+    // Define estado inicial no histórico
+    if (!window.location.hash) {
+        history.replaceState({ tab: 'estoque' }, '', window.location.pathname + '#estoque');
+    } else {
+        history.replaceState({ tab: initialTab }, '', window.location);
+    }
+    
+    // Abre a aba inicial
+    showTab(initialTab, false);
     iniciarAlertas(); // Inicia verificação automática de estoque baixo
 }
 
@@ -138,11 +151,17 @@ function showMainArea() {
 document.addEventListener('click', (e) => {
     if (e.target.closest('.nav-tab')) {
         const tab = e.target.closest('.nav-tab');
-        showTab(tab.dataset.tab);
+        showTab(tab.dataset.tab, true);
     }
 });
 
-function showTab(tabName) {
+// Gerencia navegação com botão voltar/avançar
+window.addEventListener('popstate', (e) => {
+    const tabName = e.state?.tab || 'estoque';
+    showTab(tabName, false);
+});
+
+function showTab(tabName, pushState = true) {
     // Para o scanner se estava rodando e não for a aba utilizar
     if (tabName !== 'utilizar' && typeof html5QrScanner !== 'undefined' && html5QrScanner) {
         pararScanner();
@@ -155,6 +174,13 @@ function showTab(tabName) {
     // Ativa a aba clicada
     document.querySelector(`.nav-tab[data-tab="${tabName}"]`)?.classList.add('active');
     document.getElementById(`tab-${tabName}`)?.classList.add('active');
+    
+    // Atualiza URL sem recarregar a página
+    if (pushState) {
+        const url = new URL(window.location);
+        url.hash = tabName;
+        history.pushState({ tab: tabName }, '', url);
+    }
     
     // Carrega dados conforme a aba
     if (tabName === 'estoque') loadEstoque();
