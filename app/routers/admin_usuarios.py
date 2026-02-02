@@ -194,6 +194,33 @@ def obter_usuario(user_id: int, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/usuarios/{user_id}/tenants")
+def obter_tenants_usuario(user_id: int, db: Session = Depends(get_db)):
+    """Obtém apenas os restaurantes vinculados ao usuário com suas permissões"""
+    from sqlalchemy import select
+    from app.models import Tenant
+    
+    # Buscar restaurantes com roles
+    query = select(
+        user_tenants_association.c.tenant_id,
+        user_tenants_association.c.role
+    ).where(
+        user_tenants_association.c.user_id == user_id
+    )
+    
+    resultados = db.execute(query).all()
+    
+    tenants = [
+        {
+            "tenant_id": r.tenant_id,
+            "is_admin_restaurante": r.role == RoleType.ADMIN
+        }
+        for r in resultados
+    ]
+    
+    return tenants
+
+
 @router.put("/usuarios/{user_id}", response_model=UsuarioResponse)
 def atualizar_usuario(user_id: int, dados: dict, db: Session = Depends(get_db)):
     """Atualiza dados de usuário"""
