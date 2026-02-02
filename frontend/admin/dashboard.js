@@ -266,6 +266,20 @@ async function delRest(id) {
 }
 
 // ===== USUÁRIOS =====
+function toggleEmpresaField() {
+    const isAdmin = document.getElementById('user-admin').checked;
+    const empresaGroup = document.getElementById('user-empresa-group');
+    const empresaSelect = document.getElementById('user-cliente');
+    
+    if (isAdmin) {
+        empresaGroup.style.display = 'none';
+        empresaSelect.removeAttribute('required');
+    } else {
+        empresaGroup.style.display = 'block';
+        empresaSelect.setAttribute('required', 'required');
+    }
+}
+
 async function loadUsuarios() {
     try {
         const users = await api('/admin/usuarios');
@@ -319,19 +333,30 @@ async function loadUsuarios() {
 
 async function addUser(e) {
     e.preventDefault();
+    const isAdmin = document.getElementById('user-admin').checked;
+    
     try {
+        const dados = {
+            nome: document.getElementById('user-nome').value,
+            email: document.getElementById('user-email').value,
+            senha: document.getElementById('user-senha').value,
+            is_admin: isAdmin
+        };
+        
+        // Apenas adicionar cliente_id se não for admin do SaaS
+        if (!isAdmin) {
+            dados.cliente_id = parseInt(document.getElementById('user-cliente').value);
+        } else {
+            dados.cliente_id = null; // Admin do SaaS não tem empresa
+        }
+        
         await api('/admin/usuarios', {
             method: 'POST',
-            body: JSON.stringify({
-                cliente_id: parseInt(document.getElementById('user-cliente').value),
-                nome: document.getElementById('user-nome').value,
-                email: document.getElementById('user-email').value,
-                senha: document.getElementById('user-senha').value,
-                is_admin: false  // Sempre false para usuários comuns
-            })
+            body: JSON.stringify(dados)
         });
         notify('Usuário criado!');
         e.target.reset();
+        toggleEmpresaField(); // Resetar visibilidade do campo
         loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');

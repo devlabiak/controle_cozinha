@@ -28,7 +28,7 @@ class RestauranteVinculoResponse(BaseModel):
 
 
 class UsuarioCreate(BaseModel):
-    cliente_id: int
+    cliente_id: Optional[int] = None  # Null para admins do SaaS
     nome: str
     email: EmailStr
     senha: str
@@ -75,23 +75,27 @@ class UsuarioClienteResponse(BaseModel):
 def criar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
     """Cria novo usuário (pode ser admin ou funcionário)"""
     
-    # Verificar se cliente existe
-    cliente = db.query(Cliente).filter(Cliente.id == usuario.cliente_id).first()
-    if not cliente:
+    # Verificar se cliente existe (apenas se não for admin do SaaS)
+    if not usuario.is_admin and not usuario.cliente_id:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente não encontrado"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="cliente_id é obrigatório para usuários não-admin"
         )
     
-    # Verificar se email já existe (dentro do mesmo cliente)
-    existente = db.query(User).filter(
-        User.email == usuario.email,
-        User.cliente_id == usuario.cliente_id
-    ).first()
+    if usuario.cliente_id:
+        cliente = db.query(Cliente).filter(Cliente.id == usuario.cliente_id).first()
+        if not cliente:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cliente não encontrado"
+            )
+    
+    # Verificar se email já existe
+    existente = db.query(User).filter(User.email == usuario.email).first()
     if existente:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email já cadastrado para este cliente"
+            detail="Email já cadastrado"
         )
     
     novo_usuario = User(
