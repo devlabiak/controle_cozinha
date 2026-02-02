@@ -327,7 +327,7 @@ async function addUser(e) {
                 nome: document.getElementById('user-nome').value,
                 email: document.getElementById('user-email').value,
                 senha: document.getElementById('user-senha').value,
-                is_admin: document.getElementById('user-admin').checked
+                is_admin: false  // Sempre false para usuários comuns
             })
         });
         notify('Usuário criado!');
@@ -347,7 +347,6 @@ async function editUser(id) {
         document.getElementById('edit-user-nome').value = u.nome;
         document.getElementById('edit-user-email').value = u.email;
         document.getElementById('edit-user-senha').value = ''; // Sempre vazio
-        document.getElementById('edit-user-admin').checked = u.is_admin;
         document.getElementById('edit-user-ativo').checked = u.ativo;
         
         // Abrir modal
@@ -365,8 +364,8 @@ async function salvarUserEdit(e) {
     const dados = {
         nome: document.getElementById('edit-user-nome').value,
         email: document.getElementById('edit-user-email').value,
-        is_admin: document.getElementById('edit-user-admin').checked,
         ativo: document.getElementById('edit-user-ativo').checked
+        // is_admin não é enviado, mantendo o valor original
     };
     
     // Adicionar senha somente se foi preenchida
