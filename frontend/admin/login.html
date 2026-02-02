@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Admin Login - WL Soluções</title>
     <style>
         * {
@@ -409,11 +412,14 @@
                 `;
                 
                 div.addEventListener('click', () => {
+                    console.log('Restaurante clicado:', r.nome, 'Ativo:', r.ativo);
                     if (bloqueado) {
+                        console.log('BLOQUEADO - impedindo acesso');
                         mostrarAlerta('⚠️ Restaurante bloqueado. Entre em contato com o administrador do sistema.', 'error');
                         return;
                     }
                     
+                    console.log('Restaurante ATIVO - permitindo seleção');
                     // Remover seleção anterior
                     document.querySelectorAll('.restaurante-opcao').forEach(el => {
                         el.classList.remove('selected');
