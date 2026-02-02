@@ -170,18 +170,26 @@ async function loadRestaurantes() {
     try {
         const rests = await api('/admin/restaurantes');
         const html = rests.map(r => `
-            <tr>
+            <tr style="${!r.ativo ? 'background: #fee; opacity: 0.7;' : ''}">
                 <td>${r.nome}</td>
                 <td><code>${r.slug}</code></td>
                 <td>${r.cnpj || '-'}</td>
                 <td>${r.email || '-'}</td>
                 <td>
+                    <span style="padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; ${r.ativo ? 'background: #c6f6d5; color: #22543d;' : 'background: #fed7d7; color: #742a2a;'}">
+                        ${r.ativo ? '✓ Ativo' : '✖ Bloqueado'}
+                    </span>
+                </td>
+                <td>
                     <button class="btn-small" onclick="editRest(${r.id})"><i class="fas fa-edit"></i> Editar</button>
+                    <button class="btn-small ${r.ativo ? 'danger' : 'success'}" onclick="toggleStatusRest(${r.id}, ${r.ativo})">
+                        <i class="fas fa-${r.ativo ? 'ban' : 'check'}"></i> ${r.ativo ? 'Bloquear' : 'Desbloquear'}
+                    </button>
                     <button class="btn-small danger" onclick="delRest(${r.id})"><i class="fas fa-trash"></i> Deletar</button>
                 </td>
             </tr>
         `).join('');
-        document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>CNPJ</th><th>Email</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
+        document.getElementById('rests-list').innerHTML = `<table><thead><tr><th>Nome</th><th>Slug</th><th>CNPJ</th><th>Email</th><th>Status</th><th>Ações</th></tr></thead><tbody>${html}</tbody></table>`;
     } catch (e) {
         document.getElementById('rests-list').innerHTML = `<p style="color:red">Erro: ${e.message}</p>`;
     }
@@ -284,6 +292,23 @@ async function delRest(id) {
     try {
         await api(`/admin/restaurantes/${id}`, { method: 'DELETE' });
         notify('Deletado!');
+        loadRestaurantes();
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function toggleStatusRest(id, ativoAtual) {
+    const acao = ativoAtual ? 'bloquear' : 'desbloquear';
+    const confirmMsg = ativoAtual 
+        ? '⚠️ Bloquear este restaurante?\n\nOs usuários deste restaurante perderão acesso.'
+        : '✅ Desbloquear este restaurante?\n\nOs usuários poderão acessar novamente.';
+    
+    if (!confirm(confirmMsg)) return;
+    
+    try {
+        const result = await api(`/admin/restaurantes/${id}/toggle-status`, { method: 'PATCH' });
+        notify(result.message, 'success');
         loadRestaurantes();
     } catch (e) {
         notify(e.message, 'error');

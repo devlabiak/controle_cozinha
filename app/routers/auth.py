@@ -43,6 +43,15 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
                 detail="Empresa bloqueada. Entre em contato com o suporte."
             )
     
+    # Verificar se algum dos restaurantes do usuário está ativo
+    if user.tenants:
+        restaurantes_ativos = [t for t in user.tenants if t.ativo]
+        if not restaurantes_ativos:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Todos os restaurantes estão bloqueados. Entre em contato com o suporte."
+            )
+    
     # Para usuários admin, não tem tenant_id fixo
     # Para usuários de cliente, retorna os tenants que tem acesso
     tenant_ids = [t.id for t in user.tenants] if user.tenants else []

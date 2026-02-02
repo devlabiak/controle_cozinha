@@ -195,7 +195,7 @@ def criar_restaurante(restaurante: RestauranteCreate, db: Session = Depends(get_
 @router.get("/restaurantes", response_model=List[RestauranteResponse])
 def listar_restaurantes(cliente_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Lista restaurantes (opcionalmente por cliente)"""
-    query = db.query(Tenant).filter(Tenant.ativo == True)
+    query = db.query(Tenant)
     
     if cliente_id:
         query = query.filter(Tenant.cliente_id == cliente_id)
@@ -263,3 +263,25 @@ def deletar_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
     
     db.delete(restaurante)
     db.commit()
+
+
+@router.patch("/restaurantes/{restaurante_id}/toggle-status")
+def toggle_status_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
+    """Bloqueia ou desbloqueia um restaurante"""
+    restaurante = db.query(Tenant).filter(Tenant.id == restaurante_id).first()
+    if not restaurante:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Restaurante não encontrado"
+        )
+    
+    restaurante.ativo = not restaurante.ativo
+    db.commit()
+    db.refresh(restaurante)
+    
+    return {
+        "id": restaurante.id,
+        "nome": restaurante.nome,
+        "ativo": restaurante.ativo,
+        "message": "Restaurante bloqueado" if not restaurante.ativo else "Restaurante desbloqueado"
+    }
