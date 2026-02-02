@@ -162,9 +162,56 @@ function showMainArea() {
         history.replaceState({ tab: initialTab, isApp: true }, '', window.location);
     }
     
+    // Aplica permissões de acesso baseadas no role
+    aplicarPermissoes();
+    
     // Abre a aba inicial
     showTab(initialTab, false);
     iniciarAlertas(); // Inicia verificação automática de estoque baixo
+}
+
+// ==================== SISTEMA DE PERMISSÕES ====================
+function aplicarPermissoes() {
+    console.log('Aplicando permissões. isAdminRestaurante:', isAdminRestaurante);
+    
+    if (!isAdminRestaurante) {
+        // Oculta aba de gerenciamento
+        const tabGerenciar = document.querySelector('[data-tab="gerenciar"]');
+        if (tabGerenciar) {
+            tabGerenciar.style.display = 'none';
+        }
+        
+        // Adiciona mensagem informativa no início da aba entrada
+        const tabEntrada = document.getElementById('tab-entrada');
+        if (tabEntrada && !document.getElementById('aviso-permissao')) {
+            const aviso = document.createElement('div');
+            aviso.id = 'aviso-permissao';
+            aviso.style.cssText = 'background: #fef3c7; border: 2px solid #f59e0b; border-radius: 8px; padding: 15px; margin-bottom: 20px; color: #92400e;';
+            aviso.innerHTML = '<i class="fas fa-info-circle"></i> <strong>Modo Leitura:</strong> Você pode visualizar o estoque e utilizar produtos via QR code, mas não pode cadastrar novos produtos ou fazer ajustes manuais.';
+            tabEntrada.insertBefore(aviso, tabEntrada.firstChild);
+        }
+        
+        // Exibe badge indicando modo de leitura no header
+        const headerInfo = document.querySelector('.header-info');
+        if (headerInfo && !document.getElementById('badge-permissao')) {
+            const badge = document.createElement('span');
+            badge.id = 'badge-permissao';
+            badge.className = 'restaurant-badge';
+            badge.style.cssText = 'background: #fef3c7; color: #92400e;';
+            badge.innerHTML = '<i class="fas fa-eye"></i> Modo Leitura';
+            headerInfo.appendChild(badge);
+        }
+    } else {
+        // Remove avisos se usuário é admin
+        document.getElementById('aviso-permissao')?.remove();
+        document.getElementById('badge-permissao')?.remove();
+        
+        // Garante que aba gerenciar está visível
+        const tabGerenciar = document.querySelector('[data-tab="gerenciar"]');
+        if (tabGerenciar) {
+            tabGerenciar.style.display = '';
+        }
+    }
 }
 
 // ==================== NAVEGAÇÃO POR ABAS ====================

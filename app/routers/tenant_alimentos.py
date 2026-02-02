@@ -2,11 +2,11 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, select
 from typing import List, Optional
 from datetime import datetime
 from app.database import get_db
-from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao
+from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType
 from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
 from app.auth import get_current_user
 from app.middleware import get_tenant_id
@@ -18,6 +18,29 @@ from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import mm
 
 router = APIRouter(prefix="/api/tenant", tags=["Tenant - Gestão de Alimentos"])
+
+
+# ==================== HELPER DE PERMISSÕES ====================
+def verificar_admin_restaurante(tenant_id: int, user: User, db: Session):
+    """Verifica se o usuário tem permissão de admin no restaurante"""
+    # Admin SaaS tem acesso total
+    if user.is_admin:
+        return True
+    
+    # Busca o role na tabela de associação
+    stmt = select(user_tenants_association).where(
+        user_tenants_association.c.user_id == user.id,
+        user_tenants_association.c.tenant_id == tenant_id
+    )
+    result = db.execute(stmt).first()
+    
+    if not result or result.role != RoleType.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permissão negada. Apenas administradores do restaurante podem realizar esta ação."
+        )
+    
+    return True
 
 
 # ==================== SCHEMAS ====================
@@ -53,7 +76,7 @@ def create_alimento(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Cria novo alimento no estoque"""
+    """Cria novo alimento no estoque (apenas admins)"""
     # Verifica se o usuário tem acesso ao tenant
     user_tenants = [t.id for t in current_user.tenants]
     if tenant_id not in user_tenants:
@@ -61,6 +84,9 @@ def create_alimento(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    
+    # Verifica se é admin do restaurante
+    verificar_admin_restaurante(tenant_id, current_user, db)
     
     new_alimento = Alimento(
         tenant_id=tenant_id,
@@ -143,7 +169,7 @@ def update_alimento(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Atualiza dados de um alimento"""
+    """Atualiza dados de um alimento (apenas admins)"""
     # Verifica se o usuário tem acesso ao tenant
     user_tenants = [t.id for t in current_user.tenants]
     if tenant_id not in user_tenants:
@@ -151,6 +177,9 @@ def update_alimento(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    
+    # Verifica se é admin do restaurante
+    verificar_admin_restaurante(tenant_id, current_user, db)
     
     alimento = db.query(Alimento).filter(
         Alimento.id == alimento_id,
@@ -182,7 +211,7 @@ def delete_alimento(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Deleta um alimento"""
+    """Deleta um alimento (apenas admins)"""
     # Verifica se o usuário tem acesso ao tenant
     user_tenants = [t.id for t in current_user.tenants]
     if tenant_id not in user_tenants:
@@ -190,6 +219,9 @@ def delete_alimento(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    
+    # Verifica se é admin do restaurante
+    verificar_admin_restaurante(tenant_id, current_user, db)
     
     alimento = db.query(Alimento).filter(
         Alimento.id == alimento_id,
@@ -216,7 +248,7 @@ def criar_movimentacao(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Registra uma movimentação de estoque"""
+    """Registra uma movimentação de estoque (entrada requer permissão admin)"""
     import uuid
     from datetime import datetime as dt
     
@@ -227,6 +259,10 @@ def criar_movimentacao(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
         )
+    
+    # Apenas entrada e ajuste requerem permissão de admin
+    if dados.tipo in ['entrada', 'ajuste']:
+        verificar_admin_restaurante(tenant_id, current_user, db)
     
     # Busca o alimento
     alimento = db.query(Alimento).filter(
