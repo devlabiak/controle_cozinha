@@ -889,22 +889,23 @@ document.getElementById('logout')?.addEventListener('click', () => {
     window.location.href = '/painelfoods/login.html';
 });
 
-// ==================== SCANNER QR CODE (ABA UTILIZAR PRODUTO) ====================
-let html5QrScanner = null;
-let currentQRData = null;
+// ==================== SCANNER QR CODE (ABA UTILIZAR PRODUTO) - VERSÃO MOBILE OTIMIZADA ====================
+let html5QrScannerUtilizar = null;
+let currentQRDataUtilizar = null;
+let currentLoteUtilizar = null;
 
-// Iniciar scanner
-document.getElementById('btn-iniciar-scanner')?.addEventListener('click', async () => {
+// Auto-start scanner quando a aba é ativada
+document.querySelector('[data-tab="utilizar"]')?.addEventListener('click', () => {
+    setTimeout(() => {
+        if (!html5QrScannerUtilizar) {
+            initScannerUtilizar();
+        }
+    }, 100);
+});
+
+function initScannerUtilizar() {
     try {
-        const scannerContainer = document.getElementById('scanner-container');
-        const btnIniciar = document.getElementById('btn-iniciar-scanner');
-        const btnParar = document.getElementById('btn-parar-scanner');
-        
-        scannerContainer.style.display = 'block';
-        btnIniciar.style.display = 'none';
-        btnParar.style.display = 'inline-flex';
-        
-        html5QrScanner = new Html5Qrcode("qr-reader");
+        html5QrScannerUtilizar = new Html5Qrcode("qr-reader-utilizar");
         
         const config = {
             fps: 10,
@@ -912,45 +913,29 @@ document.getElementById('btn-iniciar-scanner')?.addEventListener('click', async 
             aspectRatio: 1.0
         };
         
-        await html5QrScanner.start(
+        html5QrScannerUtilizar.start(
             { facingMode: "environment" },
             config,
-            onQRScanSuccess,
-            onQRScanError
-        );
-        
-        updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
+            onScanSuccessUtilizar,
+            (error) => {} // Silent error
+        ).then(() => {
+            updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
+        }).catch(err => {
+            updateScannerStatusUtilizar('error', '❌ Erro ao acessar câmera');
+            console.error(err);
+        });
     } catch (err) {
-        showNotification('Erro ao acessar câmera: ' + err.message, 'error');
-        pararScanner();
+        showNotification('Erro ao iniciar scanner: ' + err.message, 'error');
     }
-});
-
-// Parar scanner
-document.getElementById('btn-parar-scanner')?.addEventListener('click', () => {
-    pararScanner();
-});
-
-function pararScanner() {
-    if (html5QrScanner) {
-        html5QrScanner.stop().catch(err => console.error(err));
-        html5QrScanner = null;
-    }
-    
-    document.getElementById('scanner-container').style.display = 'none';
-    document.getElementById('btn-iniciar-scanner').style.display = 'inline-flex';
-    document.getElementById('btn-parar-scanner').style.display = 'none';
-    document.getElementById('produto-qr-card').style.display = 'none';
-    currentQRData = null;
 }
 
-// Callback quando QR code é lido
-async function onQRScanSuccess(decodedText) {
-    if (html5QrScanner) {
-        html5QrScanner.pause();
+async function onScanSuccessUtilizar(decodedText) {
+    if (html5QrScannerUtilizar) {
+        html5QrScannerUtilizar.pause();
     }
     
-    updateScannerStatus('scanning', '🔍 Validando QR Code...');
+    updateScannerStatusUtilizar('scanning', '🔍 Validando QR Code...');
+    currentQRDataUtilizar = decodedText;
     
     try {
         const response = await fetch(`/api/tenant/${tenantId}/qrcode/validar?qr_code=${encodeURIComponent(decodedText)}`, {
@@ -965,151 +950,156 @@ async function onQRScanSuccess(decodedText) {
         const data = await response.json();
         
         if (response.ok && data.valido) {
-            currentQRData = { qr_code: decodedText, ...data };
-            exibirDadosProdutoQR(data);
-            updateScannerStatus('success', '✅ QR Code válido! Confira os dados abaixo.');
+            currentLoteUtilizar = data;
+            displayProductInfoUtilizar(data);
+            updateScannerStatusUtilizar('ready', '✅ QR Code válido!');
         } else {
-            showNotification(data.mensagem || 'QR Code inválido ou já utilizado', 'error');
-            updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
-            if (html5QrScanner) {
-                html5QrScanner.resume();
+            showNotification(data.mensagem || 'QR Code inválido', 'error');
+            updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
+            if (html5QrScannerUtilizar) {
+                html5QrScannerUtilizar.resume();
             }
         }
     } catch (err) {
         showNotification('Erro ao validar QR Code: ' + err.message, 'error');
-        updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
-        if (html5QrScanner) {
-            html5QrScanner.resume();
+        updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
+        if (html5QrScannerUtilizar) {
+            html5QrScannerUtilizar.resume();
         }
     }
 }
 
-function onQRScanError(error) {
-    // Silencioso - não exibe erros de scan contínuo
-}
-
-function updateScannerStatus(type, message) {
-    const status = document.getElementById('scanner-status');
-    status.textContent = message;
-    
-    if (type === 'ready') {
-        status.style.background = '#f7fafc';
-        status.style.color = '#4a5568';
-    } else if (type === 'scanning') {
-        status.style.background = '#fef3c7';
-        status.style.color = '#92400e';
-    } else if (type === 'success') {
-        status.style.background = '#d1fae5';
-        status.style.color = '#065f46';
-    } else if (type === 'error') {
-        status.style.background = '#fee2e2';
-        status.style.color = '#991b1b';
+function updateScannerStatusUtilizar(type, message) {
+    const status = document.getElementById('scanner-status-utilizar');
+    if (status) {
+        status.className = `scanner-status ${type}`;
+        status.textContent = message;
     }
 }
 
-// Exibe dados do produto escaneado
-function exibirDadosProdutoQR(data) {
-    document.getElementById('qr-produto-nome').textContent = data.alimento_nome;
-    document.getElementById('qr-produto-categoria').textContent = data.categoria || '-';
-    document.getElementById('qr-produto-quantidade').textContent = `${data.quantidade} ${data.unidade_medida}`;
+function displayProductInfoUtilizar(data) {
+    document.getElementById('product-name-utilizar').textContent = data.alimento_nome;
+    document.getElementById('lote-numero-utilizar').textContent = data.movimentacao_id || '-';
     
     if (data.data_producao) {
-        // Extrai YYYY-MM-DD e cria data local sem conversão de timezone
         const dateOnly = data.data_producao.split('T')[0];
         const [year, month, day] = dateOnly.split('-');
         const dataProducao = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        document.getElementById('qr-produto-producao').textContent = dataProducao.toLocaleDateString('pt-BR');
+        document.getElementById('data-fabricacao-utilizar').textContent = dataProducao.toLocaleDateString('pt-BR');
     } else {
-        document.getElementById('qr-produto-producao').textContent = '-';
+        document.getElementById('data-fabricacao-utilizar').textContent = '-';
     }
     
     if (data.data_validade) {
-        // Extrai YYYY-MM-DD e cria data local sem conversão de timezone
         const dateOnly = data.data_validade.split('T')[0];
         const [year, month, day] = dateOnly.split('-');
         const dataValidade = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        document.getElementById('qr-produto-validade').textContent = dataValidade.toLocaleDateString('pt-BR');
+        document.getElementById('data-validade-utilizar').textContent = dataValidade.toLocaleDateString('pt-BR');
     } else {
-        document.getElementById('qr-produto-validade').textContent = '-';
+        document.getElementById('data-validade-utilizar').textContent = '-';
     }
     
-    // Badge de validade
-    const badge = document.getElementById('qr-validade-badge');
-    if (data.status_validade === 'vencido') {
-        badge.style.background = '#fee2e2';
-        badge.style.color = '#991b1b';
-        badge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> PRODUTO VENCIDO - NÃO UTILIZAR';
-    } else if (data.status_validade === 'vencendo') {
-        badge.style.background = '#fef3c7';
-        badge.style.color = '#92400e';
-        badge.innerHTML = '<i class="fas fa-clock"></i> Produto próximo ao vencimento';
+    document.getElementById('quantidade-disponivel-utilizar').textContent = `${data.quantidade} ${data.unidade_medida}`;
+    
+    const badge = document.getElementById('status-badge-utilizar');
+    const daysToExpire = getDaysToExpireUtilizar(data.data_validade);
+    
+    if (daysToExpire < 0) {
+        badge.className = 'badge expired';
+        badge.textContent = '⚠️ Vencido';
+    } else if (daysToExpire <= 3) {
+        badge.className = 'badge expiring';
+        badge.textContent = '⏰ Vencendo';
     } else {
-        badge.style.background = '#d1fae5';
-        badge.style.color = '#065f46';
-        badge.innerHTML = '<i class="fas fa-check-circle"></i> Produto dentro da validade';
+        badge.className = 'badge valid';
+        badge.textContent = '✓ Válido';
     }
     
-    document.getElementById('produto-qr-card').style.display = 'block';
+    const quantityInput = document.getElementById('quantity-input-utilizar');
+    quantityInput.value = 1;
+    quantityInput.max = data.quantidade;
+    
+    document.getElementById('product-card-utilizar').classList.add('show');
 }
 
-// Cancelar uso
-document.getElementById('btn-cancelar-qr')?.addEventListener('click', () => {
-    document.getElementById('produto-qr-card').style.display = 'none';
-    currentQRData = null;
-    updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
-    if (html5QrScanner) {
-        html5QrScanner.resume();
-    }
-});
-
-// Confirmar utilização
-document.getElementById('btn-confirmar-uso')?.addEventListener('click', async () => {
-    if (!currentQRData) {
-        showNotification('Nenhum produto selecionado', 'error');
+async function confirmUsageUtilizar() {
+    const quantidade = parseFloat(document.getElementById('quantity-input-utilizar').value);
+    
+    if (!quantidade || quantidade <= 0) {
+        showNotification('Informe uma quantidade válida', 'error');
         return;
     }
     
-    const btnConfirmar = document.getElementById('btn-confirmar-uso');
-    btnConfirmar.disabled = true;
-    btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    if (quantidade > currentLoteUtilizar.quantidade) {
+        showNotification('Quantidade indisponível', 'error');
+        return;
+    }
     
     try {
-        const response = await fetch(`/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRData.qr_code)}`, {
+        const response = await fetch(`/api/qrcode/usar`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({ 
-                qr_code: currentQRData.qr_code,
-                quantidade_usada: null // Usa quantidade total
+            body: JSON.stringify({
+                qr_code: currentQRDataUtilizar,
+                quantidade: quantidade,
+                motivo: 'Uso via scanner'
             })
         });
         
-        const result = await response.json();
+        const data = await response.json();
         
-        if (response.ok && result.sucesso) {
-            showNotification(`✅ ${result.mensagem}\nProduto: ${result.produto}\nQuantidade: ${result.quantidade_baixa}\nEstoque atual: ${result.estoque_novo}`, 'success', 5000);
-            
-            // Reseta interface
-            document.getElementById('produto-qr-card').style.display = 'none';
-            currentQRData = null;
-            updateScannerStatus('ready', '📷 Aponte a câmera para o QR Code');
-            
-            // Atualiza estoque
-            loadEstoque();
-            
-            // Resume scanner
-            if (html5QrScanner) {
-                html5QrScanner.resume();
-            }
+        if (response.ok && data.sucesso) {
+            showNotification('✓ Baixa realizada com sucesso!', 'success');
+            cancelScanUtilizar();
+            await carregarEstoque();
         } else {
-            showNotification(result.detail || result.mensagem || 'Erro ao processar utilização', 'error');
+            showNotification(data.mensagem || 'Erro ao dar baixa', 'error');
         }
-    } catch (err) {
-        showNotification('Erro ao confirmar utilização: ' + err.message, 'error');
-    } finally {
-        btnConfirmar.disabled = false;
-        btnConfirmar.innerHTML = '<i class="fas fa-check"></i> Confirmar Utilização';
+    } catch (error) {
+        showNotification('Erro ao conectar ao servidor', 'error');
     }
-});
+}
+
+function cancelScanUtilizar() {
+    document.getElementById('product-card-utilizar').classList.remove('show');
+    currentQRDataUtilizar = null;
+    currentLoteUtilizar = null;
+    
+    if (html5QrScannerUtilizar) {
+        html5QrScannerUtilizar.resume();
+    }
+    updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
+}
+
+function incrementQuantityUtilizar() {
+    const input = document.getElementById('quantity-input-utilizar');
+    const newValue = parseFloat(input.value) + 0.5;
+    if (newValue <= parseFloat(input.max)) {
+        input.value = newValue.toFixed(1);
+    }
+}
+
+function decrementQuantityUtilizar() {
+    const input = document.getElementById('quantity-input-utilizar');
+    const newValue = parseFloat(input.value) - 0.5;
+    if (newValue >= 0.1) {
+        input.value = newValue.toFixed(1);
+    }
+}
+
+function getDaysToExpireUtilizar(dateString) {
+    if (!dateString) return 0;
+    
+    const dateOnly = dateString.split('T')[0];
+    const [year, month, day] = dateOnly.split('-');
+    
+    const expireDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const diffTime = expireDate - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+}
