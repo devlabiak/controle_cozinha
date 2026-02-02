@@ -1,8 +1,8 @@
-// Dashboard Admin - v2026.02.01.03 (CNPJ + Email Opcional + Editar Usuários)
+// Dashboard Admin - v2026.02.02.05 (Gestão de Usuários com Permissões de Restaurante)
 const API = `${window.location.protocol}//${window.location.hostname.replace('admin.', '')}/api`;
 const TOKEN = localStorage.getItem('token');
 
-console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.01.03' });
+console.log('Dashboard Init:', { API, TOKEN: TOKEN ? '✓' : '✗ (nulo)', version: 'v2026.02.02.05' });
 
 if (!TOKEN) {
     alert('Sessão expirada! Faça login novamente.');
@@ -323,18 +323,151 @@ async function toggleStatusRest(id, ativoAtual) {
 
 // ===== USUÁRIOS =====
 function toggleEmpresaField() {
-    const isAdmin = document.getElementById('user-admin').checked;
+    const checkbox = document.getElementById('user-admin');
     const empresaGroup = document.getElementById('user-empresa-group');
+    const restaurantesGroup = document.getElementById('user-restaurantes-group');
     const empresaSelect = document.getElementById('user-cliente');
+    
+    if (!checkbox || !empresaGroup || !restaurantesGroup || !empresaSelect) {
+        console.error('Elementos não encontrados!', {checkbox, empresaGroup, restaurantesGroup, empresaSelect});
+        return;
+    }
+    
+    const isAdmin = checkbox.checked;
+    console.log('toggleEmpresaField chamado, isAdmin:', isAdmin);
+    console.log('restaurantesGroup:', restaurantesGroup);
     
     if (isAdmin) {
         empresaGroup.style.display = 'none';
         empresaSelect.removeAttribute('required');
+        restaurantesGroup.style.display = 'none';
     } else {
         empresaGroup.style.display = 'block';
         empresaSelect.setAttribute('required', 'required');
+        restaurantesGroup.style.display = 'block';
+        console.log('Mostrando campo restaurantes, display:', restaurantesGroup.style.display);
+        // Carregar restaurantes da empresa selecionada
+        if (empresaSelect.value) {
+            carregarRestaurantesUsuario();
+        }
     }
 }
+
+// Carregar restaurantes ao selecionar empresa
+document.getElementById('user-cliente')?.addEventListener('change', carregarRestaurantesUsuario);
+
+async function carregarRestaurantesUsuario() {
+    const clienteId = document.getElementById('user-cliente').value;
+    const container = document.getElementById('user-restaurantes-list');
+    
+    if (!clienteId) {
+        container.innerHTML = '<p style="color: #999; font-size: 13px;">Selecione uma empresa primeiro</p>';
+        return;
+    }
+    
+    try {
+        const restaurantes = await api(`/admin/clientes/${clienteId}/restaurantes`);
+        
+        if (restaurantes.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-size: 13px;">Esta empresa não possui restaurantes cadastrados</p>';
+            return;
+        }
+        
+        container.innerHTML = restaurantes.map(r => `
+            <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="restaurante" value="${r.id}" style="width: 18px; height: 18px;" onchange="toggleRestaurantePermissao(${r.id})">
+                    <span style="font-weight: 600; color: #2d3748; flex: 1;">${r.nome}</span>
+                </label>
+                <div id="permissao-${r.id}" style="display: none; margin-top: 10px; margin-left: 28px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="role-${r.id}" value="leitura" checked style="width: 16px; height: 16px;">
+                        <span style="color: #4a5568;">🔍 <strong>Leitura</strong> - Visualiza e usa QR codes</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 5px;">
+                        <input type="radio" name="role-${r.id}" value="admin" style="width: 16px; height: 16px;">
+                        <span style="color: #4a5568;">👑 <strong>Administrador</strong> - Gerencia tudo</span>
+                    </label>
+                </div>
+            </div>
+        `).join('');
+    } catch (e) {
+        container.innerHTML = `<p style="color: red;">Erro ao carregar restaurantes: ${e.message}</p>`;
+    }
+}
+
+function toggleRestaurantePermissao(restauranteId) {
+    const checkbox = document.querySelector(`input[name="restaurante"][value="${restauranteId}"]`);
+    const permissaoDiv = document.getElementById(`permissao-${restauranteId}`);
+    
+    if (checkbox.checked) {
+        permissaoDiv.style.display = 'block';
+    } else {
+        permissaoDiv.style.display = 'none';
+    }
+}
+
+window.toggleRestaurantePermissao = toggleRestaurantePermissao;
+
+async function carregarRestaurantesParaEdicao(clienteId, usuarioId) {
+    const container = document.getElementById('edit-user-restaurantes-list');
+    
+    try {
+        // Buscar todos os restaurantes da empresa
+        const restaurantes = await api(`/admin/clientes/${clienteId}/restaurantes`);
+        
+        // Buscar permissões atuais do usuário
+        const usuarioTenants = await api(`/admin/usuarios/${usuarioId}/tenants`);
+        const tenantMap = {};
+        usuarioTenants.forEach(t => {
+            tenantMap[t.tenant_id] = t.is_admin_restaurante;
+        });
+        
+        if (restaurantes.length === 0) {
+            container.innerHTML = '<p style="color: #999; font-size: 13px;">Esta empresa não possui restaurantes cadastrados</p>';
+            return;
+        }
+        
+        container.innerHTML = restaurantes.map(r => {
+            const isChecked = tenantMap.hasOwnProperty(r.id);
+            const isAdmin = tenantMap[r.id] === true;
+            
+            return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid #cbd5e0;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" name="edit-restaurante" value="${r.id}" ${isChecked ? 'checked' : ''} style="width: 18px; height: 18px;" onchange="toggleEditRestaurantePermissao(${r.id})">
+                        <span style="font-weight: 600; color: #2d3748; flex: 1;">${r.nome}</span>
+                    </label>
+                    <div id="edit-permissao-${r.id}" style="display: ${isChecked ? 'block' : 'none'}; margin-top: 10px; margin-left: 28px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="radio" name="edit-role-${r.id}" value="leitura" ${!isAdmin ? 'checked' : ''} style="width: 16px; height: 16px;">
+                            <span style="color: #4a5568;">🔍 <strong>Leitura</strong> - Visualiza e usa QR codes</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-top: 5px;">
+                            <input type="radio" name="edit-role-${r.id}" value="admin" ${isAdmin ? 'checked' : ''} style="width: 16px; height: 16px;">
+                            <span style="color: #4a5568;">👑 <strong>Administrador</strong> - Gerencia tudo</span>
+                        </label>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (e) {
+        container.innerHTML = `<p style="color: red;">Erro ao carregar restaurantes: ${e.message}</p>`;
+    }
+}
+
+function toggleEditRestaurantePermissao(restauranteId) {
+    const checkbox = document.querySelector(`input[name="edit-restaurante"][value="${restauranteId}"]`);
+    const permissaoDiv = document.getElementById(`edit-permissao-${restauranteId}`);
+    
+    if (checkbox.checked) {
+        permissaoDiv.style.display = 'block';
+    } else {
+        permissaoDiv.style.display = 'none';
+    }
+}
+
+window.toggleEditRestaurantePermissao = toggleEditRestaurantePermissao;
 
 async function loadUsuarios() {
     try {
@@ -402,6 +535,25 @@ async function addUser(e) {
         // Apenas adicionar cliente_id se não for admin do SaaS
         if (!isAdmin) {
             dados.cliente_id = parseInt(document.getElementById('user-cliente').value);
+            
+            // Coletar restaurantes selecionados com permissões
+            const restaurantesSelecionados = [];
+            const checkboxes = document.querySelectorAll('input[name="restaurante"]:checked');
+            
+            checkboxes.forEach(checkbox => {
+                const restauranteId = parseInt(checkbox.value);
+                const isAdminRestaurante = document.querySelector(`input[name="role-${restauranteId}"]:checked`)?.value === 'admin';
+                
+                restaurantesSelecionados.push({
+                    tenant_id: restauranteId,
+                    is_admin_restaurante: isAdminRestaurante
+                });
+            });
+            
+            // Adicionar restaurantes ao payload
+            if (restaurantesSelecionados.length > 0) {
+                dados.restaurantes = restaurantesSelecionados;
+            }
         } else {
             dados.cliente_id = null; // Admin do SaaS não tem empresa
         }
@@ -410,9 +562,10 @@ async function addUser(e) {
             method: 'POST',
             body: JSON.stringify(dados)
         });
-        notify('Usuário criado!');
+        notify('Usuário criado com sucesso!');
         e.target.reset();
         toggleEmpresaField(); // Resetar visibilidade do campo
+        document.getElementById('user-restaurantes-list').innerHTML = '';
         loadUsuarios();
     } catch (e) {
         notify(e.message, 'error');
@@ -429,6 +582,15 @@ async function editUser(id) {
         document.getElementById('edit-user-email').value = u.email;
         document.getElementById('edit-user-senha').value = ''; // Sempre vazio
         document.getElementById('edit-user-ativo').checked = u.ativo;
+        
+        // Carregar restaurantes se não for admin do SaaS
+        const restaurantesGroup = document.getElementById('edit-user-restaurantes-group');
+        if (!u.is_admin && u.cliente_id) {
+            restaurantesGroup.style.display = 'block';
+            await carregarRestaurantesParaEdicao(u.cliente_id, u.id);
+        } else {
+            restaurantesGroup.style.display = 'none';
+        }
         
         // Abrir modal
         document.getElementById('modal-edit-user').classList.add('active');
@@ -452,6 +614,25 @@ async function salvarUserEdit(e) {
     // Adicionar senha somente se foi preenchida
     if (novaSenha) {
         dados.senha = novaSenha;
+    }
+    
+    // Coletar restaurantes selecionados com permissões (se visível)
+    const restaurantesGroup = document.getElementById('edit-user-restaurantes-group');
+    if (restaurantesGroup.style.display !== 'none') {
+        const restaurantesSelecionados = [];
+        const checkboxes = document.querySelectorAll('input[name="edit-restaurante"]:checked');
+        
+        checkboxes.forEach(checkbox => {
+            const restauranteId = parseInt(checkbox.value);
+            const isAdminRestaurante = document.querySelector(`input[name="edit-role-${restauranteId}"]:checked`)?.value === 'admin';
+            
+            restaurantesSelecionados.push({
+                tenant_id: restauranteId,
+                is_admin_restaurante: isAdminRestaurante
+            });
+        });
+        
+        dados.restaurantes = restaurantesSelecionados;
     }
     
     try {
