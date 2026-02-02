@@ -1077,7 +1077,7 @@ async function confirmUsageUtilizar() {
             const unidadeMedida = currentLoteUtilizar?.unidade_medida || '';
             showNotification(`✓ Baixa realizada com sucesso!\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${unidadeMedida}`, 'success');
             cancelScanUtilizar();
-            await carregarEstoque();
+            await loadEstoque();
         } else {
             showNotification(data.mensagem || 'Erro ao processar', 'error');
         }
