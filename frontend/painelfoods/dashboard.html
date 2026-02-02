@@ -704,6 +704,12 @@
         </div>
     </div>
     
-    <script src="dashboard.js?v=20260202030000"></script>
+    <script>
+        // Limpar cache forçadamente
+        const timestamp = new Date().getTime();
+        const script = document.createElement('script');
+        script.src = `dashboard.js?v=${timestamp}`;
+        document.body.appendChild(script);
+    </script>
 </body>
 </html>
