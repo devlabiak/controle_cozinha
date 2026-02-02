@@ -143,9 +143,11 @@
         }
         
         .product-name {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 700;
             color: #333;
+            word-break: break-word;
+            line-height: 1.3;
         }
         
         .badge {
@@ -177,8 +179,11 @@
         .info-row {
             display: flex;
             justify-content: space-between;
+            align-items: flex-start;
             padding: 10px 0;
             border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         
         .info-row:last-child {
@@ -187,13 +192,17 @@
         
         .info-label {
             color: #666;
-            font-size: 14px;
+            font-size: 13px;
+            min-width: 80px;
         }
         
         .info-value {
             color: #333;
             font-weight: 600;
             font-size: 14px;
+            text-align: right;
+            flex: 1;
+            word-break: break-word;
         }
         
         /* Quantity Input */
@@ -214,22 +223,24 @@
         .quantity-input-group {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .quantity-btn {
-            width: 40px;
-            height: 40px;
+            width: 45px;
+            height: 45px;
+            min-width: 45px;
             border: none;
             background: #667eea;
             color: white;
-            font-size: 20px;
+            font-size: 22px;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
+            flex-shrink: 0;
         }
         
         .quantity-btn:active {
@@ -239,11 +250,12 @@
         .quantity-input {
             flex: 1;
             text-align: center;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 700;
-            padding: 10px;
+            padding: 12px 8px;
             border: 2px solid #ddd;
             border-radius: 10px;
+            min-width: 0;
         }
         
         /* Buttons */
@@ -254,13 +266,15 @@
         
         .btn {
             flex: 1;
-            padding: 15px;
+            padding: 14px 10px;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.1s;
+            white-space: nowrap;
+            min-width: 0;
         }
         
         .btn:active {
@@ -399,6 +413,90 @@
         
         .hidden {
             display: none !important;
+        }
+        
+        /* Responsivo para telas muito pequenas */
+        @media (max-width: 380px) {
+            body {
+                padding: 5px;
+            }
+            
+            .header {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+            
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .header .subtitle {
+                font-size: 12px;
+            }
+            
+            .scanner-card, .product-card {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+            
+            .product-name {
+                font-size: 16px;
+            }
+            
+            .info-label, .info-value {
+                font-size: 12px;
+            }
+            
+            .quantity-section {
+                padding: 12px;
+            }
+            
+            .quantity-btn {
+                width: 40px;
+                height: 40px;
+                min-width: 40px;
+                font-size: 20px;
+            }
+            
+            .quantity-input {
+                font-size: 20px;
+                padding: 10px 5px;
+            }
+            
+            .btn {
+                padding: 12px 8px;
+                font-size: 14px;
+            }
+            
+            .button-group {
+                gap: 8px;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .product-name {
+                font-size: 15px;
+            }
+            
+            .quantity-btn {
+                width: 38px;
+                height: 38px;
+                min-width: 38px;
+                font-size: 18px;
+            }
+            
+            .quantity-input {
+                font-size: 18px;
+            }
+            
+            .btn {
+                font-size: 13px;
+                padding: 11px 6px;
+            }
         }
     </style>
 </head>
