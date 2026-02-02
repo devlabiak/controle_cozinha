@@ -82,17 +82,44 @@ async function addCliente(e) {
 async function editCliente(id) {
     try {
         const c = await api(`/admin/clientes/${id}`);
-        const nome = prompt('Nome:', c.nome_empresa);
-        if (!nome) return;
+        
+        // Preencher modal
+        document.getElementById('edit-cli-id').value = c.id;
+        document.getElementById('edit-cli-nome').value = c.nome_empresa;
+        document.getElementById('edit-cli-email').value = c.email;
+        document.getElementById('edit-cli-tel').value = c.telefone || '';
+        
+        // Abrir modal
+        document.getElementById('modal-edit-cliente').classList.add('active');
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function salvarClienteEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-cli-id').value;
+    
+    try {
         await api(`/admin/clientes/${id}`, {
             method: 'PUT',
-            body: JSON.stringify({ nome_empresa: nome, email: c.email, telefone: c.telefone })
+            body: JSON.stringify({
+                nome_empresa: document.getElementById('edit-cli-nome').value,
+                email: document.getElementById('edit-cli-email').value,
+                telefone: document.getElementById('edit-cli-tel').value || null
+            })
         });
-        notify('Atualizado!');
+        
+        notify('Empresa atualizada com sucesso!');
+        fecharModal('modal-edit-cliente');
         loadClientes();
     } catch (e) {
         notify(e.message, 'error');
     }
+}
+
+function fecharModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
 }
 
 async function delCliente(id) {
@@ -156,13 +183,38 @@ async function addRest(e) {
 async function editRest(id) {
     try {
         const r = await api(`/admin/restaurantes/${id}`);
-        const nome = prompt('Nome:', r.nome);
-        if (!nome) return;
+        
+        // Preencher modal
+        document.getElementById('edit-rest-id').value = r.id;
+        document.getElementById('edit-rest-cliente-id').value = r.cliente_id;
+        document.getElementById('edit-rest-nome').value = r.nome;
+        document.getElementById('edit-rest-slug').value = r.slug;
+        document.getElementById('edit-rest-email').value = r.email;
+        
+        // Abrir modal
+        document.getElementById('modal-edit-rest').classList.add('active');
+    } catch (e) {
+        notify(e.message, 'error');
+    }
+}
+
+async function salvarRestEdit(e) {
+    e.preventDefault();
+    const id = document.getElementById('edit-rest-id').value;
+    
+    try {
         await api(`/admin/restaurantes/${id}`, {
             method: 'PUT',
-            body: JSON.stringify({ cliente_id: r.cliente_id, nome, slug: r.slug, email: r.email })
+            body: JSON.stringify({
+                cliente_id: parseInt(document.getElementById('edit-rest-cliente-id').value),
+                nome: document.getElementById('edit-rest-nome').value,
+                slug: document.getElementById('edit-rest-slug').value,
+                email: document.getElementById('edit-rest-email').value
+            })
         });
-        notify('Atualizado!');
+        
+        notify('Restaurante atualizado com sucesso!');
+        fecharModal('modal-edit-rest');
         loadRestaurantes();
     } catch (e) {
         notify(e.message, 'error');
@@ -272,4 +324,13 @@ document.getElementById('logout').addEventListener('click', () => {
 // Carrega página inicial
 window.addEventListener('DOMContentLoaded', () => {
     loadClientes();
+    
+    // Fechar modal ao clicar fora do conteúdo
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    });
 });
