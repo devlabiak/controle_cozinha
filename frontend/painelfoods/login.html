@@ -391,9 +391,8 @@
 
                 mostrarAlerta('✓ Login realizado com sucesso!', 'success');
                 setTimeout(() => {
-                    // Redirecionar para o subdomínio do restaurante
-                    const baseHost = window.location.hostname.replace(/^admin\./, '');
-                    window.location.href = `${window.location.protocol}//${restauranteSelecionado.slug}.${baseHost}/`;
+                    // Redirecionar para o painel do restaurante
+                    window.location.href = '/cozinha/index.html';
                 }, 1000);
             }
         }
