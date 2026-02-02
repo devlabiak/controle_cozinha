@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Ultra Simples</title>
+</head>
+<body>
+    <h1>Teste de Visibilidade</h1>
+    
+    <div id="campo-oculto" style="display:none; background: red; color: white; padding: 50px; font-size: 30px;">
+        ESTE CAMPO ESTAVA OCULTO
+    </div>
+    
+    <button onclick="mostrar()">CLIQUE AQUI PARA MOSTRAR</button>
+    
+    <script>
+        function mostrar() {
+            alert('Botão clicado!');
+            const campo = document.getElementById('campo-oculto');
+            campo.style.display = 'block';
+            alert('Display mudado para: ' + campo.style.display);
+        }
+    </script>
+</body>
+</html>
