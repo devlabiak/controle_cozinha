@@ -271,10 +271,12 @@ def criar_movimentacao(
     if dados.tipo == 'entrada':
         qr_code_gerado = str(uuid.uuid4())
         
-        # Parse datas se fornecidas
+        # Parse datas se fornecidas (apenas a parte da data, ignorando timezone)
         if dados.data_producao:
             try:
-                data_producao = dt.fromisoformat(dados.data_producao.replace('Z', '+00:00')).date()
+                # Extrai apenas YYYY-MM-DD e converte para date
+                date_str = dados.data_producao.split('T')[0]
+                data_producao = dt.strptime(date_str, '%Y-%m-%d').date()
             except:
                 data_producao = dt.now().date()
         else:
@@ -282,7 +284,9 @@ def criar_movimentacao(
             
         if dados.data_validade:
             try:
-                data_validade = dt.fromisoformat(dados.data_validade.replace('Z', '+00:00')).date()
+                # Extrai apenas YYYY-MM-DD e converte para date
+                date_str = dados.data_validade.split('T')[0]
+                data_validade = dt.strptime(date_str, '%Y-%m-%d').date()
             except:
                 pass
     
