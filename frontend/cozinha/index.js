@@ -18,6 +18,26 @@ if (user.is_admin) {
     throw new Error('Redirecionando para dashboard'); // Para a execução
 }
 
+// ==================== PROTEÇÃO DE NAVEGAÇÃO ====================
+// Previne que o botão voltar saia da aplicação
+window.addEventListener('beforeunload', (e) => {
+    // Se a página está sendo realmente fechada/recarregada, permite
+    if (performance.navigation.type === 1) return;
+});
+
+// Tratamento de erros global - sempre volta para estoque em caso de erro
+window.addEventListener('error', (e) => {
+    console.error('Erro capturado:', e.error);
+    // Se a área principal está ativa e há erro, tenta voltar para estoque
+    if (document.getElementById('main-area')?.classList.contains('active')) {
+        try {
+            showTab('estoque', false);
+        } catch (err) {
+            console.error('Não foi possível voltar para estoque:', err);
+        }
+    }
+});
+
 // ==================== VARIÁVEIS GLOBAIS ====================
 let tenantId = localStorage.getItem('selectedTenantId');
 let tenantName = localStorage.getItem('selectedTenantName');
@@ -137,9 +157,9 @@ function showMainArea() {
     
     // Define estado inicial no histórico
     if (!window.location.hash) {
-        history.replaceState({ tab: 'estoque' }, '', window.location.pathname + '#estoque');
+        history.replaceState({ tab: 'estoque', isApp: true }, '', window.location.pathname + '#estoque');
     } else {
-        history.replaceState({ tab: initialTab }, '', window.location);
+        history.replaceState({ tab: initialTab, isApp: true }, '', window.location);
     }
     
     // Abre a aba inicial
@@ -157,35 +177,51 @@ document.addEventListener('click', (e) => {
 
 // Gerencia navegação com botão voltar/avançar
 window.addEventListener('popstate', (e) => {
-    const tabName = e.state?.tab || 'estoque';
+    // Se não há state válido da aplicação, volta para estoque
+    if (!e.state || !e.state.isApp) {
+        e.preventDefault();
+        history.pushState({ tab: 'estoque', isApp: true }, '', window.location.pathname + '#estoque');
+        showTab('estoque', false);
+        return;
+    }
+    
+    const tabName = e.state.tab || 'estoque';
     showTab(tabName, false);
 });
 
 function showTab(tabName, pushState = true) {
-    // Para o scanner se estava rodando e não for a aba utilizar
-    if (tabName !== 'utilizar' && typeof html5QrScanner !== 'undefined' && html5QrScanner) {
-        pararScanner();
+    try {
+        // Para o scanner se estava rodando e não for a aba utilizar
+        if (tabName !== 'utilizar' && typeof html5QrScanner !== 'undefined' && html5QrScanner) {
+            pararScanner();
+        }
+        
+        // Remove active de todas as abas e seções
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-section').forEach(c => c.classList.remove('active'));
+        
+        // Ativa a aba clicada
+        document.querySelector(`.nav-tab[data-tab="${tabName}"]`)?.classList.add('active');
+        document.getElementById(`tab-${tabName}`)?.classList.add('active');
+        
+        // Atualiza URL sem recarregar a página
+        if (pushState) {
+            const url = new URL(window.location);
+            url.hash = tabName;
+            history.pushState({ tab: tabName, isApp: true }, '', url);
+        }
+        
+        // Carrega dados conforme a aba
+        if (tabName === 'estoque') loadEstoque();
+        if (tabName === 'historico') loadHistorico();
+        if (tabName === 'gerenciar') loadProdutosSelects();
+    } catch (error) {
+        console.error('Erro ao trocar aba:', error);
+        // Em caso de erro, volta para estoque
+        if (tabName !== 'estoque') {
+            showTab('estoque', false);
+        }
     }
-    
-    // Remove active de todas as abas e seções
-    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-section').forEach(c => c.classList.remove('active'));
-    
-    // Ativa a aba clicada
-    document.querySelector(`.nav-tab[data-tab="${tabName}"]`)?.classList.add('active');
-    document.getElementById(`tab-${tabName}`)?.classList.add('active');
-    
-    // Atualiza URL sem recarregar a página
-    if (pushState) {
-        const url = new URL(window.location);
-        url.hash = tabName;
-        history.pushState({ tab: tabName }, '', url);
-    }
-    
-    // Carrega dados conforme a aba
-    if (tabName === 'estoque') loadEstoque();
-    if (tabName === 'historico') loadHistorico();
-    if (tabName === 'gerenciar') loadProdutosSelects();
 }
 
 // ==================== ABA: ESTOQUE ====================
