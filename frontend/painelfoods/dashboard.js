@@ -323,12 +323,19 @@ async function toggleStatusRest(id, ativoAtual) {
 
 // ===== USUÁRIOS =====
 function toggleEmpresaField() {
-    const isAdmin = document.getElementById('user-admin').checked;
+    const checkbox = document.getElementById('user-admin');
     const empresaGroup = document.getElementById('user-empresa-group');
     const restaurantesGroup = document.getElementById('user-restaurantes-group');
     const empresaSelect = document.getElementById('user-cliente');
     
+    if (!checkbox || !empresaGroup || !restaurantesGroup || !empresaSelect) {
+        console.error('Elementos não encontrados!', {checkbox, empresaGroup, restaurantesGroup, empresaSelect});
+        return;
+    }
+    
+    const isAdmin = checkbox.checked;
     console.log('toggleEmpresaField chamado, isAdmin:', isAdmin);
+    console.log('restaurantesGroup:', restaurantesGroup);
     
     if (isAdmin) {
         empresaGroup.style.display = 'none';
@@ -338,7 +345,7 @@ function toggleEmpresaField() {
         empresaGroup.style.display = 'block';
         empresaSelect.setAttribute('required', 'required');
         restaurantesGroup.style.display = 'block';
-        console.log('Mostrando campo restaurantes');
+        console.log('Mostrando campo restaurantes, display:', restaurantesGroup.style.display);
         // Carregar restaurantes da empresa selecionada
         if (empresaSelect.value) {
             carregarRestaurantesUsuario();
