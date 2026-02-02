@@ -722,25 +722,85 @@ async function verificarEstoqueBaixo() {
                 </div>
             `;
             
-            showNotification(mensagem, 'error', 8000); // 8 segundos
+            showNotification(mensagem, 'error', 10000); // 10 segundos
         }
     } catch (err) {
         console.error('Erro ao verificar estoque baixo:', err);
     }
 }
 
-// Inicia verificação automática a cada 5 minutos (300000ms)
+async function verificarProdutosVencendo() {
+    if (!tenantId) return;
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
+            headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const movimentacoes = await response.json();
+        
+        // Filtra apenas entradas com QR code que ainda não foram usadas
+        const entradasComValidade = movimentacoes.filter(m => 
+            m.qr_code_gerado && 
+            !m.usado && 
+            m.data_validade &&
+            m.tipo === 'entrada'
+        );
+        
+        if (entradasComValidade.length === 0) return;
+        
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        
+        const produtosVencendo = entradasComValidade.filter(m => {
+            const validade = new Date(m.data_validade);
+            validade.setHours(0, 0, 0, 0);
+            const diffDias = Math.ceil((validade - hoje) / (1000 * 60 * 60 * 24));
+            return diffDias >= 0 && diffDias <= 4; // Vencendo em 0 a 4 dias
+        });
+        
+        if (produtosVencendo.length > 0) {
+            const lista = produtosVencendo.map(m => {
+                const validade = new Date(m.data_validade);
+                const diffDias = Math.ceil((validade - hoje) / (1000 * 60 * 60 * 24));
+                const urgencia = diffDias === 0 ? '🔴 HOJE' : diffDias === 1 ? '🟠 AMANHÃ' : `🟡 ${diffDias} dias`;
+                
+                return `<div style="margin:5px 0;padding:5px;background:rgba(255,255,255,0.1);border-radius:4px;">
+                    <strong>${m.alimento_nome || 'Produto'}</strong>: ${urgencia} (${validade.toLocaleDateString('pt-BR')})
+                    <br><small>Qtd: ${m.quantidade} ${m.unidade_medida || 'un'}</small>
+                </div>`;
+            }).join('');
+            
+            const mensagem = `
+                <div style="text-align:left;">
+                    <strong style="font-size:16px;">📅 PRODUTOS PRÓXIMOS DO VENCIMENTO</strong>
+                    <div style="margin-top:10px;">${lista}</div>
+                </div>
+            `;
+            
+            showNotification(mensagem, 'warning', 10000); // 10 segundos
+        }
+    } catch (err) {
+        console.error('Erro ao verificar produtos vencendo:', err);
+    }
+}
+
+async function verificarTodosAlertas() {
+    await verificarEstoqueBaixo();
+    await verificarProdutosVencendo();
+}
+
+// Inicia verificação automática a cada 60 minutos (3600000ms)
 let alertInterval;
 function iniciarAlertas() {
     if (alertInterval) clearInterval(alertInterval);
     
     // Verifica imediatamente ao carregar
-    setTimeout(() => verificarEstoqueBaixo(), 3000); // Aguarda 3s após login
+    setTimeout(() => verificarTodosAlertas(), 3000); // Aguarda 3s após login
     
-    // Depois verifica a cada 5 minutos
+    // Depois verifica a cada 60 minutos
     alertInterval = setInterval(() => {
-        verificarEstoqueBaixo();
-    }, 300000); // 5 minutos
+        verificarTodosAlertas();
+    }, 3600000); // 60 minutos
 }
 
 // Para os alertas quando trocar de restaurante ou fazer logout

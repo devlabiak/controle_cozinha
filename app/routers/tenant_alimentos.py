@@ -380,7 +380,12 @@ def listar_movimentacoes(
             "quantidade_nova": mov.quantidade_nova,
             "usuario_nome": usuario_nome,
             "observacao": mov.motivo,
-            "data_hora": mov.created_at
+            "data_hora": mov.created_at,
+            "qr_code_gerado": mov.qr_code_gerado,
+            "data_producao": mov.data_producao.isoformat() if mov.data_producao else None,
+            "data_validade": mov.data_validade.isoformat() if mov.data_validade else None,
+            "usado": mov.usado,
+            "unidade_medida": mov.alimento.unidade_medida if mov.alimento else None
         })
     
     return movimentacoes
