@@ -541,14 +541,24 @@ def validar_qrcode(
         elif (movimentacao.data_validade - hoje).days <= 3:
             status_validade = "vencendo"
     
+    # Log das datas para debug
+    print(f"🔍 DEBUG - Data produção no banco: {movimentacao.data_producao}")
+    print(f"🔍 DEBUG - Data validade no banco: {movimentacao.data_validade}")
+    
+    data_prod_str = movimentacao.data_producao.strftime('%Y-%m-%d') if movimentacao.data_producao else None
+    data_val_str = movimentacao.data_validade.strftime('%Y-%m-%d') if movimentacao.data_validade else None
+    
+    print(f"🔍 DEBUG - Data produção formatada: {data_prod_str}")
+    print(f"🔍 DEBUG - Data validade formatada: {data_val_str}")
+    
     return {
         "valido": True,
         "movimentacao_id": movimentacao.id,
         "alimento_nome": alimento.nome,
         "quantidade": movimentacao.quantidade,
         "unidade_medida": alimento.unidade_medida or "un",
-        "data_producao": movimentacao.data_producao.strftime('%Y-%m-%d') if movimentacao.data_producao else None,
-        "data_validade": movimentacao.data_validade.strftime('%Y-%m-%d') if movimentacao.data_validade else None,
+        "data_producao": data_prod_str,
+        "data_validade": data_val_str,
         "status_validade": status_validade,
         "categoria": alimento.categoria
     }
