@@ -114,13 +114,9 @@ async def get_current_user_info(
                 detail="Usuário não encontrado"
             )
         
-        # Monta lista de restaurantes com roles (apenas ativos)
+        # Monta lista de restaurantes com roles (incluindo bloqueados)
         restaurantes = []
         for tenant in user.tenants:
-            # Pula restaurantes bloqueados
-            if not tenant.ativo:
-                continue
-                
             # Busca o role na tabela de associação
             stmt = select(user_tenants_association).where(
                 user_tenants_association.c.user_id == user.id,
@@ -132,6 +128,7 @@ async def get_current_user_info(
                 "id": tenant.id,
                 "nome": tenant.nome,
                 "slug": tenant.slug,
+                "ativo": tenant.ativo,
                 "role": result.role if result else None
             })
         

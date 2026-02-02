@@ -61,9 +61,16 @@ function showSelector() {
             return;
         }
         
-        div.innerHTML = restos.map(r =>
-            `<button class="restaurant-btn" onclick="selectRestaurant(${r.id}, '${r.nome.replace(/'/g, "\\'")}')">${r.nome}</button>`
-        ).join('');
+        div.innerHTML = restos.map(r => {
+            if (r.ativo) {
+                return `<button class="restaurant-btn" onclick="selectRestaurant(${r.id}, '${r.nome.replace(/'/g, "\\'")}', true)">${r.nome}</button>`;
+            } else {
+                return `<button class="restaurant-btn bloqueado" onclick="selectRestaurant(${r.id}, '${r.nome.replace(/'/g, "\\'")}', false)">
+                    ${r.nome}
+                    <span class="badge-bloqueado">🔒 Bloqueado</span>
+                </button>`;
+            }
+        }).join('');
     })
     .catch(err => {
         console.error('Erro ao carregar restaurantes:', err);
@@ -71,7 +78,13 @@ function showSelector() {
     });
 }
 
-function selectRestaurant(id, nome) {
+function selectRestaurant(id, nome, ativo) {
+    // Verifica se o restaurante está bloqueado
+    if (!ativo) {
+        showNotification('⚠️ Restaurante bloqueado. Entre em contato com o administrador do sistema.', 'error');
+        return;
+    }
+    
     localStorage.setItem('selectedTenantId', id);
     localStorage.setItem('selectedTenantName', nome);
     tenantId = id;
