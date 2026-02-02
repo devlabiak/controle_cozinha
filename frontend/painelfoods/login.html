@@ -385,9 +385,8 @@
             if (restauranteSelecionado) {
                 localStorage.setItem('token', usuarioLogado.access_token);
                 localStorage.setItem('user', JSON.stringify(usuarioLogado.user));
-                localStorage.setItem('restaurante_selecionado', JSON.stringify(restauranteSelecionado));
-                localStorage.setItem('tenant_id', restauranteSelecionado.id);
-                localStorage.setItem('tenant_slug', restauranteSelecionado.slug);
+                localStorage.setItem('selectedTenantId', restauranteSelecionado.id);
+                localStorage.setItem('selectedTenantName', restauranteSelecionado.nome);
 
                 mostrarAlerta('✓ Login realizado com sucesso!', 'success');
                 setTimeout(() => {
