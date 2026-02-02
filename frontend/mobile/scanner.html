@@ -758,10 +758,21 @@
         
         // Product Display
         function displayProductInfo(data) {
+            console.log('📱 DEBUG - Dados recebidos:', JSON.stringify(data, null, 2));
+            console.log('📱 DEBUG - data_producao recebida:', data.data_producao);
+            console.log('📱 DEBUG - data_validade recebida:', data.data_validade);
+            
             document.getElementById('productName').textContent = data.alimento_nome;
             document.getElementById('loteNumero').textContent = data.movimentacao_id || '-';
-            document.getElementById('dataFabricacao').textContent = formatDate(data.data_producao);
-            document.getElementById('dataValidade').textContent = formatDate(data.data_validade);
+            
+            const dataFabFormatada = formatDate(data.data_producao);
+            const dataValFormatada = formatDate(data.data_validade);
+            
+            console.log('📱 DEBUG - Data fabricação FORMATADA:', dataFabFormatada);
+            console.log('📱 DEBUG - Data validade FORMATADA:', dataValFormatada);
+            
+            document.getElementById('dataFabricacao').textContent = dataFabFormatada;
+            document.getElementById('dataValidade').textContent = dataValFormatada;
             document.getElementById('quantidadeDisponivel').textContent = `${data.quantidade} ${data.unidade_medida}`;
             
             // Set badge
@@ -858,15 +869,25 @@
         
         // Utilities
         function formatDate(dateString) {
+            console.log('📱 formatDate - Input:', dateString);
+            
             if (!dateString) return '-';
             
             // Extrair apenas a parte da data (YYYY-MM-DD) ignorando horário e timezone
             const dateOnly = dateString.split('T')[0];
+            console.log('📱 formatDate - dateOnly:', dateOnly);
+            
             const [year, month, day] = dateOnly.split('-');
+            console.log('📱 formatDate - Componentes:', { year, month, day });
             
             // Criar data diretamente com valores locais
             const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-            return date.toLocaleDateString('pt-BR');
+            console.log('📱 formatDate - Date object:', date);
+            
+            const result = date.toLocaleDateString('pt-BR');
+            console.log('📱 formatDate - Resultado final:', result);
+            
+            return result;
         }
         
         function getDaysToExpire(dateString) {
