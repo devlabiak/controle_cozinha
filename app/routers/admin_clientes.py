@@ -82,8 +82,8 @@ def criar_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
 
 @router.get("/clientes", response_model=List[ClienteResponse])
 def listar_clientes(db: Session = Depends(get_db)):
-    """Lista todos os clientes"""
-    clientes = db.query(Cliente).filter(Cliente.ativo == True).all()
+    """Lista todos os clientes (ativos e bloqueados)"""
+    clientes = db.query(Cliente).order_by(Cliente.ativo.desc(), Cliente.nome_empresa).all()
     return clientes
 
 
