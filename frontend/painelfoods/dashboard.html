@@ -470,6 +470,69 @@
                     <label>Telefone</label>
                     <input type="tel" id="edit-rest-tel">
                 </div>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #f39c12; padding-bottom: 8px;">
+                    <i class="fas fa-map-marker-alt"></i> Endereço
+                </h3>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 3;">
+                        <label>Rua/Avenida</label>
+                        <input type="text" id="edit-rest-rua" placeholder="Ex: Rua das Flores">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Número</label>
+                        <input type="text" id="edit-rest-numero" placeholder="123">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Complemento</label>
+                        <input type="text" id="edit-rest-complemento" placeholder="Sala, Apto, etc">
+                    </div>
+                    <div class="form-group">
+                        <label>Bairro</label>
+                        <input type="text" id="edit-rest-bairro">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cidade</label>
+                        <input type="text" id="edit-rest-cidade">
+                    </div>
+                    <div class="form-group" style="flex: 0.5;">
+                        <label>Estado</label>
+                        <input type="text" id="edit-rest-estado" placeholder="SP" maxlength="2" style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label>CEP</label>
+                        <input type="text" id="edit-rest-cep" placeholder="00000-000">
+                    </div>
+                </div>
+                
+                <h3 style="margin-top: 20px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #f39c12; padding-bottom: 8px;">
+                    <i class="fas fa-user-tie"></i> Pessoa Responsável
+                </h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nome Completo</label>
+                        <input type="text" id="edit-rest-responsavel-nome">
+                    </div>
+                    <div class="form-group">
+                        <label>Cargo</label>
+                        <input type="text" id="edit-rest-responsavel-cargo" placeholder="Ex: Gerente">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Telefone</label>
+                        <input type="tel" id="edit-rest-responsavel-telefone" placeholder="(00) 00000-0000">
+                    </div>
+                    <div class="form-group">
+                        <label>E-mail</label>
+                        <input type="email" id="edit-rest-responsavel-email">
+                    </div>
+                </div>
+                
                 <div class="btn-group">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar Alterações</button>
                     <button type="button" class="btn btn-secondary" onclick="fecharModal('modal-edit-rest')"><i class="fas fa-times"></i> Cancelar</button>
@@ -624,6 +687,69 @@
                                 <input type="tel" id="rest-tel">
                             </div>
                         </div>
+                        
+                        <h3 style="margin-top: 20px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #f39c12; padding-bottom: 8px;">
+                            <i class="fas fa-map-marker-alt"></i> Endereço
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 3;">
+                                <label>Rua/Avenida</label>
+                                <input type="text" id="rest-rua" placeholder="Ex: Rua das Flores">
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Número</label>
+                                <input type="text" id="rest-numero" placeholder="123">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Complemento</label>
+                                <input type="text" id="rest-complemento" placeholder="Sala, Apto, etc">
+                            </div>
+                            <div class="form-group">
+                                <label>Bairro</label>
+                                <input type="text" id="rest-bairro">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Cidade</label>
+                                <input type="text" id="rest-cidade">
+                            </div>
+                            <div class="form-group" style="flex: 0.5;">
+                                <label>Estado</label>
+                                <input type="text" id="rest-estado" placeholder="SP" maxlength="2" style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-group">
+                                <label>CEP</label>
+                                <input type="text" id="rest-cep" placeholder="00000-000">
+                            </div>
+                        </div>
+                        
+                        <h3 style="margin-top: 20px; margin-bottom: 15px; color: #333; border-bottom: 2px solid #f39c12; padding-bottom: 8px;">
+                            <i class="fas fa-user-tie"></i> Pessoa Responsável
+                        </h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome Completo</label>
+                                <input type="text" id="rest-responsavel-nome">
+                            </div>
+                            <div class="form-group">
+                                <label>Cargo</label>
+                                <input type="text" id="rest-responsavel-cargo" placeholder="Ex: Gerente">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Telefone</label>
+                                <input type="tel" id="rest-responsavel-telefone" placeholder="(00) 00000-0000">
+                            </div>
+                            <div class="form-group">
+                                <label>E-mail</label>
+                                <input type="email" id="rest-responsavel-email">
+                            </div>
+                        </div>
+                        
                         <div class="btn-group">
                             <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Salvar</button>
                             <button type="reset" class="btn btn-secondary"><i class="fas fa-redo"></i> Limpar</button>
