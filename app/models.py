@@ -88,6 +88,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     senha_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False)  # Admin SaaS (painelfood)
+    lgpd_consent = Column(Boolean, default=False)  # Consentimento LGPD
     ativo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -243,3 +244,23 @@ class PrintJob(Base):
     # Relacionamentos
     tenant = relationship("Tenant")
     lote = relationship("ProdutoLote", back_populates="print_jobs")
+
+
+class AuditLog(Base):
+    """Modelo de Log de Auditoria"""
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Nullable para ações anônimas
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True)
+    action = Column(String(100), nullable=False)  # ex.: "CREATE", "UPDATE", "DELETE", "LOGIN"
+    resource = Column(String(100), nullable=False)  # ex.: "alimentos", "users", "auth"
+    resource_id = Column(Integer, nullable=True)  # ID do recurso afetado
+    details = Column(Text)  # JSON com detalhes da ação
+    ip_address = Column(String(45))  # IPv4/IPv6
+    user_agent = Column(Text)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+    # Relacionamentos
+    user = relationship("User")
+    tenant = relationship("Tenant")
