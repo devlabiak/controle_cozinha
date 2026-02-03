@@ -60,6 +60,7 @@ class UserResponse(UserBase):
     is_tenant_admin: bool
     ativo: bool
     created_at: datetime
+    lgpd_consent: bool
 
     class Config:
         from_attributes = True
@@ -131,6 +132,7 @@ class UsuarioLoginResponse(BaseModel):
     is_admin: bool
     cliente_id: int | None
     restaurantes: list[RestauranteSeletor] = []  # Restaurantes que o usuário pode acessar
+    lgpd_consent: bool
     
     class Config:
         from_attributes = True
@@ -153,6 +155,10 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     senha: str
+
+
+class ConsentRequest(BaseModel):
+    accepted: bool
 
 
 # ============= PRODUTO LOTE SCHEMAS =============

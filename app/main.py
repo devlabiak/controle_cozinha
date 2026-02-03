@@ -19,7 +19,7 @@ logger = logging.getLogger("app.history_cleanup")
 
 # Importar routers com error handling
 try:
-    from app.routers import auth, admin_clientes, admin_usuarios, tenant_alimentos, tenant_usuarios
+    from app.routers import auth, admin_clientes, admin_usuarios, tenant_alimentos, tenant_usuarios, admin_audit
     print("✓ Routers importados com sucesso")
 except Exception as e:
     print(f"✗ Erro ao importar routers: {e}")
@@ -66,6 +66,7 @@ app.include_router(admin_clientes.router)
 app.include_router(admin_usuarios.router)
 app.include_router(tenant_alimentos.router)
 app.include_router(tenant_usuarios.router)
+app.include_router(admin_audit.router)
 
 
 async def history_cleanup_worker():

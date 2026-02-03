@@ -2,13 +2,34 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Tenant
-from app.schemas import LoginRequest, Token
+from app.schemas import LoginRequest, Token, ConsentRequest
 from app.security import verify_password, create_access_token, get_current_user
 from app.rate_limit import limiter
 from datetime import timedelta
 from app.config import settings
+from app.services.audit import registrar_auditoria
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
+
+
+def _registrar_login_audit(
+    db: Session,
+    request: Request,
+    action: str,
+    detail: str,
+    user: User | None = None,
+):
+    registrar_auditoria(
+        db,
+        user_id=user.id if user else None,
+        tenant_id=None,
+        action=action,
+        resource="auth",
+        resource_id=user.id if user else None,
+        details=detail,
+        request=request,
+    )
+    db.commit()
 
 
 @router.post("/login", response_model=Token)
@@ -24,6 +45,13 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
     user = db.query(User).options(joinedload(User.tenants)).filter(User.email == credentials.email).first()
     
     if not user or not verify_password(credentials.senha, user.senha_hash):
+        _registrar_login_audit(
+            db,
+            request,
+            "LOGIN_FAILED",
+            f"Credenciais inválidas para {credentials.email}",
+            user,
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email ou senha incorretos",
@@ -31,6 +59,13 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
         )
     
     if not user.ativo:
+        _registrar_login_audit(
+            db,
+            request,
+            "LOGIN_BLOCKED",
+            f"Usuário {user.email} inativo",
+            user,
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Usuário inativo"
@@ -41,6 +76,13 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
         from app.models import Cliente
         cliente = db.query(Cliente).filter(Cliente.id == user.cliente_id).first()
         if cliente and not cliente.ativo:
+            _registrar_login_audit(
+                db,
+                request,
+                "LOGIN_BLOCKED",
+                f"Cliente {cliente.id} bloqueado",
+                user,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Empresa bloqueada. Entre em contato com o suporte."
@@ -50,6 +92,13 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
     if not user.is_admin and user.tenants:
         restaurantes_ativos = [t for t in user.tenants if t.ativo]
         if not restaurantes_ativos:
+            _registrar_login_audit(
+                db,
+                request,
+                "LOGIN_BLOCKED",
+                f"Usuário {user.email} sem restaurantes ativos",
+                user,
+            )
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Todos os restaurantes estão bloqueados. Entre em contato com o suporte."
@@ -82,7 +131,7 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
         expires_delta=access_token_expires
     )
     
-    return {
+    resposta = {
         "access_token": access_token,
         "token_type": "bearer",
         "user": {
@@ -91,9 +140,18 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
             "email": user.email,
             "is_admin": user.is_admin,
             "cliente_id": user.cliente_id,
-            "restaurantes": restaurantes
+            "restaurantes": restaurantes,
+            "lgpd_consent": user.lgpd_consent,
         }
     }
+    _registrar_login_audit(
+        db,
+        request,
+        "LOGIN_SUCCESS",
+        f"Login bem-sucedido para {user.email}",
+        user,
+    )
+    return resposta
 
 
 @router.get("/me")
@@ -141,8 +199,39 @@ async def get_current_user_info(
             "email": user.email,
             "cliente_id": user.cliente_id,
             "restaurantes": restaurantes,
-            "is_admin": user.is_admin
+            "is_admin": user.is_admin,
+            "lgpd_consent": user.lgpd_consent,
         }
     finally:
         db.close()
+
+
+@router.post("/consent")
+def registrar_consentimento(
+    request: Request,
+    payload: ConsentRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Registra o aceite do termo de consentimento LGPD."""
+    if not payload.accepted:
+        raise HTTPException(status_code=400, detail="É necessário aceitar o termo de consentimento.")
+
+    if current_user.lgpd_consent:
+        return {"message": "Consentimento já registrado."}
+
+    current_user.lgpd_consent = True
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=None,
+        action="CONSENT_ACCEPTED",
+        resource="lgpd",
+        resource_id=current_user.id,
+        details="Usuário aceitou o termo de consentimento",
+        request=request,
+    )
+    db.commit()
+
+    return {"message": "Consentimento registrado com sucesso."}
 

@@ -10,6 +10,7 @@ from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, us
 from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
 from app.auth import get_current_user
 from app.middleware import get_tenant_id
+from app.services.audit import registrar_auditoria
 from pydantic import BaseModel
 import qrcode
 import io
@@ -73,6 +74,7 @@ class MovimentacaoResponse(BaseModel):
 def create_alimento(
     tenant_id: int,
     alimento_data: AlimentoCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -94,6 +96,18 @@ def create_alimento(
     )
     
     db.add(new_alimento)
+    db.flush()
+
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="CREATE",
+        resource="alimentos",
+        resource_id=new_alimento.id,
+        details=f"Alimento '{new_alimento.nome}' criado",
+        request=request,
+    )
     db.commit()
     db.refresh(new_alimento)
     
@@ -170,6 +184,7 @@ def update_alimento(
     tenant_id: int,
     alimento_id: int,
     alimento_data: AlimentoUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -202,7 +217,17 @@ def update_alimento(
     
     for field, value in update_data.items():
         setattr(alimento, field, value)
-    
+
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="UPDATE",
+        resource="alimentos",
+        resource_id=alimento.id,
+        details=f"Alimento '{alimento.nome}' atualizado: {update_data or 'sem alterações explícitas'}",
+        request=request,
+    )
     db.commit()
     db.refresh(alimento)
     
@@ -213,6 +238,7 @@ def update_alimento(
 def delete_alimento(
     tenant_id: int,
     alimento_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -242,6 +268,17 @@ def delete_alimento(
     
     alimento.ativo = False
     alimento.deleted_at = datetime.utcnow()
+
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="DELETE",
+        resource="alimentos",
+        resource_id=alimento.id,
+        details=f"Alimento '{alimento.nome}' desativado (soft delete)",
+        request=request,
+    )
     db.commit()
     
     return {

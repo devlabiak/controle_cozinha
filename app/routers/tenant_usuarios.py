@@ -3,7 +3,7 @@ Rotas de Gestão de Usuários do Restaurante (apenas para admins do restaurante)
 """
 
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select, insert, update, delete
@@ -11,6 +11,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.models import User, Tenant, RoleType, user_tenants_association
 from app.security import get_password_hash, get_current_user
+from app.services.audit import registrar_auditoria
 from pydantic import BaseModel, EmailStr
 
 router = APIRouter(prefix="/api/tenant", tags=["Tenant - Usuários"])
@@ -102,6 +103,7 @@ def listar_usuarios(
 def criar_usuario(
     tenant_id: int,
     dados: UsuarioTenantCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -142,6 +144,16 @@ def criar_usuario(
         role=role
     )
     db.execute(stmt)
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="CREATE",
+        resource="tenant_users",
+        resource_id=novo_user.id,
+        details=f"Usuário {novo_user.email} criado com role {role.value}",
+        request=request,
+    )
     db.commit()
     db.refresh(novo_user)
     
@@ -159,6 +171,7 @@ def atualizar_usuario(
     tenant_id: int,
     usuario_id: int,
     dados: UsuarioTenantUpdate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -199,6 +212,7 @@ def atualizar_usuario(
         user.senha_hash = get_password_hash(dados.senha)
     
     # Atualiza role se fornecido
+    detalhes_alteracao = {}
     if dados.is_admin_restaurante is not None:
         novo_role = RoleType.ADMIN if dados.is_admin_restaurante else RoleType.LEITURA
         stmt = update(user_tenants_association).where(
@@ -206,7 +220,24 @@ def atualizar_usuario(
             user_tenants_association.c.tenant_id == tenant_id
         ).values(role=novo_role)
         db.execute(stmt)
-    
+        detalhes_alteracao["novo_role"] = novo_role.value
+    if dados.nome is not None:
+        detalhes_alteracao["nome"] = dados.nome
+    if dados.email is not None:
+        detalhes_alteracao["email"] = dados.email
+    if dados.senha is not None:
+        detalhes_alteracao["senha_atualizada"] = True
+
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="UPDATE",
+        resource="tenant_users",
+        resource_id=usuario_id,
+        details=f"Usuário {usuario_id} atualizado: {detalhes_alteracao or 'sem alterações'}",
+        request=request,
+    )
     db.commit()
     db.refresh(user)
     
@@ -230,6 +261,7 @@ def atualizar_usuario(
 def remover_usuario(
     tenant_id: int,
     usuario_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -249,12 +281,23 @@ def remover_usuario(
         user_tenants_association.c.tenant_id == tenant_id
     )
     result = db.execute(stmt)
-    db.commit()
     
     if result.rowcount == 0:
         raise HTTPException(
             status_code=404,
             detail="Usuário não vinculado a este restaurante"
         )
+
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=tenant_id,
+        action="DELETE",
+        resource="tenant_users",
+        resource_id=usuario_id,
+        details=f"Usuário {usuario_id} desvinculado do restaurante",
+        request=request,
+    )
+    db.commit()
     
     return FastAPIResponse(status_code=status.HTTP_204_NO_CONTENT)
