@@ -954,7 +954,7 @@ async function verificarEstoqueBaixo() {
             `;
             
             console.log('📢 Mostrando alerta de estoque baixo');
-            showNotification(mensagem, 'error', 10000); // 10 segundos
+            showNotification(mensagem, 'warning', 10000); // 10 segundos
         }
     } catch (err) {
         console.error('❌ Erro ao verificar estoque baixo:', err);
@@ -1006,7 +1006,7 @@ async function verificarProdutosVencendo() {
         `;
         
         console.log('📢 Mostrando alerta de validade');
-        showNotification(mensagem, 'warning', 12000); // 12 segundos
+        showNotification(mensagem, 'error', 12000); // 12 segundos
     } catch (err) {
         console.error('❌ Erro ao verificar produtos vencendo:', err);
     }
@@ -1014,6 +1014,8 @@ async function verificarProdutosVencendo() {
 
 async function verificarTodosAlertas() {
     await verificarEstoqueBaixo();
+    // Aguarda 11 segundos antes de mostrar o próximo alerta (tempo do alerta anterior + 1s)
+    await new Promise(resolve => setTimeout(resolve, 11000));
     await verificarProdutosVencendo();
 }
 
