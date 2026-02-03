@@ -961,52 +961,41 @@ async function verificarProdutosVencendo() {
     if (!tenantId) return;
     
     try {
-        const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
+        const response = await fetch(`/api/tenant/${tenantId}/lotes/vencendo?dias=4`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
-        const movimentacoes = await response.json();
         
-        // Filtra apenas entradas com QR code que ainda não foram usadas
-        const entradasComValidade = movimentacoes.filter(m => 
-            m.qr_code_gerado && 
-            !m.usado && 
-            m.data_validade &&
-            m.tipo === 'entrada'
-        );
-        
-        if (entradasComValidade.length === 0) return;
-        
-        const hoje = new Date();
-        hoje.setHours(0, 0, 0, 0);
-        
-        const produtosVencendo = entradasComValidade.filter(m => {
-            const validade = new Date(m.data_validade);
-            validade.setHours(0, 0, 0, 0);
-            const diffDias = Math.ceil((validade - hoje) / (1000 * 60 * 60 * 24));
-            return diffDias >= 0 && diffDias <= 4; // Vencendo em 0 a 4 dias
-        });
-        
-        if (produtosVencendo.length > 0) {
-            const lista = produtosVencendo.map(m => {
-                const validade = new Date(m.data_validade);
-                const diffDias = Math.ceil((validade - hoje) / (1000 * 60 * 60 * 24));
-                const urgencia = diffDias === 0 ? '🔴 HOJE' : diffDias === 1 ? '🟠 AMANHÃ' : `🟡 ${diffDias} dias`;
-                
-                return `<div style="margin:5px 0;padding:5px;background:rgba(255,255,255,0.1);border-radius:4px;">
-                    <strong>${m.alimento_nome || 'Produto'}</strong>: ${urgencia} (${validade.toLocaleDateString('pt-BR')})
-                    <br><small>Qtd: ${m.quantidade} ${m.unidade_medida || 'un'}</small>
-                </div>`;
-            }).join('');
-            
-            const mensagem = `
-                <div style="text-align:left;">
-                    <strong style="font-size:16px;">📅 PRODUTOS PRÓXIMOS DO VENCIMENTO</strong>
-                    <div style="margin-top:10px;">${lista}</div>
-                </div>
-            `;
-            
-            showNotification(mensagem, 'warning', 10000); // 10 segundos
+        if (!response.ok) {
+            throw new Error('Erro ao buscar lotes vencendo');
         }
+        
+        const lotes = await response.json();
+        
+        if (lotes.length === 0) return;
+        
+        const lista = lotes.map(lote => {
+            const urgenciaIcon = lote.urgencia === 'critico' ? '🔴' : 
+                                 lote.urgencia === 'alto' ? '🟠' : '🟡';
+            const diasTexto = lote.dias_restantes === 0 ? 'HOJE' : 
+                             lote.dias_restantes === 1 ? 'AMANHÃ' : 
+                             `${lote.dias_restantes} dias`;
+            
+            const dataValidade = new Date(lote.data_validade);
+            
+            return `<div style="margin:5px 0;padding:8px;background:rgba(255,255,255,0.1);border-radius:4px;border-left:3px solid ${lote.urgencia === 'critico' ? '#ef4444' : lote.urgencia === 'alto' ? '#f59e0b' : '#eab308'}">
+                <strong>${lote.alimento_nome}</strong> ${urgenciaIcon} ${diasTexto}
+                <br><small>Lote: ${lote.lote_numero} | Qtd: ${lote.quantidade_disponivel} ${lote.unidade_medida} | Validade: ${dataValidade.toLocaleDateString('pt-BR')}</small>
+            </div>`;
+        }).join('');
+        
+        const mensagem = `
+            <div style="text-align:left;">
+                <strong style="font-size:16px;">📅 PRODUTOS PRÓXIMOS DO VENCIMENTO</strong>
+                <div style="margin-top:10px;max-height:300px;overflow-y:auto;">${lista}</div>
+            </div>
+        `;
+        
+        showNotification(mensagem, 'warning', 12000); // 12 segundos
     } catch (err) {
         console.error('Erro ao verificar produtos vencendo:', err);
     }

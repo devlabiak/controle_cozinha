@@ -6,7 +6,7 @@ from sqlalchemy import desc, func, select
 from typing import List, Optional
 from datetime import datetime, timedelta
 from app.database import get_db
-from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType
+from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType, ProdutoLote
 from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
 from app.auth import get_current_user
 from app.middleware import get_tenant_id
@@ -859,5 +859,62 @@ def usar_qrcode(
     }
     
     print(f"✅ Retornando:", resultado)
+    
+    return resultado
+
+
+# ==================== ALERTAS DE VALIDADE ====================
+@router.get("/{tenant_id}/lotes/vencendo")
+async def listar_lotes_vencendo(
+    tenant_id: int,
+    dias: int = 4,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Lista lotes que estão próximos do vencimento
+    
+    - **dias**: número de dias para considerar (padrão: 4)
+    """
+    # Verifica se usuário tem acesso ao tenant
+    if not current_user.is_admin:
+        stmt = select(user_tenants_association).where(
+            user_tenants_association.c.user_id == current_user.id,
+            user_tenants_association.c.tenant_id == tenant_id
+        )
+        result = db.execute(stmt).first()
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sem acesso a este restaurante"
+            )
+    
+    # Calcula data limite
+    data_limite = datetime.now() + timedelta(days=dias)
+    
+    # Busca lotes ativos que ainda têm quantidade disponível e estão próximos do vencimento
+    lotes = db.query(ProdutoLote).join(Alimento).filter(
+        ProdutoLote.tenant_id == tenant_id,
+        ProdutoLote.ativo == True,
+        ProdutoLote.usado_completamente == False,
+        ProdutoLote.quantidade_disponivel > 0,
+        ProdutoLote.data_validade <= data_limite,
+        ProdutoLote.data_validade >= datetime.now()
+    ).order_by(ProdutoLote.data_validade.asc()).all()
+    
+    resultado = []
+    for lote in lotes:
+        dias_restantes = (lote.data_validade.date() - datetime.now().date()).days
+        resultado.append({
+            "id": lote.id,
+            "alimento_id": lote.alimento_id,
+            "alimento_nome": lote.alimento.nome,
+            "lote_numero": lote.lote_numero,
+            "quantidade_disponivel": lote.quantidade_disponivel,
+            "unidade_medida": lote.unidade_medida,
+            "data_validade": lote.data_validade.isoformat(),
+            "dias_restantes": dias_restantes,
+            "urgencia": "critico" if dias_restantes <= 1 else "alto" if dias_restantes <= 2 else "medio"
+        })
     
     return resultado
