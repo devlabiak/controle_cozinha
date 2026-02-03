@@ -924,6 +924,7 @@ async function verificarEstoqueBaixo() {
     if (!tenantId) return;
     
     try {
+        console.log('🔍 Verificando estoque baixo...');
         const response = await fetch(`/api/tenant/${tenantId}/alimentos`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -934,6 +935,8 @@ async function verificarEstoqueBaixo() {
             p.quantidade_estoque <= p.quantidade_minima &&
             p.ativo
         );
+        
+        console.log(`✅ Encontrados ${produtosBaixos.length} produtos com estoque baixo:`, produtosBaixos);
         
         if (produtosBaixos.length > 0) {
             const lista = produtosBaixos.map(p => 
@@ -950,10 +953,11 @@ async function verificarEstoqueBaixo() {
                 </div>
             `;
             
+            console.log('📢 Mostrando alerta de estoque baixo');
             showNotification(mensagem, 'error', 10000); // 10 segundos
         }
     } catch (err) {
-        console.error('Erro ao verificar estoque baixo:', err);
+        console.error('❌ Erro ao verificar estoque baixo:', err);
     }
 }
 
@@ -961,17 +965,23 @@ async function verificarProdutosVencendo() {
     if (!tenantId) return;
     
     try {
+        console.log('🔍 Verificando produtos próximos ao vencimento...');
         const response = await fetch(`/api/tenant/${tenantId}/lotes/vencendo?dias=4`, {
             headers: { 'Authorization': 'Bearer ' + token }
         });
         
         if (!response.ok) {
+            console.error('❌ Erro ao buscar lotes vencendo:', response.status, response.statusText);
             throw new Error('Erro ao buscar lotes vencendo');
         }
         
         const lotes = await response.json();
+        console.log(`✅ Encontrados ${lotes.length} lotes próximos ao vencimento:`, lotes);
         
-        if (lotes.length === 0) return;
+        if (lotes.length === 0) {
+            console.log('✅ Nenhum lote próximo ao vencimento (0-4 dias)');
+            return;
+        }
         
         const lista = lotes.map(lote => {
             const urgenciaIcon = lote.urgencia === 'critico' ? '🔴' : 
@@ -995,9 +1005,10 @@ async function verificarProdutosVencendo() {
             </div>
         `;
         
+        console.log('📢 Mostrando alerta de validade');
         showNotification(mensagem, 'warning', 12000); // 12 segundos
     } catch (err) {
-        console.error('Erro ao verificar produtos vencendo:', err);
+        console.error('❌ Erro ao verificar produtos vencendo:', err);
     }
 }
 
