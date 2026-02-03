@@ -1394,6 +1394,7 @@
                             </select>
                             <select id="ajuste-tipo" required>
                                 <option value="">Tipo *</option>
+                                <option value="entrada">➕ Entrada</option>
                                 <option value="saida">➖ Saída</option>
                                 <option value="ajuste">🔄 Ajuste</option>
                             </select>
@@ -1402,6 +1403,20 @@
                                 <i class="fas fa-check"></i> Registrar
                             </button>
                         </div>
+                        
+                        <!-- Seletor de tipo de quantidade (Unidade ou Embalagem) -->
+                        <div id="mov-tipo-quantidade-group" style="display:none;margin-bottom:10px;">
+                            <label style="font-weight:600;color:#4a5568;margin-bottom:5px;display:block;">
+                                <i class="fas fa-box"></i> Tipo de Quantidade:
+                            </label>
+                            <select id="mov-tipo-quantidade" onchange="atualizarCalculoQuantidade()" style="width:100%;padding:8px;border:1px solid #cbd5e0;border-radius:6px;">
+                                <option value="unidade">Por Unidade</option>
+                                <option value="embalagem">Por Embalagem/Pacote</option>
+                            </select>
+                            <small id="mov-embalagem-info" style="color:#667eea;font-weight:600;display:block;margin-top:5px;"></small>
+                            <small id="mov-quantidade-calc" style="color:#48bb78;font-weight:600;display:none;margin-top:5px;"></small>
+                        </div>
+                        
                         <textarea id="ajuste-obs" rows="2" placeholder="Observação (opcional): Ex: Perda/quebra, Preparação prato, Correção inventário..." style="width:100%;"></textarea>
                     </form>
                     

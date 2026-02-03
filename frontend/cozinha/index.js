@@ -1559,3 +1559,5 @@ window.editarUsuario = editarUsuario;
 window.submitEditarUsuario = submitEditarUsuario;
 window.removerUsuario = removerUsuario;
 window.closeModalUsuario = closeModalUsuario;
+window.updateEntradaFormat = updateEntradaFormat;
+window.updateEntradaPlaceholder = updateEntradaPlaceholder;
