@@ -872,7 +872,7 @@ async def listar_lotes_vencendo(
     current_user: User = Depends(get_current_user)
 ):
     """
-    Lista lotes que estão próximos do vencimento
+    Lista lotes e entradas que estão próximos do vencimento
     
     - **dias**: número de dias para considerar (padrão: 4)
     """
@@ -892,7 +892,9 @@ async def listar_lotes_vencendo(
     # Calcula data limite
     data_limite = datetime.now() + timedelta(days=dias)
     
-    # Busca lotes ativos que ainda têm quantidade disponível e estão próximos do vencimento
+    resultado = []
+    
+    # 1. Busca lotes ativos que ainda têm quantidade disponível e estão próximos do vencimento
     lotes = db.query(ProdutoLote).join(Alimento).filter(
         ProdutoLote.tenant_id == tenant_id,
         ProdutoLote.ativo == True,
@@ -902,11 +904,11 @@ async def listar_lotes_vencendo(
         ProdutoLote.data_validade >= datetime.now()
     ).order_by(ProdutoLote.data_validade.asc()).all()
     
-    resultado = []
     for lote in lotes:
         dias_restantes = (lote.data_validade.date() - datetime.now().date()).days
         resultado.append({
             "id": lote.id,
+            "tipo": "lote",
             "alimento_id": lote.alimento_id,
             "alimento_nome": lote.alimento.nome,
             "lote_numero": lote.lote_numero,
@@ -916,5 +918,34 @@ async def listar_lotes_vencendo(
             "dias_restantes": dias_restantes,
             "urgencia": "critico" if dias_restantes <= 1 else "alto" if dias_restantes <= 2 else "medio"
         })
+    
+    # 2. Busca movimentações de entrada com validade que ainda não foram usadas
+    movimentacoes = db.query(MovimentacaoEstoque).join(Alimento).filter(
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == TipoMovimentacao.ENTRADA,
+        MovimentacaoEstoque.data_validade != None,
+        MovimentacaoEstoque.usado == False,
+        MovimentacaoEstoque.data_validade <= data_limite,
+        MovimentacaoEstoque.data_validade >= datetime.now().date()
+    ).order_by(MovimentacaoEstoque.data_validade.asc()).all()
+    
+    for mov in movimentacoes:
+        # Calcula dias restantes considerando que data_validade é um Date
+        dias_restantes = (mov.data_validade - datetime.now().date()).days
+        resultado.append({
+            "id": mov.id,
+            "tipo": "movimentacao",
+            "alimento_id": mov.alimento_id,
+            "alimento_nome": mov.alimento.nome,
+            "lote_numero": mov.qr_code_gerado or "Entrada simples",
+            "quantidade_disponivel": mov.quantidade,
+            "unidade_medida": mov.alimento.unidade_medida,
+            "data_validade": mov.data_validade.isoformat(),
+            "dias_restantes": dias_restantes,
+            "urgencia": "critico" if dias_restantes <= 1 else "alto" if dias_restantes <= 2 else "medio"
+        })
+    
+    # Ordena por data de validade
+    resultado.sort(key=lambda x: x['data_validade'])
     
     return resultado
