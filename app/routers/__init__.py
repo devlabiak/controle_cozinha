@@ -4,7 +4,6 @@ from . import (
 	admin_clientes,
 	admin_usuarios,
 	tenant_alimentos,
-	tenant_users,
 	tenant_usuarios,
 	admin_audit,
 )
@@ -14,7 +13,6 @@ __all__ = [
 	"admin_clientes",
 	"admin_usuarios",
 	"tenant_alimentos",
-	"tenant_users",
 	"tenant_usuarios",
 	"admin_audit",
 ]
