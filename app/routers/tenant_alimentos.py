@@ -737,6 +737,7 @@ def usar_qrcode(
     tenant_id: int,
     qr_code: str,
     quantidade_usada: Optional[float] = None,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
