@@ -2,7 +2,6 @@
 Rotas Admin - Clientes e Restaurantes
 """
 
-from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
