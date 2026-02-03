@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models import User, Tenant, RoleType, user_tenants_association
 from app.security import get_password_hash, get_current_user
 from app.services.audit import registrar_auditoria
+from app.rate_limit import limiter
 from pydantic import BaseModel, EmailStr
 
 router = APIRouter(prefix="/api/tenant", tags=["Tenant - Usuários"])
@@ -100,6 +101,7 @@ def listar_usuarios(
 
 
 @router.post("/{tenant_id}/usuarios", response_model=UsuarioTenantResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("50/minute")
 def criar_usuario(
     tenant_id: int,
     dados: UsuarioTenantCreate,

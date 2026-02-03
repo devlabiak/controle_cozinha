@@ -45,7 +45,21 @@ class RestauranteCreate(BaseModel):
     email: Optional[str] = None
     telefone: Optional[str] = None
     cnpj: Optional[str] = None
-    endereco: Optional[str] = None
+    
+    # Endereço detalhado
+    rua: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    
+    # Pessoa responsável
+    responsavel_nome: Optional[str] = None
+    responsavel_telefone: Optional[str] = None
+    responsavel_email: Optional[str] = None
+    responsavel_cargo: Optional[str] = None
 
 
 class RestauranteResponse(BaseModel):
@@ -53,7 +67,25 @@ class RestauranteResponse(BaseModel):
     cliente_id: int
     nome: str
     slug: str
-    email: str
+    email: Optional[str] = None
+    telefone: Optional[str] = None
+    cnpj: Optional[str] = None
+    
+    # Endereço detalhado
+    rua: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    
+    # Pessoa responsável
+    responsavel_nome: Optional[str] = None
+    responsavel_telefone: Optional[str] = None
+    responsavel_email: Optional[str] = None
+    responsavel_cargo: Optional[str] = None
+    
     ativo: bool
 
     class Config:
@@ -63,8 +95,10 @@ class RestauranteResponse(BaseModel):
 # ==================== CLIENTES ====================
 
 @router.post("/clientes", response_model=ClienteResponse)
+@limiter.limit("50/minute")
 def criar_cliente(
     cliente: ClienteCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_admin = Depends(get_current_admin)
 ):

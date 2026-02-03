@@ -2,10 +2,13 @@ from fastapi import Request, HTTPException, status
 from jose import JWTError, jwt
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
+import logging
 
 from app.config import settings
 from app.database import SessionLocal
 from app.models import Tenant
+
+logger = logging.getLogger(__name__)
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
@@ -43,13 +46,23 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 
                 if tenant:
                     tenant_id = tenant.id
+                    logger.debug(f"Tenant identificado: {tenant_slug} (ID: {tenant_id})")
                 else:
                     # Subdomínio não encontrado ou inativo
                     if not request.url.path.startswith("/docs") and not request.url.path.startswith("/openapi.json"):
+                        logger.warning(f"Tentativa de acesso a tenant inexistente: {tenant_slug}")
                         raise HTTPException(
                             status_code=status.HTTP_404_NOT_FOUND,
                             detail=f"Restaurante '{tenant_slug}' não encontrado"
                         )
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Erro ao buscar tenant {tenant_slug}: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Erro ao processar requisição"
+                )
             finally:
                 db.close()
         

@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+import logging
+
 from app.database import get_db
 from app.models import User, Tenant
 from app.schemas import LoginRequest, Token, ConsentRequest
@@ -8,6 +10,8 @@ from app.rate_limit import limiter
 from datetime import timedelta
 from app.config import settings
 from app.services.audit import registrar_auditoria
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
 
@@ -156,54 +160,50 @@ def login(request: Request, credentials: LoginRequest, db: Session = Depends(get
 
 @router.get("/me")
 async def get_current_user_info(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """Retorna informações do usuário logado com seus restaurantes e roles"""
-    from app.database import SessionLocal
     from app.models import user_tenants_association
     from sqlalchemy import select
     
-    # Cria sessão própria
-    db = SessionLocal()
-    try:
-        # Busca o usuário novamente para garantir que temos os relacionamentos carregados
-        user = db.query(User).filter(User.id == current_user.id).first()
+    # Busca o usuário novamente para garantir que temos os relacionamentos carregados
+    user = db.query(User).filter(User.id == current_user.id).first()
+    
+    if not user:
+        logger.error(f"Usuário {current_user.id} não encontrado em /me")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuário não encontrado"
+        )
+    
+    # Monta lista de restaurantes com roles (incluindo bloqueados)
+    restaurantes = []
+    for tenant in user.tenants:
+        # Busca o role na tabela de associação
+        stmt = select(user_tenants_association).where(
+            user_tenants_association.c.user_id == user.id,
+            user_tenants_association.c.tenant_id == tenant.id
+        )
+        result = db.execute(stmt).first()
         
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuário não encontrado"
-            )
-        
-        # Monta lista de restaurantes com roles (incluindo bloqueados)
-        restaurantes = []
-        for tenant in user.tenants:
-            # Busca o role na tabela de associação
-            stmt = select(user_tenants_association).where(
-                user_tenants_association.c.user_id == user.id,
-                user_tenants_association.c.tenant_id == tenant.id
-            )
-            result = db.execute(stmt).first()
-            
-            restaurantes.append({
-                "id": tenant.id,
-                "nome": tenant.nome,
-                "slug": tenant.slug,
-                "ativo": tenant.ativo,
-                "role": result.role if result else None
-            })
-        
-        return {
-            "id": user.id,
-            "nome": user.nome,
-            "email": user.email,
-            "cliente_id": user.cliente_id,
-            "restaurantes": restaurantes,
-            "is_admin": user.is_admin,
-            "lgpd_consent": user.lgpd_consent,
-        }
-    finally:
-        db.close()
+        restaurantes.append({
+            "id": tenant.id,
+            "nome": tenant.nome,
+            "slug": tenant.slug,
+            "ativo": tenant.ativo,
+            "role": result.role if result else None
+        })
+    
+    return {
+        "id": user.id,
+        "nome": user.nome,
+        "email": user.email,
+        "cliente_id": user.cliente_id,
+        "restaurantes": restaurantes,
+        "is_admin": user.is_admin,
+        "lgpd_consent": user.lgpd_consent,
+    }
 
 
 @router.post("/consent")

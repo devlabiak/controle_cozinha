@@ -67,7 +67,23 @@ class Tenant(Base):
     email = Column(String(255), nullable=True)
     telefone = Column(String(20))
     cnpj = Column(String(20))
-    endereco = Column(String(255))
+    
+    # Endereço detalhado
+    endereco = Column(String(255))  # Mantido para compatibilidade
+    rua = Column(String(255))
+    numero = Column(String(20))
+    complemento = Column(String(100))
+    bairro = Column(String(100))
+    cidade = Column(String(100))
+    estado = Column(String(2))
+    cep = Column(String(10))
+    
+    # Pessoa responsável
+    responsavel_nome = Column(String(255))
+    responsavel_telefone = Column(String(20))
+    responsavel_email = Column(String(255))
+    responsavel_cargo = Column(String(100))
+    
     ativo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

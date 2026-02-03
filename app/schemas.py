@@ -9,6 +9,21 @@ class TenantBase(BaseModel):
     slug: str
     email: EmailStr
     telefone: Optional[str] = None
+    
+    # Endereço detalhado
+    rua: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    
+    # Pessoa responsável
+    responsavel_nome: Optional[str] = None
+    responsavel_telefone: Optional[str] = None
+    responsavel_email: Optional[str] = None
+    responsavel_cargo: Optional[str] = None
 
 
 class TenantCreate(TenantBase):
@@ -21,6 +36,22 @@ class TenantUpdate(BaseModel):
     nome: Optional[str] = None
     email: Optional[EmailStr] = None
     telefone: Optional[str] = None
+    
+    # Endereço detalhado
+    rua: Optional[str] = None
+    numero: Optional[str] = None
+    complemento: Optional[str] = None
+    bairro: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    cep: Optional[str] = None
+    
+    # Pessoa responsável
+    responsavel_nome: Optional[str] = None
+    responsavel_telefone: Optional[str] = None
+    responsavel_email: Optional[str] = None
+    responsavel_cargo: Optional[str] = None
+    
     ativo: Optional[bool] = None
 
 

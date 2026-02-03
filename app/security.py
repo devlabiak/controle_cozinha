@@ -58,7 +58,8 @@ def verify_token(token: str) -> dict:
 
 async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
     """Obtém o usuário atual baseado no token"""
-    from app.database import SessionLocal
+    from app.database import get_db
+    from sqlalchemy.orm import Session
     
     payload = verify_token(token)
     user_id = payload.get("user_id")
@@ -70,6 +71,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
             detail="Token inválido"
         )
     
+    # Nota: Como este é um Depends, precisamos criar uma sessão aqui
+    # Alternativa seria refatorar para usar Depends(get_db) como parâmetro
+    from app.database import SessionLocal
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == user_id, User.email == email).first()

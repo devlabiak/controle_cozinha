@@ -5,18 +5,23 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, select
 from typing import List, Optional
 from datetime import datetime, timedelta
+import logging
+
 from app.database import get_db
 from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType, ProdutoLote
 from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
 from app.auth import get_current_user
 from app.middleware import get_tenant_id
 from app.services.audit import registrar_auditoria
+from app.rate_limit import limiter
 from pydantic import BaseModel
 import qrcode
 import io
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import mm
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/tenant", tags=["Tenant - Gestão de Alimentos"])
 
@@ -71,6 +76,7 @@ class MovimentacaoResponse(BaseModel):
 
 
 @router.post("/{tenant_id}/alimentos", response_model=AlimentoResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("100/minute")
 def create_alimento(
     tenant_id: int,
     alimento_data: AlimentoCreate,
@@ -699,14 +705,17 @@ def validar_qrcode(
             status_validade = "vencendo"
     
     # Log das datas para debug
-    print(f"🔍 DEBUG - Data produção no banco: {movimentacao.data_producao}")
-    print(f"🔍 DEBUG - Data validade no banco: {movimentacao.data_validade}")
+    logger.debug(
+        "Validando QR code - Datas",
+        extra={
+            "qr_code": qr_code[:8] + "...",
+            "data_producao": movimentacao.data_producao,
+            "data_validade": movimentacao.data_validade
+        }
+    )
     
     data_prod_str = movimentacao.data_producao.strftime('%Y-%m-%d') if movimentacao.data_producao else None
     data_val_str = movimentacao.data_validade.strftime('%Y-%m-%d') if movimentacao.data_validade else None
-    
-    print(f"🔍 DEBUG - Data produção formatada: {data_prod_str}")
-    print(f"🔍 DEBUG - Data validade formatada: {data_val_str}")
     
     return {
         "valido": True,
@@ -724,6 +733,7 @@ def validar_qrcode(
 
 
 @router.post("/{tenant_id}/qrcode/usar")
+@limiter.limit("200/minute")
 def usar_qrcode(
     tenant_id: int,
     qr_code: str,
@@ -732,11 +742,15 @@ def usar_qrcode(
     current_user: User = Depends(get_current_user)
 ):
     """Dá baixa no estoque usando QR code escaneado"""
-    print(f"🔵 Endpoint /qrcode/usar chamado")
-    print(f"🔵 tenant_id: {tenant_id}")
-    print(f"🔵 qr_code: {qr_code}")
-    print(f"🔵 quantidade_usada: {quantidade_usada}")
-    print(f"🔵 user: {current_user.email}")
+    logger.info(
+        "Endpoint /qrcode/usar chamado",
+        extra={
+            "tenant_id": tenant_id,
+            "qr_code": qr_code[:8] + "...",
+            "quantidade_usada": quantidade_usada,
+            "user_email": current_user.email
+        }
+    )
     
     from pydantic import BaseModel
     
@@ -747,7 +761,14 @@ def usar_qrcode(
     # Verifica acesso ao tenant
     user_tenants = [t.id for t in current_user.tenants]
     if tenant_id not in user_tenants:
-        print(f"❌ Acesso negado - tenant_id {tenant_id} não está em {user_tenants}")
+        logger.warning(
+            "Acesso negado ao tenant",
+            extra={
+                "user_id": current_user.id,
+                "tenant_id": tenant_id,
+                "user_tenants": user_tenants
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado"
@@ -761,7 +782,10 @@ def usar_qrcode(
     ).first()
     
     if not movimentacao_entrada:
-        print(f"❌ QR Code não encontrado: {qr_code}")
+        logger.warning(
+            "QR Code não encontrado",
+            extra={"qr_code": qr_code[:8] + "...", "tenant_id": tenant_id}
+        )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="QR Code não encontrado"
@@ -777,12 +801,17 @@ def usar_qrcode(
     # Quantidade disponível neste lote específico
     quantidade_disponivel_lote = movimentacao_entrada.quantidade - total_usado
     
-    print(f"🔵 Quantidade original do lote: {movimentacao_entrada.quantidade}")
-    print(f"🔵 Total já usado deste lote: {total_usado}")
-    print(f"🔵 Disponível neste lote: {quantidade_disponivel_lote}")
+    logger.debug(
+        "Calculando quantidade disponível do lote",
+        extra={
+            "quantidade_original": movimentacao_entrada.quantidade,
+            "total_usado": total_usado,
+            "disponivel_lote": quantidade_disponivel_lote
+        }
+    )
     
     if quantidade_disponivel_lote <= 0:
-        print(f"❌ Lote completamente utilizado")
+        logger.warning("Lote completamente utilizado", extra={"qr_code": qr_code[:8] + "..."})
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Este lote já foi completamente utilizado"
@@ -795,19 +824,37 @@ def usar_qrcode(
     
     # Não pode usar mais do que está disponível no lote
     if qtd_baixa > quantidade_disponivel_lote:
-        print(f"❌ Quantidade solicitada maior que disponível no lote: {qtd_baixa} > {quantidade_disponivel_lote}")
+        logger.warning(
+            "Quantidade solicitada maior que disponível no lote",
+            extra={
+                "quantidade_solicitada": qtd_baixa,
+                "disponivel_lote": quantidade_disponivel_lote
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Quantidade indisponível neste lote. Disponível: {quantidade_disponivel_lote}"
         )
     
-    print(f"🔵 Produto: {alimento.nome}")
-    print(f"🔵 Quantidade a dar baixa: {qtd_baixa}")
+    logger.debug(
+        "Processando baixa de estoque",
+        extra={
+            "produto": alimento.nome,
+            "quantidade_baixa": qtd_baixa
+        }
+    )
     
     # Verifica se há estoque suficiente no total
     estoque_atual = alimento.quantidade_estoque or 0
     if estoque_atual < qtd_baixa:
-        print(f"❌ Estoque insuficiente: {estoque_atual} < {qtd_baixa}")
+        logger.error(
+            "Estoque insuficiente",
+            extra={
+                "estoque_atual": estoque_atual,
+                "quantidade_solicitada": qtd_baixa,
+                "alimento": alimento.nome
+            }
+        )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Estoque insuficiente. Disponível: {estoque_atual}"
@@ -817,7 +864,7 @@ def usar_qrcode(
     quantidade_anterior = estoque_atual
     quantidade_nova = estoque_atual - qtd_baixa
     
-    print(f"🔵 Criando movimentação de saída...")
+    logger.debug("Criando movimentação de saída")
     
     movimentacao_saida = MovimentacaoEstoque(
         tenant_id=tenant_id,
@@ -843,9 +890,16 @@ def usar_qrcode(
     # Calcula quanto ainda resta disponível neste lote
     quantidade_restante_lote = quantidade_disponivel_lote - qtd_baixa
     
-    print(f"✅ Baixa realizada com sucesso!")
-    print(f"✅ Estoque geral: {quantidade_anterior} -> {quantidade_nova}")
-    print(f"✅ Restante neste lote: {quantidade_restante_lote}")
+    logger.info(
+        "Baixa realizada com sucesso",
+        extra={
+            "produto": alimento.nome,
+            "quantidade_baixa": qtd_baixa,
+            "estoque_anterior": quantidade_anterior,
+            "estoque_novo": quantidade_nova,
+            "lote_restante": quantidade_restante_lote
+        }
+    )
     
     resultado = {
         "sucesso": True,
@@ -857,8 +911,6 @@ def usar_qrcode(
         "lote_restante": quantidade_restante_lote,
         "lote_original": movimentacao_entrada.quantidade
     }
-    
-    print(f"✅ Retornando:", resultado)
     
     return resultado
 

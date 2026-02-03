@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import List
+import os
 
 
 class Settings(BaseSettings):
@@ -23,6 +24,9 @@ class Settings(BaseSettings):
     
     # Rate limiting
     RATE_LIMIT_LOGIN: str = "20/minute"
+    
+    # Logging
+    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     
     class Config:
         env_file = ".env"
