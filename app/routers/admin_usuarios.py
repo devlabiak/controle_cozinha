@@ -10,6 +10,7 @@ from typing import List, Optional, Dict
 from app.database import get_db
 from app.models import Cliente, User, RoleType, user_tenants_association
 from app.security import get_password_hash
+from app.auth import get_current_admin
 from pydantic import BaseModel, EmailStr
 
 router = APIRouter(prefix="/api/admin", tags=["Admin - Usuários"])
@@ -72,7 +73,11 @@ class UsuarioClienteResponse(BaseModel):
 
 
 @router.post("/usuarios", response_model=UsuarioResponse)
-def criar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
+def criar_usuario(
+    usuario: UsuarioCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Cria novo usuário (pode ser admin ou funcionário)"""
     
     # Verificar se cliente existe (apenas se não for admin do SaaS)
@@ -142,14 +147,21 @@ def criar_usuario(usuario: UsuarioCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/usuarios", response_model=List[UsuarioClienteResponse])
-def listar_usuarios(db: Session = Depends(get_db)):
+def listar_usuarios(
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Lista todos os usuários do sistema"""
     usuarios = db.query(User).all()
     return usuarios
 
 
 @router.get("/usuarios/{user_id}")
-def obter_usuario(user_id: int, db: Session = Depends(get_db)):
+def obter_usuario(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Obtém usuário específico com restaurantes e roles"""
     from sqlalchemy import select
     from app.models import Tenant
@@ -195,7 +207,11 @@ def obter_usuario(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/usuarios/{user_id}/tenants")
-def obter_tenants_usuario(user_id: int, db: Session = Depends(get_db)):
+def obter_tenants_usuario(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Obtém apenas os restaurantes vinculados ao usuário com suas permissões"""
     from sqlalchemy import select
     from app.models import Tenant
@@ -222,7 +238,12 @@ def obter_tenants_usuario(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/usuarios/{user_id}", response_model=UsuarioResponse)
-def atualizar_usuario(user_id: int, dados: dict, db: Session = Depends(get_db)):
+def atualizar_usuario(
+    user_id: int,
+    dados: dict,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Atualiza dados de usuário"""
     from sqlalchemy import delete
     from app.models import Tenant
@@ -294,7 +315,11 @@ def atualizar_usuario(user_id: int, dados: dict, db: Session = Depends(get_db)):
 
 
 @router.delete("/usuarios/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_usuario(user_id: int, db: Session = Depends(get_db)):
+def deletar_usuario(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Deleta usuário"""
     # Não permitir deletar admin principal (id=1)
     if user_id == 1:

@@ -9,6 +9,7 @@ from typing import List, Optional
 from app.database import get_db
 from app.models import Cliente, Tenant
 from pydantic import BaseModel, EmailStr
+from app.auth import get_current_admin
 
 router = APIRouter(prefix="/api/admin", tags=["Admin - Clientes/Restaurantes"])
 
@@ -62,7 +63,11 @@ class RestauranteResponse(BaseModel):
 # ==================== CLIENTES ====================
 
 @router.post("/clientes", response_model=ClienteResponse)
-def criar_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
+def criar_cliente(
+    cliente: ClienteCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Cria novo cliente"""
     
     existente = db.query(Cliente).filter(Cliente.email == cliente.email).first()
@@ -81,14 +86,21 @@ def criar_cliente(cliente: ClienteCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/clientes", response_model=List[ClienteResponse])
-def listar_clientes(db: Session = Depends(get_db)):
+def listar_clientes(
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Lista todos os clientes (ativos e bloqueados)"""
     clientes = db.query(Cliente).order_by(Cliente.ativo.desc(), Cliente.nome_empresa).all()
     return clientes
 
 
 @router.get("/clientes/{cliente_id}", response_model=ClienteResponse)
-def obter_cliente(cliente_id: int, db: Session = Depends(get_db)):
+def obter_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Obtém cliente específico"""
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
@@ -100,7 +112,12 @@ def obter_cliente(cliente_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/clientes/{cliente_id}", response_model=ClienteResponse)
-def atualizar_cliente(cliente_id: int, dados: ClienteCreate, db: Session = Depends(get_db)):
+def atualizar_cliente(
+    cliente_id: int,
+    dados: ClienteCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Atualiza cliente"""
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
@@ -118,7 +135,11 @@ def atualizar_cliente(cliente_id: int, dados: ClienteCreate, db: Session = Depen
 
 
 @router.delete("/clientes/{cliente_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_cliente(cliente_id: int, db: Session = Depends(get_db)):
+def deletar_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Deleta cliente e suas dependências (via CASCADE)"""
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
@@ -132,7 +153,11 @@ def deletar_cliente(cliente_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/clientes/{cliente_id}/toggle-status")
-def toggle_status_cliente(cliente_id: int, db: Session = Depends(get_db)):
+def toggle_status_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Bloqueia ou desbloqueia uma empresa"""
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
@@ -156,7 +181,11 @@ def toggle_status_cliente(cliente_id: int, db: Session = Depends(get_db)):
 # ==================== RESTAURANTES ====================
 
 @router.post("/restaurantes", response_model=RestauranteResponse)
-def criar_restaurante(restaurante: RestauranteCreate, db: Session = Depends(get_db)):
+def criar_restaurante(
+    restaurante: RestauranteCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Cria novo restaurante"""
     
     cliente = db.query(Cliente).filter(Cliente.id == restaurante.cliente_id).first()
@@ -193,7 +222,11 @@ def criar_restaurante(restaurante: RestauranteCreate, db: Session = Depends(get_
 
 
 @router.get("/restaurantes", response_model=List[RestauranteResponse])
-def listar_restaurantes(cliente_id: Optional[int] = None, db: Session = Depends(get_db)):
+def listar_restaurantes(
+    cliente_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Lista restaurantes (opcionalmente por cliente)"""
     query = db.query(Tenant)
     
@@ -204,7 +237,11 @@ def listar_restaurantes(cliente_id: Optional[int] = None, db: Session = Depends(
 
 
 @router.get("/clientes/{cliente_id}/restaurantes", response_model=List[RestauranteResponse])
-def listar_restaurantes_cliente(cliente_id: int, db: Session = Depends(get_db)):
+def listar_restaurantes_cliente(
+    cliente_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Lista restaurantes de um cliente"""
     cliente = db.query(Cliente).filter(Cliente.id == cliente_id).first()
     if not cliente:
@@ -217,7 +254,11 @@ def listar_restaurantes_cliente(cliente_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/restaurantes/{restaurante_id}", response_model=RestauranteResponse)
-def obter_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
+def obter_restaurante(
+    restaurante_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Obtém restaurante específico"""
     restaurante = db.query(Tenant).filter(Tenant.id == restaurante_id).first()
     if not restaurante:
@@ -230,7 +271,12 @@ def obter_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/restaurantes/{restaurante_id}", response_model=RestauranteResponse)
-def atualizar_restaurante(restaurante_id: int, dados: RestauranteCreate, db: Session = Depends(get_db)):
+def atualizar_restaurante(
+    restaurante_id: int,
+    dados: RestauranteCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Atualiza restaurante"""
     restaurante = db.query(Tenant).filter(Tenant.id == restaurante_id).first()
     if not restaurante:
@@ -252,7 +298,11 @@ def atualizar_restaurante(restaurante_id: int, dados: RestauranteCreate, db: Ses
 
 
 @router.delete("/restaurantes/{restaurante_id}", status_code=status.HTTP_204_NO_CONTENT)
-def deletar_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
+def deletar_restaurante(
+    restaurante_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Deleta restaurante e suas dependências (via CASCADE)"""
     restaurante = db.query(Tenant).filter(Tenant.id == restaurante_id).first()
     if not restaurante:
@@ -266,7 +316,11 @@ def deletar_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
 
 
 @router.patch("/restaurantes/{restaurante_id}/toggle-status")
-def toggle_status_restaurante(restaurante_id: int, db: Session = Depends(get_db)):
+def toggle_status_restaurante(
+    restaurante_id: int,
+    db: Session = Depends(get_db),
+    current_admin = Depends(get_current_admin)
+):
     """Bloqueia ou desbloqueia um restaurante"""
     restaurante = db.query(Tenant).filter(Tenant.id == restaurante_id).first()
     if not restaurante:

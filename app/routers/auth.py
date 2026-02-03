@@ -1,10 +1,11 @@
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, Tenant
 from app.schemas import LoginRequest, Token
 from app.security import verify_password, create_access_token, get_current_user
+from app.rate_limit import limiter
 from datetime import timedelta
 from app.config import settings
 
@@ -12,7 +13,8 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticação"])
 
 
 @router.post("/login", response_model=Token)
-def login(credentials: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(settings.RATE_LIMIT_LOGIN)
+def login(request: Request, credentials: LoginRequest, db: Session = Depends(get_db)):
     """
     Endpoint de login.
     Aceita email e senha, retorna token JWT e lista de restaurantes disponíveis.

@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import List
 
 
 class Settings(BaseSettings):
@@ -12,6 +13,16 @@ class Settings(BaseSettings):
     
     # Domain
     BASE_DOMAIN: str = "wlsolucoes.eti.br"
+    
+    # CORS
+    ALLOWED_ORIGINS: List[str] = [
+        "https://painelfood.wlsolucoes.eti.br",
+        "https://app.wlsolucoes.eti.br",
+        "https://cozinha.wlsolucoes.eti.br",
+    ]
+    
+    # Rate limiting
+    RATE_LIMIT_LOGIN: str = "20/minute"
     
     class Config:
         env_file = ".env"

@@ -12,3 +12,4 @@ bcrypt==3.2.2
 python-multipart==0.0.6
 qrcode[pil]==7.4.2
 reportlab==4.0.7
+slowapi==0.1.9

@@ -1,8 +1,21 @@
+import asyncio
+import contextlib
+import logging
+import traceback
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+
+from app.config import settings
 from app.middleware import TenantMiddleware
-import traceback
+from app.rate_limit import limiter
+from app.services.history_cleanup import cleanup_history, RETENTION_DAYS
+
+logger = logging.getLogger("app.history_cleanup")
 
 # Importar routers com error handling
 try:
@@ -17,6 +30,10 @@ app = FastAPI(
     description="Sistema de controle de estoque para restaurantes (SaaS)",
     version="1.0.0"
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # Exception handler para logar erros de autenticação
 @app.exception_handler(HTTPException)
@@ -33,10 +50,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especifique os domínios
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept"],
+    max_age=3600,
 )
 
 # Middleware de Tenant
@@ -48,6 +66,32 @@ app.include_router(admin_clientes.router)
 app.include_router(admin_usuarios.router)
 app.include_router(tenant_alimentos.router)
 app.include_router(tenant_usuarios.router)
+
+
+async def history_cleanup_worker():
+    """Executa a limpeza do histórico uma vez por dia."""
+    while True:
+        try:
+            removed = cleanup_history()
+            if removed:
+                logger.info("🧹 %s movimentações antigas removidas (>%s dias)", removed, RETENTION_DAYS)
+        except Exception:  # pragma: no cover
+            logger.exception("Erro ao executar limpeza de histórico")
+        await asyncio.sleep(24 * 60 * 60)
+
+
+@app.on_event("startup")
+async def startup_event():
+    app.state.history_cleanup_task = asyncio.create_task(history_cleanup_worker())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    task = getattr(app.state, "history_cleanup_task", None)
+    if task:
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
 
 
 @app.get("/")

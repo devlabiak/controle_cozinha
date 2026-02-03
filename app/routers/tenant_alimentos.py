@@ -4,7 +4,7 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, select
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.database import get_db
 from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType
 from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
@@ -119,7 +119,10 @@ def list_alimentos(
             detail="Acesso negado"
         )
     
-    query = db.query(Alimento).filter(Alimento.tenant_id == tenant_id)
+    query = db.query(Alimento).filter(
+        Alimento.tenant_id == tenant_id,
+        Alimento.ativo == True
+    )
     
     if categoria:
         query = query.filter(Alimento.categoria == categoria)
@@ -149,7 +152,8 @@ def get_alimento(
     
     alimento = db.query(Alimento).filter(
         Alimento.id == alimento_id,
-        Alimento.tenant_id == tenant_id
+        Alimento.tenant_id == tenant_id,
+        Alimento.ativo == True
     ).first()
     
     if not alimento:
@@ -183,7 +187,8 @@ def update_alimento(
     
     alimento = db.query(Alimento).filter(
         Alimento.id == alimento_id,
-        Alimento.tenant_id == tenant_id
+        Alimento.tenant_id == tenant_id,
+        Alimento.ativo == True
     ).first()
     
     if not alimento:
@@ -225,7 +230,8 @@ def delete_alimento(
     
     alimento = db.query(Alimento).filter(
         Alimento.id == alimento_id,
-        Alimento.tenant_id == tenant_id
+        Alimento.tenant_id == tenant_id,
+        Alimento.ativo == True
     ).first()
     
     if not alimento:
@@ -234,10 +240,13 @@ def delete_alimento(
             detail="Alimento não encontrado"
         )
     
-    db.delete(alimento)
+    alimento.ativo = False
+    alimento.deleted_at = datetime.utcnow()
     db.commit()
     
-    return None
+    return {
+        "message": "Alimento desativado. Histórico permanecerá disponível por 90 dias."
+    }
 
 
 # ==================== MOVIMENTAÇÕES ====================
@@ -429,6 +438,71 @@ def listar_movimentacoes(
         })
     
     return movimentacoes
+
+
+@router.get("/{tenant_id}/movimentacoes/historico", response_model=List[MovimentacaoResponse])
+def historico_movimentacoes(
+    tenant_id: int,
+    dias: int = 90,
+    tipo: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Retorna movimentações dos últimos N dias (máximo 90)."""
+    user_tenants = [t.id for t in current_user.tenants]
+    if tenant_id not in user_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
+
+    dias = max(1, min(dias, 90))
+    cutoff = datetime.utcnow() - timedelta(days=dias)
+
+    query = db.query(
+        MovimentacaoEstoque,
+        Alimento.nome.label('alimento_nome'),
+        User.nome.label('usuario_nome')
+    ).outerjoin(
+        Alimento, MovimentacaoEstoque.alimento_id == Alimento.id
+    ).join(
+        User, MovimentacaoEstoque.usuario_id == User.id
+    ).filter(
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.created_at >= cutoff
+    ).order_by(desc(MovimentacaoEstoque.created_at))
+
+    if tipo:
+        if tipo == 'entrada':
+            query = query.filter(MovimentacaoEstoque.tipo == TipoMovimentacao.ENTRADA)
+        elif tipo == 'saida':
+            query = query.filter(MovimentacaoEstoque.tipo == TipoMovimentacao.SAIDA)
+        elif tipo == 'ajuste':
+            query = query.filter(MovimentacaoEstoque.tipo == TipoMovimentacao.AJUSTE)
+
+    resultados = query.all()
+
+    historico = []
+    for mov, alimento_nome, usuario_nome in resultados:
+        historico.append({
+            "id": mov.id,
+            "alimento_id": mov.alimento_id,
+            "alimento_nome": alimento_nome,
+            "tipo": mov.tipo.value if hasattr(mov.tipo, 'value') else mov.tipo,
+            "quantidade": mov.quantidade,
+            "quantidade_anterior": mov.quantidade_anterior,
+            "quantidade_nova": mov.quantidade_nova,
+            "usuario_nome": usuario_nome,
+            "observacao": mov.motivo,
+            "data_hora": mov.created_at,
+            "qr_code_gerado": mov.qr_code_gerado,
+            "data_producao": mov.data_producao.isoformat() if mov.data_producao else None,
+            "data_validade": mov.data_validade.isoformat() if mov.data_validade else None,
+            "usado": mov.usado,
+            "unidade_medida": mov.alimento.unidade_medida if mov.alimento else None
+        })
+
+    return historico
 
 
 # ==================== ETIQUETAS E QR CODE ====================
