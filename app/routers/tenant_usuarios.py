@@ -2,7 +2,6 @@
 Rotas de Gestão de Usuários do Restaurante (apenas para admins do restaurante)
 """
 
-from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import Response as FastAPIResponse
 from sqlalchemy.orm import Session
