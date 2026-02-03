@@ -3,13 +3,14 @@ Rotas Admin - Clientes e Restaurantes
 """
 
 from __future__ import annotations
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
 from app.models import Cliente, Tenant
 from pydantic import BaseModel, EmailStr
 from app.auth import get_current_admin
+from app.rate_limit import limiter
 
 router = APIRouter(prefix="/api/admin", tags=["Admin - Clientes/Restaurantes"])
 

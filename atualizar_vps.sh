@@ -27,9 +27,9 @@ echo "📍 Novo estado:"
 git log --oneline -1
 echo ""
 
-# 5. Aplicar migration do email opcional
-echo "🗃️  Aplicando migration (email opcional)..."
-cat migrations/make_email_nullable.sql | docker compose exec -T db psql -U postgres -d controle_cozinha
+# 5. Aplicar migrations do Alembic
+echo "🗃️  Aplicando migrations..."
+docker compose exec app alembic upgrade head
 echo ""
 
 # 6. Reiniciar o app
