@@ -324,6 +324,32 @@ async function loadEstoque() {
         
         let produtos = await response.json();
         
+        // Busca lotes próximos ao vencimento
+        let lotesVencendo = [];
+        try {
+            const lotesResponse = await fetch(`/api/tenant/${tenantId}/lotes/vencendo?dias=30`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if (lotesResponse.ok) {
+                lotesVencendo = await lotesResponse.json();
+            }
+        } catch (err) {
+            console.error('Erro ao buscar lotes vencendo:', err);
+        }
+        
+        // Adiciona informações de lote aos produtos
+        produtos = produtos.map(p => {
+            const loteProduto = lotesVencendo.find(l => l.alimento_id === p.id);
+            return {
+                ...p,
+                lote_info: loteProduto || null,
+                dias_vencimento: loteProduto ? loteProduto.dias_restantes : 999
+            };
+        });
+        
+        // Ordena: produtos com vencimento próximo primeiro
+        produtos.sort((a, b) => a.dias_vencimento - b.dias_vencimento);
+        
         // Filtro de busca local
         if (search) {
             produtos = produtos.filter(p => 
@@ -355,8 +381,29 @@ async function loadEstoque() {
                 displayEstoque += `<br><small style="color:#718096;">(${pacotesCompletos} ${p.tipo_embalagem}${pacotesCompletos !== 1 ? 's' : ''}${avulsos > 0 ? ` + ${avulsos}` : ''})</small>`;
             }
             
+            // Informações de lote e validade
+            let loteDisplay = '-';
+            let rowStyle = '';
+            if (p.lote_info) {
+                const dataValidade = new Date(p.lote_info.data_validade);
+                const diasTexto = p.lote_info.dias_restantes === 0 ? 'HOJE' : 
+                                 p.lote_info.dias_restantes === 1 ? 'AMANHÃ' : 
+                                 `${p.lote_info.dias_restantes} dias`;
+                
+                const urgenciaIcon = p.lote_info.urgencia === 'critico' ? '🔴' : 
+                                     p.lote_info.urgencia === 'alto' ? '🟠' : '🟡';
+                const bgColor = p.lote_info.urgencia === 'critico' ? '#fee2e2' : 
+                               p.lote_info.urgencia === 'alto' ? '#fef3c7' : '#fef9c3';
+                
+                rowStyle = `background-color: ${bgColor} !important;`;
+                loteDisplay = `<div style="font-size:12px;">
+                    <strong style="color:#2d3748;">${p.lote_info.lote_numero}</strong> ${urgenciaIcon}<br>
+                    <small style="color:#4a5568;">Vence em ${diasTexto}<br>${dataValidade.toLocaleDateString('pt-BR')}</small>
+                </div>`;
+            }
+            
             return `
-                <tr>
+                <tr style="${rowStyle}">
                     <td><strong>${p.nome}</strong></td>
                     <td>${p.categoria || '-'}</td>
                     <td class="${isLow ? 'stock-low' : 'stock-ok'}">
@@ -364,6 +411,7 @@ async function loadEstoque() {
                     </td>
                     <td>${p.unidade_medida || 'un'}</td>
                     <td>${estoqueMinimo > 0 ? estoqueMinimo.toFixed(2) : '-'}</td>
+                    <td>${loteDisplay}</td>
                     <td>
                         ${isLow ? '<span class="badge badge-danger">⚠️ Baixo</span>' : '<span class="badge badge-success">✅ OK</span>'}
                     </td>
