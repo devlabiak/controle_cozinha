@@ -1493,3 +1493,65 @@ async def limpar_todos_produtos(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao limpar produtos: {str(e)}"
         )
+
+
+@router.delete("/{tenant_id}/limpar-registros-orfaos")
+async def limpar_registros_orfaos(
+    tenant_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Remove movimentações e lotes que não têm produto associado (registros órfãos)
+    Útil para limpar dados de produtos deletados que deixaram registros
+    """
+    # Verifica se usuário é admin do restaurante
+    verificar_admin_restaurante(tenant_id, current_user, db)
+    
+    try:
+        # Busca IDs de produtos válidos
+        produtos_validos = db.query(Alimento.id).filter(
+            Alimento.tenant_id == tenant_id
+        ).all()
+        ids_validos = [p.id for p in produtos_validos]
+        
+        # Deleta movimentações órfãs
+        movimentacoes_orfas = db.query(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.tenant_id == tenant_id,
+            ~MovimentacaoEstoque.alimento_id.in_(ids_validos)
+        ).delete(synchronize_session=False)
+        
+        # Deleta lotes órfãos
+        lotes_orfaos = db.query(ProdutoLote).filter(
+            ProdutoLote.tenant_id == tenant_id,
+            ~ProdutoLote.alimento_id.in_(ids_validos)
+        ).delete(synchronize_session=False)
+        
+        db.commit()
+        
+        # Registra auditoria
+        await registrar_auditoria(
+            db=db,
+            usuario_id=current_user.id,
+            tenant_id=tenant_id,
+            acao="LIMPEZA_REGISTROS_ORFAOS",
+            detalhes=f"Deletados: {movimentacoes_orfas} movimentações órfãs, {lotes_orfaos} lotes órfãos",
+            ip=request.client.host if request.client else "desconhecido"
+        )
+        
+        return {
+            "sucesso": True,
+            "mensagem": "Registros órfãos removidos com sucesso!",
+            "deletados": {
+                "movimentacoes_orfas": movimentacoes_orfas,
+                "lotes_orfaos": lotes_orfaos
+            }
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao limpar registros órfãos: {str(e)}"
+        )

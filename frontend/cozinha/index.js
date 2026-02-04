@@ -1024,7 +1024,52 @@ async function confirmarExclusaoProduto() {
     }
 }
 
-// 7. LIMPAR TODOS OS PRODUTOS
+// 7. LIMPAR REGISTROS ÓRFÃOS
+async function limparRegistrosOrfaos() {
+    const confirmacao = confirm(
+        `🧹 Limpar Registros Órfãos\n\n` +
+        `Esta ação vai remover:\n\n` +
+        `• Movimentações de produtos que não existem mais\n` +
+        `• Lotes de produtos que foram deletados\n\n` +
+        `Isso resolve alertas de produtos inexistentes.\n\n` +
+        `Deseja continuar?`
+    );
+    
+    if (!confirmacao) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/limpar-registros-orfaos`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao limpar registros órfãos');
+        }
+        
+        const resultado = await response.json();
+        
+        showNotification(
+            `✅ ${resultado.mensagem}\n\n` +
+            `Removidos:\n` +
+            `• ${resultado.deletados.movimentacoes_orfas} movimentações órfãs\n` +
+            `• ${resultado.deletados.lotes_orfaos} lotes órfãos`,
+            'success',
+            5000
+        );
+        
+        loadEstoque();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+
+// 8. LIMPAR TODOS OS PRODUTOS
 async function limparTodosProdutos() {
     const confirmacao1 = confirm(
         `⚠️⚠️⚠️ ATENÇÃO MÁXIMA ⚠️⚠️⚠️\n\n` +
