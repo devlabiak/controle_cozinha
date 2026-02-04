@@ -387,10 +387,16 @@ async function loadHistorico() {
         const dataInicio = document.getElementById('filter-data-inicio')?.value || '';
         const dataFim = document.getElementById('filter-data-fim')?.value || '';
         
-        let url = `/api/tenant/${tenantId}/movimentacoes?`;
-        if (tipo) url += `tipo=${tipo}&`;
-        if (dataInicio) url += `data_inicio=${dataInicio}&`;
-        if (dataFim) url += `data_fim=${dataFim}`;
+        let url = `/api/tenant/${tenantId}/movimentacoes/historico?dias=90`;
+        if (tipo) url += `&tipo=${tipo}`;
+        // Filtros de data: backend só aceita dias, então calcula diferença se dataInicio for preenchida
+        if (dataInicio) {
+            const inicio = new Date(dataInicio);
+            const hoje = new Date();
+            const diff = Math.ceil((hoje - inicio) / (1000 * 60 * 60 * 24));
+            url = `/api/tenant/${tenantId}/movimentacoes/historico?dias=${diff > 0 ? diff : 1}`;
+            if (tipo) url += `&tipo=${tipo}`;
+        }
         
         const response = await fetch(url, {
             headers: { 'Authorization': 'Bearer ' + token }
