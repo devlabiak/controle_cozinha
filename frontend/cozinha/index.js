@@ -700,13 +700,13 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         const result = await response.json();
         showNotification('Entrada registrada com sucesso!', 'success');
         // Se for entrada por embalagem e retornou pacotes, imprime automaticamente
-        if (result.pacotes && Array.isArray(result.pacotes) && result.pacotes.length > 0) {
-            result.pacotes.forEach((mov, i) => {
-                setTimeout(() => imprimirEtiqueta(mov.movimentacao_id, unidadesPorEmb), i * 300);
-            });
-        } else if (result.qr_code_gerado && result.movimentacao_id) {
-            setTimeout(() => imprimirEtiqueta(result.movimentacao_id, quantidade), 0);
-        }
+            if (result.pacotes && Array.isArray(result.pacotes) && result.pacotes.length > 0) {
+                result.pacotes.forEach((mov, i) => {
+                    setTimeout(() => imprimirEtiqueta(mov.movimentacao_id), i * 300);
+                });
+            } else if (result.qr_code_gerado && result.movimentacao_id) {
+                setTimeout(() => imprimirEtiqueta(result.movimentacao_id, quantidade), 0);
+            }
         
         document.getElementById('form-entrada').reset();
         loadEstoque();
@@ -719,9 +719,9 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
 // Agora aceita quantidade customizada para a etiqueta
 function imprimirEtiqueta(movimentacaoId, quantidadeCustom) {
     showNotification('Gerando etiqueta...', 'success');
-    // Passa a quantidade customizada como query param (frontend only, backend precisa aceitar se for customizar)
+    // Para entradas por embalagem, não passar quantidade customizada
     let url = `/api/tenant/${tenantId}/movimentacoes/${movimentacaoId}/etiqueta`;
-    if (quantidadeCustom) {
+    if (typeof quantidadeCustom !== 'undefined' && quantidadeCustom !== null) {
         url += `?qtd=${quantidadeCustom}`;
     }
     fetch(url, {
