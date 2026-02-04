@@ -1524,10 +1524,18 @@
     <div id="notification-container" style="position:fixed;right:30px;bottom:30px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:12px;"></div>
 
     <style>
-    .notification {
+    #notification-container {
         position: fixed;
         right: 30px;
         bottom: 30px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+        pointer-events: none;
+    }
+    .notification {
         min-width: 300px;
         max-width: 400px;
         background: #fff;
@@ -1536,10 +1544,11 @@
         box-shadow: 0 4px 16px rgba(0,0,0,0.12);
         padding: 18px 24px;
         font-size: 16px;
-        z-index: 9999;
         border-left: 6px solid #667eea;
-        display: none;
         animation: fadeInNotif 0.3s;
+        pointer-events: auto;
+        margin-bottom: 0;
+        display: block;
     }
     .notification.success { border-left-color: #48bb78; }
     .notification.error { border-left-color: #f56565; }
