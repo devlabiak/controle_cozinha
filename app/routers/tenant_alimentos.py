@@ -1235,8 +1235,16 @@ async def listar_lotes_vencendo(
     ).order_by(ProdutoLote.data_validade.asc()).all()
     
     for lote in lotes:
+        # Verifica se o alimento ainda existe
+        if not lote.alimento:
+            continue
+            
         # Verifica se o produto ainda tem estoque
-        if lote.alimento.quantidade_estoque <= 0:
+        if not lote.alimento.quantidade_estoque or lote.alimento.quantidade_estoque <= 0:
+            continue
+        
+        # Verifica se a quantidade do lote não é maior que o estoque total (inconsistência)
+        if lote.quantidade_disponivel > lote.alimento.quantidade_estoque:
             continue
             
         dias_restantes = (lote.data_validade.date() - datetime.now().date()).days
@@ -1264,8 +1272,12 @@ async def listar_lotes_vencendo(
     ).order_by(MovimentacaoEstoque.data_validade.asc()).all()
     
     for mov in movimentacoes:
+        # Verifica se o alimento ainda existe
+        if not mov.alimento:
+            continue
+            
         # Verifica se o produto ainda tem estoque
-        if mov.alimento.quantidade_estoque <= 0:
+        if not mov.alimento.quantidade_estoque or mov.alimento.quantidade_estoque <= 0:
             continue
             
         # Calcula quantidade já usada deste lote
