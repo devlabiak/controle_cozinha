@@ -419,10 +419,18 @@ def criar_movimentacao(
             detail="Tipo de movimentação inválido"
         )
     qr_code_gerado = None
+    lote_numero = None
     data_producao = None
     data_validade = None
     if dados.tipo == 'entrada':
         qr_code_gerado = str(uuid.uuid4())
+        # Gera lote_numero também para entradas avulsas
+        import random
+        import string
+        letra = random.choice(string.ascii_uppercase)
+        numeros = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+        lote_numero = f"{letra}{numeros}"
+        
         if dados.data_producao:
             try:
                 date_str = dados.data_producao.split('T')[0]
@@ -447,6 +455,7 @@ def criar_movimentacao(
         quantidade_nova=quantidade_nova,
         motivo=dados.observacao,
         qr_code_gerado=qr_code_gerado,
+        qr_code_usado=lote_numero,
         data_producao=data_producao,
         data_validade=data_validade,
         etiqueta_impressa=False,
