@@ -1267,7 +1267,7 @@ async def listar_lotes_vencendo(
             "tipo": "movimentacao",
             "alimento_id": mov.alimento_id,
             "alimento_nome": mov.alimento.nome,
-            "lote_numero": mov.qr_code_gerado or "Entrada simples",
+            "lote_numero": mov.qr_code_usado or "N/A",
             "quantidade_disponivel": mov.quantidade,
             "unidade_medida": mov.alimento.unidade_medida,
             "data_validade": mov.data_validade.isoformat(),
