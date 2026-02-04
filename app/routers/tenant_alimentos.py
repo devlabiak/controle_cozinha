@@ -1313,3 +1313,97 @@ async def listar_lotes_vencendo(
     resultado.sort(key=lambda x: x['data_validade'])
     
     return resultado
+
+
+@router.get("/{tenant_id}/debug/alertas-vencimento")
+async def debug_alertas_vencimento(
+    tenant_id: int,
+    dias: int = 30,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Endpoint de diagnóstico para verificar alertas de vencimento
+    Mostra TODAS as movimentações com validade, mesmo as que têm problemas
+    """
+    # Verifica se usuário tem acesso ao tenant
+    if not current_user.is_admin:
+        stmt = select(user_tenants_association).where(
+            user_tenants_association.c.user_id == current_user.id,
+            user_tenants_association.c.tenant_id == tenant_id
+        )
+        result = db.execute(stmt).first()
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sem acesso a este restaurante"
+            )
+    
+    data_limite = datetime.now() + timedelta(days=dias)
+    
+    # Busca todas movimentações de entrada com validade (LEFT JOIN para incluir produtos deletados)
+    movimentacoes = db.query(MovimentacaoEstoque).outerjoin(Alimento).filter(
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == TipoMovimentacao.ENTRADA,
+        MovimentacaoEstoque.data_validade != None,
+        MovimentacaoEstoque.usado == False,
+        MovimentacaoEstoque.data_validade <= data_limite.date(),
+        MovimentacaoEstoque.data_validade >= datetime.now().date()
+    ).all()
+    
+    diagnostico = []
+    
+    for mov in movimentacoes:
+        try:
+            alimento_existe = mov.alimento is not None
+            estoque_atual = mov.alimento.quantidade_estoque if alimento_existe else None
+            alimento_nome = mov.alimento.nome if alimento_existe else "PRODUTO_DELETADO"
+            
+            lote_numero = mov.qr_code_usado or "SEM_LOTE"
+            total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
+                MovimentacaoEstoque.qr_code_usado == lote_numero,
+                MovimentacaoEstoque.tipo == 'saida',
+                MovimentacaoEstoque.tenant_id == tenant_id
+            ).scalar() or 0
+            
+            quantidade_disponivel = mov.quantidade - total_usado
+            
+            # Identifica problemas
+            problemas = []
+            if not alimento_existe:
+                problemas.append("ALIMENTO_NAO_EXISTE")
+            if estoque_atual is not None and estoque_atual <= 0:
+                problemas.append("ESTOQUE_ZERADO")
+            if quantidade_disponivel <= 0:
+                problemas.append("LOTE_JA_USADO")
+            if estoque_atual and quantidade_disponivel > estoque_atual:
+                problemas.append(f"INCONSISTENCIA_ESTOQUE (lote:{quantidade_disponivel} > estoque:{estoque_atual})")
+            
+            seria_filtrado = len(problemas) > 0
+            
+            diagnostico.append({
+                "mov_id": mov.id,
+                "alimento_nome": alimento_nome,
+                "lote_numero": lote_numero,
+                "data_validade": mov.data_validade.isoformat(),
+                "qtd_original": float(mov.quantidade),
+                "qtd_usada": float(total_usado),
+                "qtd_disponivel_lote": float(quantidade_disponivel),
+                "estoque_atual_produto": float(estoque_atual) if estoque_atual is not None else None,
+                "problemas": problemas,
+                "seria_filtrado": seria_filtrado,
+                "apareceria_no_alerta": not seria_filtrado
+            })
+        except Exception as e:
+            diagnostico.append({
+                "mov_id": mov.id,
+                "erro": str(e),
+                "seria_filtrado": True
+            })
+    
+    return {
+        "total_movimentacoes_com_validade": len(movimentacoes),
+        "com_problemas": len([d for d in diagnostico if d["seria_filtrado"]]),
+        "apareceriam_no_alerta": len([d for d in diagnostico if d["apareceria_no_alerta"]]),
+        "detalhes": diagnostico
+    }
