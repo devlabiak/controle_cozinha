@@ -1260,6 +1260,20 @@ async def listar_lotes_vencendo(
     ).order_by(MovimentacaoEstoque.data_validade.asc()).all()
     
     for mov in movimentacoes:
+        # Calcula quantidade já usada deste lote
+        lote_numero = mov.qr_code_usado
+        total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
+            MovimentacaoEstoque.qr_code_usado == lote_numero,
+            MovimentacaoEstoque.tipo == 'saida',
+            MovimentacaoEstoque.tenant_id == tenant_id
+        ).scalar() or 0
+        
+        quantidade_disponivel = mov.quantidade - total_usado
+        
+        # Só adiciona se ainda tiver quantidade disponível
+        if quantidade_disponivel <= 0:
+            continue
+        
         # Calcula dias restantes considerando que data_validade é um Date
         dias_restantes = (mov.data_validade - datetime.now().date()).days
         resultado.append({
@@ -1267,8 +1281,8 @@ async def listar_lotes_vencendo(
             "tipo": "movimentacao",
             "alimento_id": mov.alimento_id,
             "alimento_nome": mov.alimento.nome,
-            "lote_numero": mov.qr_code_usado or "N/A",
-            "quantidade_disponivel": mov.quantidade,
+            "lote_numero": lote_numero or "N/A",
+            "quantidade_disponivel": quantidade_disponivel,
             "unidade_medida": mov.alimento.unidade_medida,
             "data_validade": mov.data_validade.isoformat(),
             "dias_restantes": dias_restantes,
