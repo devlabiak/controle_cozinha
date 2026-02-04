@@ -742,8 +742,8 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
             const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
             fecharModalEtiquetas();
             setTimeout(() => {
-                if (window._movimentacoesPacotes && Array.isArray(window._movimentacoesPacotes)) {
-                    // Imprime uma etiqueta para cada movimentação/lote (cada uma com QR Code único e quantidade correta)
+                if (window._movimentacoesPacotes && Array.isArray(window._movimentacoesPacotes) && window._movimentacoesPacotes.length > 0) {
+                    // Sempre imprime uma etiqueta para cada movimentação/lote criado (pacote)
                     window._movimentacoesPacotes.forEach((mov, i) => {
                         setTimeout(() => imprimirEtiqueta(mov.movimentacao_id, unidadesPorEmb), i * 300);
                     });
