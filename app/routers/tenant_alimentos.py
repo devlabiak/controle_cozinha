@@ -751,9 +751,10 @@ def validar_qrcode(
             "mensagem": "QR Code não encontrado ou inválido"
         }
     
-    # Calcula quantidade já usada deste lote
+    # Calcula quantidade já usada deste lote (busca pelo lote_numero)
+    lote_numero_entrada = movimentacao.qr_code_usado
     total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
-        MovimentacaoEstoque.qr_code_usado == qr_code,
+        MovimentacaoEstoque.qr_code_usado == lote_numero_entrada,
         MovimentacaoEstoque.tipo == 'saida',
         MovimentacaoEstoque.tenant_id == tenant_id
     ).scalar() or 0
@@ -867,9 +868,10 @@ def usar_qrcode(
             detail="QR Code não encontrado"
         )
     
-    # Calcula quantidade já usada deste lote
+    # Calcula quantidade já usada deste lote (busca pelo lote_numero)
+    lote_numero_entrada = movimentacao_entrada.qr_code_usado
     total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
-        MovimentacaoEstoque.qr_code_usado == qr_code,
+        MovimentacaoEstoque.qr_code_usado == lote_numero_entrada,
         MovimentacaoEstoque.tipo == 'saida',
         MovimentacaoEstoque.tenant_id == tenant_id
     ).scalar() or 0
@@ -942,6 +944,9 @@ def usar_qrcode(
     
     logger.debug("Criando movimentação de saída")
     
+    # Pega o lote_numero da entrada original para sincronizar
+    lote_numero_entrada = movimentacao_entrada.qr_code_usado
+    
     movimentacao_saida = MovimentacaoEstoque(
         tenant_id=tenant_id,
         alimento_id=alimento.id,
@@ -950,8 +955,8 @@ def usar_qrcode(
         quantidade=qtd_baixa,
         quantidade_anterior=quantidade_anterior,
         quantidade_nova=quantidade_nova,
-        motivo=f"Baixa via QR Code scanner",
-        qr_code_usado=qr_code
+        motivo=None,
+        qr_code_usado=lote_numero_entrada  # Usa o lote_numero para sincronizar
     )
     
     # Atualiza estoque
@@ -1150,7 +1155,7 @@ def usar_lote(
         quantidade=qtd_baixa,
         quantidade_anterior=quantidade_anterior,
         quantidade_nova=quantidade_nova,
-        motivo=f"Uso via lote manual: {lote_numero.upper()}",
+        motivo=None,
         qr_code_usado=lote_numero.upper()
     )
     
