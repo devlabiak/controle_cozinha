@@ -275,8 +275,20 @@ def delete_alimento(
             detail="Alimento não encontrado"
         )
     
-    alimento.ativo = False
-    alimento.deleted_at = datetime.utcnow()
+    # Deleta todas as movimentações relacionadas
+    db.query(MovimentacaoEstoque).filter(
+        MovimentacaoEstoque.alimento_id == alimento_id,
+        MovimentacaoEstoque.tenant_id == tenant_id
+    ).delete(synchronize_session=False)
+    
+    # Deleta todos os lotes relacionados
+    db.query(ProdutoLote).filter(
+        ProdutoLote.alimento_id == alimento_id,
+        ProdutoLote.tenant_id == tenant_id
+    ).delete(synchronize_session=False)
+    
+    # Deleta o produto
+    db.delete(alimento)
 
     registrar_auditoria(
         db,

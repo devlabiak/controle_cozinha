@@ -904,19 +904,51 @@ document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => 
     const quantidade = parseFloat(document.getElementById('ajuste-quantidade').value);
     const observacao = document.getElementById('ajuste-obs').value;
     
+    // Sempre solicita lote e validade para qualquer ajuste
+    let dataValidade = null;
+    let loteNumero = null;
+    
+    const dataInput = prompt('📅 Data de validade do lote (formato: DD/MM/AAAA)\nDeixe vazio se não tiver validade:');
+    if (dataInput && dataInput.trim()) {
+        // Converte DD/MM/AAAA para AAAA-MM-DD
+        const partes = dataInput.trim().split('/');
+        if (partes.length === 3) {
+            dataValidade = `${partes[2]}-${partes[1]}-${partes[0]}`;
+        }
+    }
+    
+    loteNumero = prompt('🏷️ Número do lote (formato: Letra + 6 dígitos, ex: A123456)\nDeixe vazio para gerar automático:');
+    if (loteNumero) {
+        loteNumero = loteNumero.trim().toUpperCase();
+        // Valida formato
+        if (!/^[A-Z][0-9]{6}$/.test(loteNumero)) {
+            showNotification('❌ Formato de lote inválido! Use: Letra + 6 dígitos (ex: A123456)', 'error');
+            return;
+        }
+    }
+    
     try {
+        const body = {
+            alimento_id: alimentoId,
+            tipo: tipo,
+            quantidade: quantidade,
+            observacao: observacao || null
+        };
+        
+        if (dataValidade) {
+            body.data_validade = dataValidade;
+            if (loteNumero) {
+                body.lote_numero = loteNumero;
+            }
+        }
+        
         const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({
-                alimento_id: alimentoId,
-                tipo: tipo,
-                quantidade: quantidade,
-                observacao: observacao || null
-            })
+            body: JSON.stringify(body)
         });
         
         if (!response.ok) {
@@ -924,8 +956,16 @@ document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => 
             throw new Error(error.detail || 'Erro ao registrar movimentação');
         }
         
+        const resultado = await response.json();
+        
         const tipoNome = tipo === 'entrada' ? 'Entrada' : tipo === 'saida' ? 'Saída' : 'Ajuste';
         showNotification(`${tipoNome} registrado com sucesso!`, 'success');
+        
+        // Se gerou lote, imprime etiqueta automaticamente
+        if (resultado.movimentacao && resultado.movimentacao.qr_code_usado) {
+            await imprimirEtiqueta(resultado.movimentacao.id);
+        }
+        
         document.getElementById('form-ajuste').reset();
         loadEstoque();
         loadProdutosSelects();
