@@ -705,18 +705,42 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         }
         // Funções para modal de etiquetas
         function fecharModalEtiquetas() {
-            document.getElementById('modal-etiquetas').style.display = 'none';
+            const modal = document.getElementById('modal-etiquetas');
+            modal.style.display = 'none';
             window._movimentacaoIdEtiqueta = null;
+            // Retorna foco ao formulário de entrada
+            document.getElementById('entrada-quantidade')?.focus();
         }
 
         function confirmarImpressaoEtiquetas() {
+            if (window._etiquetaImprimindo) return; // Evita múltiplos envios
+            window._etiquetaImprimindo = true;
+            const btn = document.getElementById('btn-confirmar-etiquetas');
+            btn.disabled = true;
             const qtd = parseInt(document.getElementById('qtd-etiquetas').value) || 1;
             const movimentacaoId = window._movimentacaoIdEtiqueta;
             fecharModalEtiquetas();
+            let count = 0;
+            function done() {
+                count++;
+                if (count >= qtd) {
+                    window._etiquetaImprimindo = false;
+                    btn.disabled = false;
+                }
+            }
             for (let i = 0; i < qtd; i++) {
-                imprimirEtiqueta(movimentacaoId);
+                setTimeout(() => { imprimirEtiqueta(movimentacaoId); done(); }, i * 300);
             }
         }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modal-etiquetas').addEventListener('click', function(e) {
+            if (e.target === this) fecharModalEtiquetas();
+        });
+        // Fechar modal com ESC
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') fecharModalEtiquetas();
+        });
         
         document.getElementById('form-entrada').reset();
         loadEstoque();
