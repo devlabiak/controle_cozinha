@@ -687,6 +687,9 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         quantidade = parseFloat(inputQtd);
         body.quantidade = quantidade;
     }
+    
+    console.log('🔵 Dados enviados para backend:', body);
+    
     try {
         const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
             method: 'POST',
@@ -703,14 +706,18 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         }
         
         const result = await response.json();
+        console.log('🔵 Resposta do backend:', result);
+        
         showNotification('Entrada registrada com sucesso!', 'success');
         // Se for entrada por embalagem e retornou pacotes, imprime automaticamente
             if (result.pacotes && Array.isArray(result.pacotes) && result.pacotes.length > 0) {
+                console.log('🔵 Imprimindo etiquetas para', result.pacotes.length, 'pacotes');
                 result.pacotes.forEach((mov, i) => {
                     setTimeout(() => imprimirEtiqueta(mov.movimentacao_id), i * 300);
                 });
             } else if (result.qr_code_gerado && result.movimentacao_id) {
-                setTimeout(() => imprimirEtiqueta(result.movimentacao_id, quantidade), 0);
+                console.log('🔵 Imprimindo etiqueta única');
+                setTimeout(() => imprimirEtiqueta(result.movimentacao_id), 0);
             }
         
         document.getElementById('form-entrada').reset();
