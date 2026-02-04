@@ -699,82 +699,14 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         
         const result = await response.json();
         showNotification('Entrada registrada com sucesso!', 'success');
-        // Se for entrada por embalagem e retornou pacotes, salva os IDs para impressão
+        // Se for entrada por embalagem e retornou pacotes, imprime automaticamente
         if (result.pacotes && Array.isArray(result.pacotes) && result.pacotes.length > 0) {
-            window._movimentacoesPacotes = result.pacotes;
-            const qtdInput = document.getElementById('qtd-etiquetas');
-            qtdInput.value = result.pacotes.length;
-            qtdInput.readOnly = true;
-            document.getElementById('modal-etiquetas').style.display = 'block';
-            const btn = document.getElementById('btn-confirmar-etiquetas');
-            btn.onclick = null;
-            btn.onclick = confirmarImpressaoEtiquetas;
+            result.pacotes.forEach((mov, i) => {
+                setTimeout(() => imprimirEtiqueta(mov.movimentacao_id, unidadesPorEmb), i * 300);
+            });
         } else if (result.qr_code_gerado && result.movimentacao_id) {
-            window._movimentacaoIdEtiqueta = result.movimentacao_id;
-            const qtdInput = document.getElementById('qtd-etiquetas');
-            qtdInput.value = 1;
-            qtdInput.readOnly = false;
-            document.getElementById('modal-etiquetas').style.display = 'block';
-            const btn = document.getElementById('btn-confirmar-etiquetas');
-            btn.onclick = null;
-            btn.onclick = confirmarImpressaoEtiquetas;
+            setTimeout(() => imprimirEtiqueta(result.movimentacao_id, quantidade), 0);
         }
-        // Funções para modal de etiquetas
-        function fecharModalEtiquetas() {
-            const modal = document.getElementById('modal-etiquetas');
-            modal.style.display = 'none';
-            window._movimentacaoIdEtiqueta = null;
-            // Retorna foco ao formulário de entrada
-            document.getElementById('entrada-quantidade')?.focus();
-        }
-
-        // Garante que os botões do modal funcionam corretamente
-        document.getElementById('btn-confirmar-etiquetas').onclick = confirmarImpressaoEtiquetas;
-        // O botão Cancelar já chama fecharModalEtiquetas pelo HTML
-
-        function confirmarImpressaoEtiquetas() {
-            if (window._etiquetaImprimindo) return; // Evita múltiplos envios
-            window._etiquetaImprimindo = true;
-            const btn = document.getElementById('btn-confirmar-etiquetas');
-            btn.disabled = true;
-            const qtd = parseInt(document.getElementById('qtd-etiquetas').value) || 1;
-            const movimentacaoId = window._movimentacaoIdEtiqueta;
-            // Detecta se foi entrada por embalagem ou avulso
-            const select = document.getElementById('entrada-produto');
-            const option = select.options[select.selectedIndex];
-            const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
-            const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
-            fecharModalEtiquetas();
-            setTimeout(() => {
-                if (window._movimentacoesPacotes && Array.isArray(window._movimentacoesPacotes) && window._movimentacoesPacotes.length > 0) {
-                    // Sempre imprime uma etiqueta para cada movimentação/lote criado (pacote)
-                    window._movimentacoesPacotes.forEach((mov, i) => {
-                        setTimeout(() => imprimirEtiqueta(mov.movimentacao_id, unidadesPorEmb), i * 300);
-                    });
-                    window._movimentacoesPacotes = null;
-                } else if (formato === 'embalagens' && unidadesPorEmb > 0) {
-                    // fallback legacy: Imprime N etiquetas, cada uma com unidadesPorEmb
-                    for (let i = 0; i < qtd; i++) {
-                        setTimeout(() => imprimirEtiqueta(movimentacaoId, unidadesPorEmb), i * 300);
-                    }
-                } else {
-                    // Imprime 1 etiqueta com a quantidade total
-                    const inputQtd = document.getElementById('entrada-quantidade').value;
-                    setTimeout(() => imprimirEtiqueta(movimentacaoId, inputQtd), 0);
-                }
-                window._etiquetaImprimindo = false;
-                btn.disabled = false;
-            }, 200);
-        }
-
-        // Fechar modal ao clicar fora
-        document.getElementById('modal-etiquetas').addEventListener('click', function(e) {
-            if (e.target === this) fecharModalEtiquetas();
-        });
-        // Fechar modal com ESC
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') fecharModalEtiquetas();
-        });
         
         document.getElementById('form-entrada').reset();
         loadEstoque();
