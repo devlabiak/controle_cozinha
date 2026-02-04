@@ -1522,6 +1522,33 @@
         <div id="notification" class="notification" style="display:none;"></div>
     </div>
 
+    <style>
+    .notification {
+        position: fixed;
+        right: 30px;
+        bottom: 30px;
+        min-width: 300px;
+        max-width: 400px;
+        background: #fff;
+        color: #2d3748;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        padding: 18px 24px;
+        font-size: 16px;
+        z-index: 9999;
+        border-left: 6px solid #667eea;
+        display: none;
+        animation: fadeInNotif 0.3s;
+    }
+    .notification.success { border-left-color: #48bb78; }
+    .notification.error { border-left-color: #f56565; }
+    .notification.warning { border-left-color: #f6ad55; }
+    @keyframes fadeInNotif {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    </style>
+
     <!-- Modal Editar Usuário -->
     <div id="modal-usuario" class="modal">
         <div class="modal-content">

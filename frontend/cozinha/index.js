@@ -1046,10 +1046,14 @@ async function confirmarExclusaoProduto() {
 // ==================== UTILITÁRIOS ====================
 function showNotification(message, type = 'success', duration = 3000) {
     const notif = document.getElementById('notification');
-    notif.innerHTML = message; // Mudado para innerHTML para suportar HTML
+    notif.innerHTML = message; // Suporta HTML
     notif.className = `notification ${type}`;
     notif.style.display = 'block';
-    
+    notif.style.right = '30px';
+    notif.style.bottom = '30px';
+    notif.style.position = 'fixed';
+    notif.style.zIndex = '9999';
+    notif.style.animation = 'fadeInNotif 0.3s';
     if (duration > 0) {
         setTimeout(() => {
             notif.style.display = 'none';
