@@ -743,9 +743,9 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
             fecharModalEtiquetas();
             setTimeout(() => {
                 if (window._movimentacoesPacotes && Array.isArray(window._movimentacoesPacotes)) {
-                    // Imprime uma etiqueta para cada movimentação/lote (cada uma com QR Code único)
+                    // Imprime uma etiqueta para cada movimentação/lote (cada uma com QR Code único e quantidade correta)
                     window._movimentacoesPacotes.forEach((mov, i) => {
-                        setTimeout(() => imprimirEtiqueta(mov.movimentacao_id), i * 300);
+                        setTimeout(() => imprimirEtiqueta(mov.movimentacao_id, unidadesPorEmb), i * 300);
                     });
                     window._movimentacoesPacotes = null;
                 } else if (formato === 'embalagens' && unidadesPorEmb > 0) {
