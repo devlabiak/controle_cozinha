@@ -665,12 +665,23 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
     const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
     
     let quantidade;
+    let body = {
+        alimento_id: alimentoId,
+        tipo: 'entrada',
+        observacao: observacao || null,
+        data_producao: dataProducao || null,
+        data_validade: dataValidade || null
+    };
     if (formato === 'embalagens' && unidadesPorEmb > 0) {
-        quantidade = parseInt(inputQtd) * unidadesPorEmb; // Usa parseInt para embalagens
+        quantidade = parseInt(inputQtd) * unidadesPorEmb;
+        body.quantidade = quantidade;
+        body.modo_embalagem = 'embalagens';
+        body.qtd_pacotes = parseInt(inputQtd);
+        body.unidades_por_embalagem = unidadesPorEmb;
     } else {
-        quantidade = parseFloat(inputQtd); // Usa parseFloat para unidades avulsas
+        quantidade = parseFloat(inputQtd);
+        body.quantidade = quantidade;
     }
-    
     try {
         const response = await fetch(`/api/tenant/${tenantId}/movimentacoes`, {
             method: 'POST',
@@ -678,14 +689,7 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + token
             },
-            body: JSON.stringify({
-                alimento_id: alimentoId,
-                tipo: 'entrada',
-                quantidade: quantidade,
-                observacao: observacao || null,
-                data_producao: dataProducao || null,
-                data_validade: dataValidade || null
-            })
+            body: JSON.stringify(body)
         });
         
         if (!response.ok) {
@@ -695,14 +699,18 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         
         const result = await response.json();
         showNotification('Entrada registrada com sucesso!', 'success');
-        
-        // Se gerou QR code, mostra botão para imprimir etiqueta
-        if (result.qr_code_gerado && result.movimentacao_id) {
-            // Exibe modal para selecionar quantidade de etiquetas
+        // Se for entrada por embalagem e retornou pacotes, salva os IDs para impressão
+        if (result.pacotes && Array.isArray(result.pacotes) && result.pacotes.length > 0) {
+            window._movimentacoesPacotes = result.pacotes;
+            document.getElementById('qtd-etiquetas').value = result.pacotes.length;
+            document.getElementById('modal-etiquetas').style.display = 'block';
+            const btn = document.getElementById('btn-confirmar-etiquetas');
+            btn.onclick = null;
+            btn.onclick = confirmarImpressaoEtiquetas;
+        } else if (result.qr_code_gerado && result.movimentacao_id) {
             window._movimentacaoIdEtiqueta = result.movimentacao_id;
             document.getElementById('qtd-etiquetas').value = 1;
             document.getElementById('modal-etiquetas').style.display = 'block';
-            // Remove e adiciona o event listener para evitar múltiplos envios
             const btn = document.getElementById('btn-confirmar-etiquetas');
             btn.onclick = null;
             btn.onclick = confirmarImpressaoEtiquetas;
@@ -727,14 +735,32 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
             btn.disabled = true;
             const qtd = parseInt(document.getElementById('qtd-etiquetas').value) || 1;
             const movimentacaoId = window._movimentacaoIdEtiqueta;
+            // Detecta se foi entrada por embalagem ou avulso
+            const select = document.getElementById('entrada-produto');
+            const option = select.options[select.selectedIndex];
+            const unidadesPorEmb = parseInt(option.dataset.unidadesemb || 0);
+            const formato = document.querySelector('input[name="entrada-formato"]:checked')?.value;
             fecharModalEtiquetas();
             setTimeout(() => {
-                for (let i = 0; i < qtd; i++) {
-                    setTimeout(() => imprimirEtiqueta(movimentacaoId), i * 300);
+                if (window._movimentacoesPacotes && Array.isArray(window._movimentacoesPacotes)) {
+                    // Imprime uma etiqueta para cada movimentação/lote (cada uma com QR Code único)
+                    window._movimentacoesPacotes.forEach((mov, i) => {
+                        setTimeout(() => imprimirEtiqueta(mov.movimentacao_id), i * 300);
+                    });
+                    window._movimentacoesPacotes = null;
+                } else if (formato === 'embalagens' && unidadesPorEmb > 0) {
+                    // fallback legacy: Imprime N etiquetas, cada uma com unidadesPorEmb
+                    for (let i = 0; i < qtd; i++) {
+                        setTimeout(() => imprimirEtiqueta(movimentacaoId, unidadesPorEmb), i * 300);
+                    }
+                } else {
+                    // Imprime 1 etiqueta com a quantidade total
+                    const inputQtd = document.getElementById('entrada-quantidade').value;
+                    setTimeout(() => imprimirEtiqueta(movimentacaoId, inputQtd), 0);
                 }
                 window._etiquetaImprimindo = false;
                 btn.disabled = false;
-            }, 200); // Pequeno delay para garantir fechamento visual
+            }, 200);
         }
 
         // Fechar modal ao clicar fora
@@ -754,10 +780,15 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
     }
 });
 
-function imprimirEtiqueta(movimentacaoId) {
+// Agora aceita quantidade customizada para a etiqueta
+function imprimirEtiqueta(movimentacaoId, quantidadeCustom) {
     showNotification('Gerando etiqueta...', 'success');
-    
-    fetch(`/api/tenant/${tenantId}/movimentacoes/${movimentacaoId}/etiqueta`, {
+    // Passa a quantidade customizada como query param (frontend only, backend precisa aceitar se for customizar)
+    let url = `/api/tenant/${tenantId}/movimentacoes/${movimentacaoId}/etiqueta`;
+    if (quantidadeCustom) {
+        url += `?qtd=${quantidadeCustom}`;
+    }
+    fetch(url, {
         method: 'GET',
         headers: {
             'Authorization': 'Bearer ' + token

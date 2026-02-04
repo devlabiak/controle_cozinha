@@ -327,9 +327,65 @@ def criar_movimentacao(
             detail="Produto não encontrado"
         )
     
+    # Detecta se é entrada por embalagem (frontend deve enviar campos extras: modo_embalagem, qtd_pacotes, unidades_por_embalagem)
+    modo_embalagem = getattr(dados, 'modo_embalagem', None)
+    qtd_pacotes = getattr(dados, 'qtd_pacotes', None)
+    unidades_por_embalagem = getattr(dados, 'unidades_por_embalagem', None)
+    results = []
+    if dados.tipo == 'entrada' and modo_embalagem == 'embalagens' and qtd_pacotes and unidades_por_embalagem:
+        # Cria uma movimentação/lote para cada pacote
+        quantidade_total = int(qtd_pacotes) * int(unidades_por_embalagem)
+        quantidade_anterior = alimento.quantidade_estoque or 0
+        for i in range(int(qtd_pacotes)):
+            qr_code_gerado = str(uuid.uuid4())
+            data_producao = None
+            data_validade = None
+            if dados.data_producao:
+                try:
+                    date_str = dados.data_producao.split('T')[0]
+                    data_producao = dt.strptime(date_str, '%Y-%m-%d').date()
+                except:
+                    data_producao = dt.now().date()
+            else:
+                data_producao = dt.now().date()
+            if dados.data_validade:
+                try:
+                    date_str = dados.data_validade.split('T')[0]
+                    data_validade = dt.strptime(date_str, '%Y-%m-%d').date()
+                except:
+                    pass
+            quantidade_nova = quantidade_anterior + int(unidades_por_embalagem)
+            movimentacao = MovimentacaoEstoque(
+                tenant_id=tenant_id,
+                alimento_id=dados.alimento_id,
+                usuario_id=current_user.id,
+                tipo=dados.tipo,
+                quantidade=int(unidades_por_embalagem),
+                quantidade_anterior=quantidade_anterior,
+                quantidade_nova=quantidade_nova,
+                motivo=dados.observacao,
+                qr_code_gerado=qr_code_gerado,
+                data_producao=data_producao,
+                data_validade=data_validade,
+                etiqueta_impressa=False,
+                usado=False
+            )
+            alimento.quantidade_estoque = quantidade_nova
+            quantidade_anterior = quantidade_nova
+            db.add(movimentacao)
+            db.commit()
+            db.refresh(movimentacao)
+            results.append({
+                "movimentacao_id": movimentacao.id,
+                "qr_code_gerado": qr_code_gerado
+            })
+        return {
+            "message": "Movimentações registradas com sucesso",
+            "pacotes": results
+        }
+    # Caso normal (avulso ou sem modo_embalagem)
     # Calcula nova quantidade
     quantidade_anterior = alimento.quantidade_estoque or 0
-    
     if dados.tipo == 'entrada':
         quantidade_nova = quantidade_anterior + dados.quantidade
         tipo_enum = TipoMovimentacao.ENTRADA
@@ -349,35 +405,25 @@ def criar_movimentacao(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Tipo de movimentação inválido"
         )
-    
-    # Gera QR code único se for entrada
     qr_code_gerado = None
     data_producao = None
     data_validade = None
-    
     if dados.tipo == 'entrada':
         qr_code_gerado = str(uuid.uuid4())
-        
-        # Parse datas se fornecidas (apenas a parte da data, ignorando timezone)
         if dados.data_producao:
             try:
-                # Extrai apenas YYYY-MM-DD e converte para date
                 date_str = dados.data_producao.split('T')[0]
                 data_producao = dt.strptime(date_str, '%Y-%m-%d').date()
             except:
                 data_producao = dt.now().date()
         else:
             data_producao = dt.now().date()
-            
         if dados.data_validade:
             try:
-                # Extrai apenas YYYY-MM-DD e converte para date
                 date_str = dados.data_validade.split('T')[0]
                 data_validade = dt.strptime(date_str, '%Y-%m-%d').date()
             except:
                 pass
-    
-    # Cria a movimentação
     movimentacao = MovimentacaoEstoque(
         tenant_id=tenant_id,
         alimento_id=dados.alimento_id,
@@ -393,14 +439,10 @@ def criar_movimentacao(
         etiqueta_impressa=False,
         usado=False
     )
-    
-    # Atualiza o estoque do alimento
     alimento.quantidade_estoque = quantidade_nova
-    
     db.add(movimentacao)
     db.commit()
     db.refresh(movimentacao)
-    
     return {
         "message": "Movimentação registrada com sucesso",
         "movimentacao_id": movimentacao.id,
@@ -552,6 +594,7 @@ def historico_movimentacoes(
 def gerar_etiqueta_pdf(
     tenant_id: int,
     movimentacao_id: int,
+    qtd: int = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -607,7 +650,13 @@ def gerar_etiqueta_pdf(
     
     # Quantidade
     c.setFont("Helvetica", 9)
-    c.drawString(35*mm, 46*mm, f"Qtd: {movimentacao.quantidade} {alimento.unidade_medida or 'un'}")
+    quantidade_etiqueta = movimentacao.quantidade
+    if qtd is not None:
+        try:
+            quantidade_etiqueta = int(qtd)
+        except Exception:
+            pass
+    c.drawString(35*mm, 46*mm, f"Qtd: {quantidade_etiqueta} {alimento.unidade_medida or 'un'}")
     
     # Data de produção
     if movimentacao.data_producao:
