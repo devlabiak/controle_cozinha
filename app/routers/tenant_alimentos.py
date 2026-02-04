@@ -1516,27 +1516,17 @@ async def limpar_registros_orfaos(
         ).all()
         ids_validos = [p.id for p in produtos_validos]
         
-        # Se não houver produtos válidos, deleta tudo
-        if not ids_validos:
-            movimentacoes_orfas = db.query(MovimentacaoEstoque).filter(
-                MovimentacaoEstoque.tenant_id == tenant_id
-            ).delete(synchronize_session=False)
-            
-            lotes_orfaos = db.query(ProdutoLote).filter(
-                ProdutoLote.tenant_id == tenant_id
-            ).delete(synchronize_session=False)
-        else:
-            # Deleta movimentações órfãs (que não pertencem a produtos válidos)
-            movimentacoes_orfas = db.query(MovimentacaoEstoque).filter(
-                MovimentacaoEstoque.tenant_id == tenant_id,
-                MovimentacaoEstoque.alimento_id.notin_(ids_validos)
-            ).delete(synchronize_session=False)
-            
-            # Deleta lotes órfãos
-            lotes_orfaos = db.query(ProdutoLote).filter(
-                ProdutoLote.tenant_id == tenant_id,
-                ProdutoLote.alimento_id.notin_(ids_validos)
-            ).delete(synchronize_session=False)
+        # Deleta movimentações órfãs
+        movimentacoes_orfas = db.query(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.tenant_id == tenant_id,
+            ~MovimentacaoEstoque.alimento_id.in_(ids_validos)
+        ).delete(synchronize_session=False)
+        
+        # Deleta lotes órfãos
+        lotes_orfaos = db.query(ProdutoLote).filter(
+            ProdutoLote.tenant_id == tenant_id,
+            ~ProdutoLote.alimento_id.in_(ids_validos)
+        ).delete(synchronize_session=False)
         
         db.commit()
         
