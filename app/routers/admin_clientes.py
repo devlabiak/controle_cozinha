@@ -238,14 +238,15 @@ def criar_restaurante(
             detail="Slug (URL) já cadastrado"
         )
 
-    # Validar email
-    restaurante.email = restaurante.email.strip().lower()
-    email_existente = db.query(Tenant).filter(Tenant.email == restaurante.email).first()
-    if email_existente:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email já cadastrado"
-        )
+    # Validar email (aceita None)
+    if restaurante.email:
+        restaurante.email = restaurante.email.strip().lower()
+        email_existente = db.query(Tenant).filter(Tenant.email == restaurante.email).first()
+        if email_existente:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email já cadastrado"
+            )
     
     novo_restaurante = Tenant(**restaurante.dict())
     db.add(novo_restaurante)
