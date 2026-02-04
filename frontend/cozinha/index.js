@@ -593,6 +593,7 @@ document.getElementById('form-produto')?.addEventListener('submit', async (e) =>
         document.getElementById('form-produto').reset();
         loadEstoque();
         loadProdutosSelects();
+        // Força atualização da página para garantir que data de produção/embalagem e demais dados sejam atualizados
     } catch (err) {
         showNotification(err.message, 'error');
     }
