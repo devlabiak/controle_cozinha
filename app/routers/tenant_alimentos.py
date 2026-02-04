@@ -56,6 +56,10 @@ class MovimentacaoCreate(BaseModel):
     observacao: Optional[str] = None
     data_producao: Optional[str] = None  # Data de produção (ISO format)
     data_validade: Optional[str] = None  # Data de validade (ISO format)
+    # Campos para entrada por embalagem/pacote
+    modo_embalagem: Optional[str] = None  # 'embalagens' ou None
+    qtd_pacotes: Optional[int] = None  # Quantidade de pacotes
+    unidades_por_embalagem: Optional[int] = None  # Unidades por pacote
 
 
 class MovimentacaoResponse(BaseModel):
@@ -327,16 +331,14 @@ def criar_movimentacao(
             detail="Produto não encontrado"
         )
     
-    # Detecta se é entrada por embalagem (frontend deve enviar campos extras: modo_embalagem, qtd_pacotes, unidades_por_embalagem)
-    modo_embalagem = getattr(dados, 'modo_embalagem', None)
-    qtd_pacotes = getattr(dados, 'qtd_pacotes', None)
-    unidades_por_embalagem = getattr(dados, 'unidades_por_embalagem', None)
-    results = []
-    if dados.tipo == 'entrada' and modo_embalagem == 'embalagens' and qtd_pacotes and unidades_por_embalagem:
+    # Detecta se é entrada por embalagem
+    if dados.tipo == 'entrada' and dados.modo_embalagem == 'embalagens' and dados.qtd_pacotes and dados.unidades_por_embalagem:
         # Cria uma movimentação/lote para cada pacote
-        quantidade_total = int(qtd_pacotes) * int(unidades_por_embalagem)
+        quantidade_total = dados.qtd_pacotes * dados.unidades_por_embalagem
         quantidade_anterior = alimento.quantidade_estoque or 0
-        for i in range(int(qtd_pacotes)):
+        results = []
+        
+        for i in range(dados.qtd_pacotes):
             qr_code_gerado = str(uuid.uuid4())
             data_producao = None
             data_validade = None
@@ -354,13 +356,14 @@ def criar_movimentacao(
                     data_validade = dt.strptime(date_str, '%Y-%m-%d').date()
                 except:
                     pass
-            quantidade_nova = quantidade_anterior + int(unidades_por_embalagem)
+            
+            quantidade_nova = quantidade_anterior + dados.unidades_por_embalagem
             movimentacao = MovimentacaoEstoque(
                 tenant_id=tenant_id,
                 alimento_id=dados.alimento_id,
                 usuario_id=current_user.id,
                 tipo=dados.tipo,
-                quantidade=int(unidades_por_embalagem),
+                quantidade=dados.unidades_por_embalagem,
                 quantidade_anterior=quantidade_anterior,
                 quantidade_nova=quantidade_nova,
                 motivo=dados.observacao,
@@ -379,10 +382,12 @@ def criar_movimentacao(
                 "movimentacao_id": movimentacao.id,
                 "qr_code_gerado": qr_code_gerado
             })
+        
         return {
             "message": "Movimentações registradas com sucesso",
             "pacotes": results
         }
+    
     # Caso normal (avulso ou sem modo_embalagem)
     # Calcula nova quantidade
     quantidade_anterior = alimento.quantidade_estoque or 0
