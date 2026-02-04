@@ -475,6 +475,23 @@ def criar_movimentacao(
     )
     alimento.quantidade_estoque = quantidade_nova
     db.add(movimentacao)
+    
+    # Se o estoque foi zerado, limpa todos os registros de movimentações e lotes
+    if quantidade_nova == 0:
+        # Deleta movimentações de entrada com QR/lote (mantém histórico de saídas e ajustes)
+        db.query(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.tenant_id == tenant_id,
+            MovimentacaoEstoque.alimento_id == dados.alimento_id,
+            MovimentacaoEstoque.tipo == TipoMovimentacao.ENTRADA,
+            MovimentacaoEstoque.qr_code_gerado != None
+        ).delete(synchronize_session=False)
+        
+        # Deleta lotes relacionados
+        db.query(ProdutoLote).filter(
+            ProdutoLote.tenant_id == tenant_id,
+            ProdutoLote.alimento_id == dados.alimento_id
+        ).delete(synchronize_session=False)
+    
     db.commit()
     db.refresh(movimentacao)
     return {

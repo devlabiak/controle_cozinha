@@ -908,25 +908,39 @@ document.getElementById('form-ajuste')?.addEventListener('submit', async (e) => 
     const quantidade = parseFloat(document.getElementById('ajuste-quantidade').value);
     const observacao = document.getElementById('ajuste-obs').value;
     
-    // Sempre solicita lote e validade para qualquer ajuste
+    // Se quantidade for 0, é zeragem de estoque - não pede lote/validade
     let dataValidade = null;
     let loteNumero = null;
     
-    const dataInput = prompt('📅 Data de validade do lote (formato: DD/MM/AAAA)\nDeixe vazio se não tiver validade:');
-    if (dataInput && dataInput.trim()) {
-        // Converte DD/MM/AAAA para AAAA-MM-DD
-        const partes = dataInput.trim().split('/');
-        if (partes.length === 3) {
-            dataValidade = `${partes[2]}-${partes[1]}-${partes[0]}`;
+    if (quantidade > 0) {
+        // Solicita lote e validade apenas se quantidade > 0
+        const dataInput = prompt('📅 Data de validade do lote (formato: DD/MM/AAAA)\nDeixe vazio se não tiver validade:');
+        if (dataInput && dataInput.trim()) {
+            // Converte DD/MM/AAAA para AAAA-MM-DD
+            const partes = dataInput.trim().split('/');
+            if (partes.length === 3) {
+                dataValidade = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
         }
-    }
-    
-    loteNumero = prompt('🏷️ Número do lote (formato: Letra + 6 dígitos, ex: A123456)\nDeixe vazio para gerar automático:');
-    if (loteNumero) {
-        loteNumero = loteNumero.trim().toUpperCase();
-        // Valida formato
-        if (!/^[A-Z][0-9]{6}$/.test(loteNumero)) {
-            showNotification('❌ Formato de lote inválido! Use: Letra + 6 dígitos (ex: A123456)', 'error');
+        
+        loteNumero = prompt('🏷️ Número do lote (formato: Letra + 6 dígitos, ex: A123456)\nDeixe vazio para gerar automático:');
+        if (loteNumero) {
+            loteNumero = loteNumero.trim().toUpperCase();
+            // Valida formato
+            if (!/^[A-Z][0-9]{6}$/.test(loteNumero)) {
+                showNotification('❌ Formato de lote inválido! Use: Letra + 6 dígitos (ex: A123456)', 'error');
+                return;
+            }
+        }
+    } else if (quantidade === 0) {
+        // Confirmação para zeragem de estoque
+        const confirmZero = confirm(
+            '⚠️ ATENÇÃO: Zerar Estoque\n\n' +
+            'Ao definir quantidade = 0, todos os registros de lotes, QR codes e datas de validade deste produto serão APAGADOS.\n\n' +
+            'O histórico será mantido.\n\n' +
+            'Deseja continuar?'
+        );
+        if (!confirmZero) {
             return;
         }
     }
