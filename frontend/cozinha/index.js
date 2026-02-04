@@ -47,6 +47,27 @@ console.log('TenantId armazenado:', tenantId);
 console.log('TenantName armazenado:', tenantName);
 
 // ==================== INICIALIZAÇÃO ====================
+// ==================== DATA DE PRODUÇÃO AUTOMÁTICA ====================
+function setDataProducaoHoje() {
+    const input = document.getElementById('entrada-data-producao');
+    if (input) {
+        const hoje = new Date();
+        const yyyy = hoje.getFullYear();
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        input.value = `${yyyy}-${mm}-${dd}`;
+    }
+}
+
+// Sempre que abrir a aba de entrada, preenche a data
+const tabEntrada = document.querySelector('[data-tab="entrada"]');
+if (tabEntrada) {
+    tabEntrada.addEventListener('click', setDataProducaoHoje);
+}
+// Também ao carregar a página, se já estiver na aba entrada
+if (document.getElementById('entrada-data-producao')) {
+    setDataProducaoHoje();
+}
 if (tenantId) {
     console.log('Já tem tenant selecionado, carregando área principal...');
     checkPermissionsAndShowMain();
