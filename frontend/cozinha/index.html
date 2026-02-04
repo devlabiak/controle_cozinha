@@ -1099,6 +1099,24 @@
                         <i class="fas fa-qrcode"></i> Scanner QR Code - Utilizar Produto
                     </h2>
                     <p style="color:#718096;margin-bottom:20px;">Escaneie o QR code da etiqueta do produto para dar baixa no estoque</p>
+                    
+                    <!-- Campo alternativo para digitar lote manualmente -->
+                    <div style="background:#f7fafc;padding:15px;border-radius:8px;margin-bottom:20px;border:2px dashed #cbd5e0;">
+                        <label style="display:block;margin-bottom:8px;font-weight:600;color:#4a5568;">
+                            <i class="fas fa-keyboard"></i> Ou digite o número do lote (alternativa ao QR):
+                        </label>
+                        <div style="display:flex;gap:10px;">
+                            <input type="text" id="input-lote-manual" placeholder="Ex: A123456" 
+                                   style="flex:1;text-transform:uppercase;font-weight:600;letter-spacing:1px;"
+                                   maxlength="7">
+                            <button class="btn-primary" onclick="buscarPorLote()">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                        </div>
+                        <small style="color:#718096;display:block;margin-top:5px;">
+                            Formato: 1 letra + 6 números (ex: A123456)
+                        </small>
+                    </div>
                 </div>
                 
                 <!-- Scanner -->
@@ -1107,6 +1125,12 @@
                     <div id="scanner-status-utilizar" class="scanner-status ready">
                         📷 Aponte a câmera para o QR Code
                     </div>
+                </div>
+                
+                <div class="card">
+                    <p style="color:#718096;margin-bottom:0;font-size:13px;text-align:center;">
+                        <i class="fas fa-info-circle"></i> Use o scanner ou digite o lote manualmente
+                    </p>
                 </div>
                 
                 <!-- Product Info -->

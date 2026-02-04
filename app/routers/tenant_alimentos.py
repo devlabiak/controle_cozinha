@@ -340,6 +340,12 @@ def criar_movimentacao(
         
         for i in range(dados.qtd_pacotes):
             qr_code_gerado = str(uuid.uuid4())
+            # Gera lote_numero: letra + 6 dígitos (ex: A123456)
+            import random
+            import string
+            letra = random.choice(string.ascii_uppercase)
+            numeros = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+            lote_numero = f"{letra}{numeros}"
             data_producao = None
             data_validade = None
             if dados.data_producao:
@@ -368,6 +374,7 @@ def criar_movimentacao(
                 quantidade_nova=quantidade_nova,
                 motivo=dados.observacao,
                 qr_code_gerado=qr_code_gerado,
+                qr_code_usado=lote_numero,
                 data_producao=data_producao,
                 data_validade=data_validade,
                 etiqueta_impressa=False,
@@ -380,7 +387,8 @@ def criar_movimentacao(
             db.refresh(movimentacao)
             results.append({
                 "movimentacao_id": movimentacao.id,
-                "qr_code_gerado": qr_code_gerado
+                "qr_code_gerado": qr_code_gerado,
+                "lote_numero": lote_numero
             })
         
         return {
@@ -653,6 +661,11 @@ def gerar_etiqueta_pdf(
     c.setFont("Helvetica-Bold", 11)
     c.drawString(35*mm, 52*mm, alimento.nome[:25])
     
+    # Lote manual (letra + 6 dígitos) - logo abaixo do nome
+    c.setFont("Helvetica-Bold", 10)
+    lote_numero = movimentacao.qr_code_usado or "N/A"
+    c.drawString(35*mm, 47*mm, f"Lote: {lote_numero}")
+    
     # Quantidade
     c.setFont("Helvetica", 9)
     quantidade_etiqueta = movimentacao.quantidade
@@ -661,21 +674,21 @@ def gerar_etiqueta_pdf(
             quantidade_etiqueta = int(qtd)
         except Exception:
             pass
-    c.drawString(35*mm, 46*mm, f"Qtd: {quantidade_etiqueta} {alimento.unidade_medida or 'un'}")
+    c.drawString(35*mm, 41*mm, f"Qtd: {quantidade_etiqueta} {alimento.unidade_medida or 'un'}")
     
     # Data de produção
     if movimentacao.data_producao:
-        c.drawString(35*mm, 40*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
+        c.drawString(35*mm, 35*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
     
     # Data de validade (destaque com *** mas ainda preto)
     if movimentacao.data_validade:
         c.setFont("Helvetica-Bold", 9)
-        c.drawString(35*mm, 34*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
+        c.drawString(35*mm, 29*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
     
     # Rodapé - categoria se houver
     c.setFont("Helvetica", 7)
     if alimento.categoria:
-        c.drawString(35*mm, 28*mm, f"Cat: {alimento.categoria}")
+        c.drawString(35*mm, 23*mm, f"Cat: {alimento.categoria}")
     
     # UUID simplificado no rodapé (para debug)
     c.setFont("Courier", 5)
@@ -967,6 +980,203 @@ def usar_qrcode(
     }
     
     return resultado
+
+
+# ==================== LOTE MANUAL (ALTERNATIVA AO QR CODE) ====================
+@router.post("/{tenant_id}/lote/validar")
+def validar_lote(
+    tenant_id: int,
+    lote_numero: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Valida lote manual e retorna informações do produto (alternativa ao QR code)"""
+    # Verifica acesso ao tenant
+    user_tenants = [t.id for t in current_user.tenants]
+    if tenant_id not in user_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
+    
+    # Busca movimentação pelo lote_numero (armazenado em qr_code_usado)
+    movimentacao = db.query(MovimentacaoEstoque).join(Alimento).filter(
+        MovimentacaoEstoque.qr_code_usado == lote_numero.upper(),
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == 'entrada'
+    ).first()
+    
+    if not movimentacao:
+        return {
+            "valido": False,
+            "mensagem": "Lote não encontrado ou inválido"
+        }
+    
+    alimento = movimentacao.alimento
+    
+    # Calcula quantidade já usada deste lote
+    total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
+        MovimentacaoEstoque.qr_code_usado == lote_numero.upper(),
+        MovimentacaoEstoque.tipo == 'saida',
+        MovimentacaoEstoque.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    # Quantidade disponível neste lote
+    quantidade_disponivel = movimentacao.quantidade - total_usado
+    
+    if quantidade_disponivel <= 0:
+        return {
+            "valido": False,
+            "mensagem": "Este lote já foi completamente utilizado"
+        }
+    
+    # Determina status de validade
+    from datetime import date
+    status_validade = "valido"
+    if movimentacao.data_validade:
+        dias_restantes = (movimentacao.data_validade - date.today()).days
+        if dias_restantes < 0:
+            status_validade = "vencido"
+        elif dias_restantes <= 3:
+            status_validade = "vencendo"
+    
+    data_prod_str = movimentacao.data_producao.strftime('%Y-%m-%d') if movimentacao.data_producao else None
+    data_val_str = movimentacao.data_validade.strftime('%Y-%m-%d') if movimentacao.data_validade else None
+    
+    return {
+        "valido": True,
+        "movimentacao_id": movimentacao.id,
+        "lote_numero": lote_numero.upper(),
+        "alimento_nome": alimento.nome,
+        "quantidade": quantidade_disponivel,
+        "quantidade_original": movimentacao.quantidade,
+        "quantidade_usada": total_usado,
+        "unidade_medida": alimento.unidade_medida or "un",
+        "data_producao": data_prod_str,
+        "data_validade": data_val_str,
+        "status_validade": status_validade,
+        "categoria": alimento.categoria
+    }
+
+
+@router.post("/{tenant_id}/lote/usar")
+@limiter.limit("200/minute")
+def usar_lote(
+    tenant_id: int,
+    lote_numero: str,
+    quantidade_usada: float = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    request: Request = None
+):
+    """Dá baixa no estoque usando lote manual (alternativa ao QR code)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Verifica acesso ao tenant
+    user_tenants = [t.id for t in current_user.tenants]
+    if tenant_id not in user_tenants:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado"
+        )
+    
+    # Busca a movimentação de entrada original
+    movimentacao_entrada = db.query(MovimentacaoEstoque).join(Alimento).filter(
+        MovimentacaoEstoque.qr_code_usado == lote_numero.upper(),
+        MovimentacaoEstoque.tenant_id == tenant_id,
+        MovimentacaoEstoque.tipo == 'entrada'
+    ).first()
+    
+    if not movimentacao_entrada:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Lote não encontrado"
+        )
+    
+    # Calcula quantidade já usada deste lote
+    total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
+        MovimentacaoEstoque.qr_code_usado == lote_numero.upper(),
+        MovimentacaoEstoque.tipo == 'saida',
+        MovimentacaoEstoque.tenant_id == tenant_id
+    ).scalar() or 0
+    
+    # Quantidade disponível neste lote específico
+    quantidade_disponivel_lote = movimentacao_entrada.quantidade - total_usado
+    
+    if quantidade_disponivel_lote <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este lote já foi completamente utilizado"
+        )
+    
+    alimento = movimentacao_entrada.alimento
+    
+    # Quantidade a dar baixa (se não especificada, usa a quantidade disponível do lote)
+    qtd_baixa = quantidade_usada if quantidade_usada else quantidade_disponivel_lote
+    
+    # Não pode usar mais do que está disponível no lote
+    if qtd_baixa > quantidade_disponivel_lote:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Quantidade indisponível neste lote. Disponível: {quantidade_disponivel_lote}"
+        )
+    
+    # Não pode usar mais do que tem no estoque total
+    quantidade_anterior = alimento.quantidade_estoque or 0
+    if qtd_baixa > quantidade_anterior:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Estoque insuficiente. Disponível: {quantidade_anterior}"
+        )
+    
+    # Registra saída
+    quantidade_nova = quantidade_anterior - qtd_baixa
+    
+    movimentacao_saida = MovimentacaoEstoque(
+        tenant_id=tenant_id,
+        alimento_id=movimentacao_entrada.alimento_id,
+        usuario_id=current_user.id,
+        tipo='saida',
+        quantidade=qtd_baixa,
+        quantidade_anterior=quantidade_anterior,
+        quantidade_nova=quantidade_nova,
+        motivo=f"Uso via lote manual: {lote_numero.upper()}",
+        qr_code_usado=lote_numero.upper()
+    )
+    
+    # Atualiza estoque
+    alimento.quantidade_estoque = quantidade_nova
+    
+    db.add(movimentacao_saida)
+    db.commit()
+    
+    # Calcula quanto ainda resta disponível neste lote
+    quantidade_restante_lote = quantidade_disponivel_lote - qtd_baixa
+    
+    logger.info(
+        "Baixa por lote manual realizada com sucesso",
+        extra={
+            "lote": lote_numero.upper(),
+            "produto": alimento.nome,
+            "quantidade_baixa": qtd_baixa,
+            "estoque_anterior": quantidade_anterior,
+            "estoque_novo": quantidade_nova,
+            "lote_restante": quantidade_restante_lote
+        }
+    )
+    
+    return {
+        "sucesso": True,
+        "mensagem": "Baixa realizada com sucesso",
+        "lote_numero": lote_numero.upper(),
+        "produto": alimento.nome,
+        "quantidade_baixa": qtd_baixa,
+        "estoque_anterior": quantidade_anterior,
+        "estoque_novo": quantidade_nova,
+        "lote_restante": quantidade_restante_lote,
+        "lote_original": movimentacao_entrada.quantidade
+    }
 
 
 # ==================== ALERTAS DE VALIDADE ====================

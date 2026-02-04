@@ -1300,12 +1300,19 @@ async function confirmUsageUtilizar() {
     }
     
     console.log('🔵 Iniciando confirmação de uso...');
-    console.log('QR Code:', currentQRDataUtilizar);
+    console.log('Dados:', currentQRDataUtilizar);
     console.log('Quantidade:', quantidade);
-    console.log('Tenant ID:', tenantId);
+    console.log('Usando lote manual?', currentLoteUtilizar?.usandoLoteManual);
     
     try {
-        const url = `/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRDataUtilizar)}&quantidade_usada=${quantidade}`;
+        // Se for lote manual, usa endpoint diferente
+        let url;
+        if (currentLoteUtilizar?.usandoLoteManual) {
+            url = `/api/tenant/${tenantId}/lote/usar?lote_numero=${encodeURIComponent(currentQRDataUtilizar)}&quantidade_usada=${quantidade}`;
+        } else {
+            url = `/api/tenant/${tenantId}/qrcode/usar?qr_code=${encodeURIComponent(currentQRDataUtilizar)}&quantidade_usada=${quantidade}`;
+        }
+        
         console.log('🔵 URL:', url);
         
         const response = await fetch(url, {
@@ -1339,7 +1346,8 @@ async function confirmUsageUtilizar() {
         
         if (data.sucesso) {
             const unidadeMedida = currentLoteUtilizar?.unidade_medida || '';
-            showNotification(`✓ Baixa realizada com sucesso!\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${unidadeMedida}`, 'success');
+            const tipoMsg = currentLoteUtilizar?.usandoLoteManual ? `Lote: ${data.lote_numero}` : '';
+            showNotification(`✓ Baixa realizada com sucesso!\n${tipoMsg}\nProduto: ${data.produto}\nQuantidade: ${data.quantidade_baixa} ${unidadeMedida}`, 'success');
             cancelScanUtilizar();
             await loadEstoque();
         } else {
@@ -1355,12 +1363,67 @@ function cancelScanUtilizar() {
     document.getElementById('product-card-utilizar').classList.remove('show');
     currentQRDataUtilizar = null;
     currentLoteUtilizar = null;
+    document.getElementById('input-lote-manual').value = '';
     
     if (html5QrScannerUtilizar) {
         html5QrScannerUtilizar.resume();
     }
     updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
 }
+
+// ==================== BUSCA POR LOTE MANUAL ====================
+async function buscarPorLote() {
+    const loteInput = document.getElementById('input-lote-manual');
+    const loteNumero = loteInput.value.trim().toUpperCase();
+    
+    if (!loteNumero) {
+        showNotification('Digite o número do lote', 'error');
+        return;
+    }
+    
+    // Valida formato: 1 letra + 6 números
+    const regex = /^[A-Z][0-9]{6}$/;
+    if (!regex.test(loteNumero)) {
+        showNotification('Formato inválido! Use 1 letra + 6 números (ex: A123456)', 'error');
+        return;
+    }
+    
+    updateScannerStatusUtilizar('scanning', '🔍 Buscando lote...');
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/lote/validar?lote_numero=${loteNumero}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.valido) {
+            showNotification('✅ Lote encontrado!', 'success');
+            currentQRDataUtilizar = loteNumero; // Armazena como se fosse QR
+            currentLoteUtilizar = data;
+            currentLoteUtilizar.usandoLoteManual = true; // Flag para identificar
+            displayProductInfoUtilizar(data);
+            updateScannerStatusUtilizar('ready', '✅ Lote válido!');
+            
+            // Para o scanner se estiver rodando
+            if (html5QrScannerUtilizar) {
+                html5QrScannerUtilizar.pause();
+            }
+        } else {
+            showNotification(data.mensagem || 'Lote não encontrado', 'error');
+            updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
+        }
+    } catch (err) {
+        showNotification('Erro ao buscar lote: ' + err.message, 'error');
+        updateScannerStatusUtilizar('ready', '📷 Aponte a câmera para o QR Code');
+    }
+}
+
+window.buscarPorLote = buscarPorLote;
 
 // Torna as funções globais acessíveis no HTML
 window.incrementQuantityUtilizar = function() {
