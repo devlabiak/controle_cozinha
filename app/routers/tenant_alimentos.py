@@ -1235,6 +1235,10 @@ async def listar_lotes_vencendo(
     ).order_by(ProdutoLote.data_validade.asc()).all()
     
     for lote in lotes:
+        # Verifica se o produto ainda tem estoque
+        if lote.alimento.quantidade_estoque <= 0:
+            continue
+            
         dias_restantes = (lote.data_validade.date() - datetime.now().date()).days
         resultado.append({
             "id": lote.id,
@@ -1260,6 +1264,10 @@ async def listar_lotes_vencendo(
     ).order_by(MovimentacaoEstoque.data_validade.asc()).all()
     
     for mov in movimentacoes:
+        # Verifica se o produto ainda tem estoque
+        if mov.alimento.quantidade_estoque <= 0:
+            continue
+            
         # Calcula quantidade já usada deste lote
         lote_numero = mov.qr_code_usado
         total_usado = db.query(func.sum(MovimentacaoEstoque.quantidade)).filter(
