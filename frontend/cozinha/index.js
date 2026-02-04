@@ -702,14 +702,18 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         // Se for entrada por embalagem e retornou pacotes, salva os IDs para impressão
         if (result.pacotes && Array.isArray(result.pacotes) && result.pacotes.length > 0) {
             window._movimentacoesPacotes = result.pacotes;
-            document.getElementById('qtd-etiquetas').value = result.pacotes.length;
+            const qtdInput = document.getElementById('qtd-etiquetas');
+            qtdInput.value = result.pacotes.length;
+            qtdInput.readOnly = true;
             document.getElementById('modal-etiquetas').style.display = 'block';
             const btn = document.getElementById('btn-confirmar-etiquetas');
             btn.onclick = null;
             btn.onclick = confirmarImpressaoEtiquetas;
         } else if (result.qr_code_gerado && result.movimentacao_id) {
             window._movimentacaoIdEtiqueta = result.movimentacao_id;
-            document.getElementById('qtd-etiquetas').value = 1;
+            const qtdInput = document.getElementById('qtd-etiquetas');
+            qtdInput.value = 1;
+            qtdInput.readOnly = false;
             document.getElementById('modal-etiquetas').style.display = 'block';
             const btn = document.getElementById('btn-confirmar-etiquetas');
             btn.onclick = null;
