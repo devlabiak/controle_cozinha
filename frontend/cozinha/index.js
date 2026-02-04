@@ -772,7 +772,7 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         document.getElementById('form-entrada').reset();
         
         // Preenche a data de produção novamente com a data atual
-        setDataProducaoDefault();
+        setDataProducaoHoje();
         
         loadEstoque();
         loadProdutosSelects();
