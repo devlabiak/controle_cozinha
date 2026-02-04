@@ -12,7 +12,7 @@ from app.models import MovimentacaoEstoque, Alimento, TipoMovimentacao
 from app.config import settings
 
 # Conecta ao banco
-engine = create_engine(settings.database_url)
+engine = create_engine(settings.DATABASE_URL)
 Session = sessionmaker(bind=engine)
 db = Session()
 
