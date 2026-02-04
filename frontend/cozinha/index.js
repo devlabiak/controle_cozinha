@@ -719,11 +719,8 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
 // Agora aceita quantidade customizada para a etiqueta
 function imprimirEtiqueta(movimentacaoId, quantidadeCustom) {
     showNotification('Gerando etiqueta...', 'success');
-    // Para entradas por embalagem, não passar quantidade customizada
+    // Nunca passar quantidade customizada para etiquetas de pacotes
     let url = `/api/tenant/${tenantId}/movimentacoes/${movimentacaoId}/etiqueta`;
-    if (typeof quantidadeCustom !== 'undefined' && quantidadeCustom !== null) {
-        url += `?qtd=${quantidadeCustom}`;
-    }
     fetch(url, {
         method: 'GET',
         headers: {
