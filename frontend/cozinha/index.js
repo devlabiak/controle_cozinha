@@ -516,13 +516,13 @@ function ajustarStepQuantidade(selectId, inputId) {
     
     if (isUnidade) {
         input.step = '1';
-        input.min = '1';
-        if (input.value && parseFloat(input.value) < 1) {
-            input.value = '1';
+        input.min = '0';
+        if (input.value && parseFloat(input.value) < 0) {
+            input.value = '0';
         }
     } else {
         input.step = '0.01';
-        input.min = '0.01';
+        input.min = '0';
     }
 }
 
