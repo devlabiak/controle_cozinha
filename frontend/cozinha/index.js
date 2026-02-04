@@ -698,18 +698,24 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
         
         // Se gerou QR code, mostra botão para imprimir etiqueta
         if (result.qr_code_gerado && result.movimentacao_id) {
-            const imprimirBtn = document.createElement('button');
-            imprimirBtn.className = 'btn-primary';
-            imprimirBtn.innerHTML = '<i class="fas fa-print"></i> Imprimir Etiqueta';
-            imprimirBtn.style.marginTop = '10px';
-            imprimirBtn.onclick = () => imprimirEtiqueta(result.movimentacao_id);
-            
-            const form = document.getElementById('form-entrada');
-            const existingBtn = form.querySelector('.btn-primary');
-            if (existingBtn) existingBtn.remove();
-            form.appendChild(imprimirBtn);
-            
-            setTimeout(() => imprimirBtn.remove(), 15000); // Remove após 15s
+            // Exibe modal para selecionar quantidade de etiquetas
+            window._movimentacaoIdEtiqueta = result.movimentacao_id;
+            document.getElementById('qtd-etiquetas').value = 1;
+            document.getElementById('modal-etiquetas').style.display = 'block';
+        }
+        // Funções para modal de etiquetas
+        function fecharModalEtiquetas() {
+            document.getElementById('modal-etiquetas').style.display = 'none';
+            window._movimentacaoIdEtiqueta = null;
+        }
+
+        function confirmarImpressaoEtiquetas() {
+            const qtd = parseInt(document.getElementById('qtd-etiquetas').value) || 1;
+            const movimentacaoId = window._movimentacaoIdEtiqueta;
+            fecharModalEtiquetas();
+            for (let i = 0; i < qtd; i++) {
+                imprimirEtiqueta(movimentacaoId);
+            }
         }
         
         document.getElementById('form-entrada').reset();
