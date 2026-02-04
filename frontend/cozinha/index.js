@@ -702,6 +702,10 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
             window._movimentacaoIdEtiqueta = result.movimentacao_id;
             document.getElementById('qtd-etiquetas').value = 1;
             document.getElementById('modal-etiquetas').style.display = 'block';
+            // Remove e adiciona o event listener para evitar múltiplos envios
+            const btn = document.getElementById('btn-confirmar-etiquetas');
+            btn.onclick = null;
+            btn.onclick = confirmarImpressaoEtiquetas;
         }
         // Funções para modal de etiquetas
         function fecharModalEtiquetas() {
@@ -712,6 +716,10 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
             document.getElementById('entrada-quantidade')?.focus();
         }
 
+        // Garante que os botões do modal funcionam corretamente
+        document.getElementById('btn-confirmar-etiquetas').onclick = confirmarImpressaoEtiquetas;
+        // O botão Cancelar já chama fecharModalEtiquetas pelo HTML
+
         function confirmarImpressaoEtiquetas() {
             if (window._etiquetaImprimindo) return; // Evita múltiplos envios
             window._etiquetaImprimindo = true;
@@ -720,17 +728,13 @@ document.getElementById('form-entrada')?.addEventListener('submit', async (e) =>
             const qtd = parseInt(document.getElementById('qtd-etiquetas').value) || 1;
             const movimentacaoId = window._movimentacaoIdEtiqueta;
             fecharModalEtiquetas();
-            let count = 0;
-            function done() {
-                count++;
-                if (count >= qtd) {
-                    window._etiquetaImprimindo = false;
-                    btn.disabled = false;
+            setTimeout(() => {
+                for (let i = 0; i < qtd; i++) {
+                    setTimeout(() => imprimirEtiqueta(movimentacaoId), i * 300);
                 }
-            }
-            for (let i = 0; i < qtd; i++) {
-                setTimeout(() => { imprimirEtiqueta(movimentacaoId); done(); }, i * 300);
-            }
+                window._etiquetaImprimindo = false;
+                btn.disabled = false;
+            }, 200); // Pequeno delay para garantir fechamento visual
         }
 
         // Fechar modal ao clicar fora
