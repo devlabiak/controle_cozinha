@@ -1024,6 +1024,64 @@ async function confirmarExclusaoProduto() {
     }
 }
 
+// 7. LIMPAR TODOS OS PRODUTOS
+async function limparTodosProdutos() {
+    const confirmacao1 = confirm(
+        `⚠️⚠️⚠️ ATENÇÃO MÁXIMA ⚠️⚠️⚠️\n\n` +
+        `Você está prestes a DELETAR PERMANENTEMENTE:\n\n` +
+        `• TODOS os produtos cadastrados\n` +
+        `• TODAS as movimentações de estoque\n` +
+        `• TODOS os lotes e etiquetas\n` +
+        `• TODO O HISTÓRICO do sistema\n\n` +
+        `Esta ação é IRREVERSÍVEL e NÃO pode ser desfeita!\n\n` +
+        `Deseja realmente continuar?`
+    );
+    
+    if (!confirmacao1) {
+        return;
+    }
+    
+    const confirmacao2 = prompt(
+        `Digite "DELETAR TUDO" (sem aspas) para confirmar a exclusão permanente:`
+    );
+    
+    if (confirmacao2 !== "DELETAR TUDO") {
+        showNotification('Operação cancelada', 'success');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/tenant/${tenantId}/limpar-produtos`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': 'Bearer ' + token
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Erro ao limpar produtos');
+        }
+        
+        const resultado = await response.json();
+        
+        showNotification(
+            `✅ Sistema limpo com sucesso!\n\n` +
+            `Deletados:\n` +
+            `• ${resultado.deletados.produtos} produtos\n` +
+            `• ${resultado.deletados.movimentacoes} movimentações\n` +
+            `• ${resultado.deletados.lotes} lotes`,
+            'success',
+            5000
+        );
+        
+        loadEstoque();
+        loadProdutosSelects();
+    } catch (err) {
+        showNotification(err.message, 'error');
+    }
+}
+
 // ==================== UTILITÁRIOS ====================
 function showNotification(message, type = 'success', duration = 3000) {
     const notif = document.getElementById('notification');

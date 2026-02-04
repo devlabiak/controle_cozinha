@@ -1419,3 +1419,77 @@ async def debug_alertas_vencimento(
         "apareceriam_no_alerta": len([d for d in diagnostico if d["apareceria_no_alerta"]]),
         "detalhes": diagnostico
     }
+
+
+@router.delete("/{tenant_id}/limpar-produtos")
+async def limpar_todos_produtos(
+    tenant_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Deleta TODOS os produtos, lotes e movimentações do tenant
+    CUIDADO: Esta operação é IRREVERSÍVEL!
+    Requer permissão de administrador
+    """
+    # Verifica se usuário é admin do restaurante
+    verificar_admin_restaurante(tenant_id, current_user, db)
+    
+    try:
+        # Conta antes de deletar
+        movimentacoes_count = db.query(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.tenant_id == tenant_id
+        ).count()
+        
+        lotes_count = db.query(ProdutoLote).filter(
+            ProdutoLote.tenant_id == tenant_id
+        ).count()
+        
+        alimentos_count = db.query(Alimento).filter(
+            Alimento.tenant_id == tenant_id
+        ).count()
+        
+        # Deleta movimentações
+        db.query(MovimentacaoEstoque).filter(
+            MovimentacaoEstoque.tenant_id == tenant_id
+        ).delete(synchronize_session=False)
+        
+        # Deleta lotes
+        db.query(ProdutoLote).filter(
+            ProdutoLote.tenant_id == tenant_id
+        ).delete(synchronize_session=False)
+        
+        # Deleta alimentos
+        db.query(Alimento).filter(
+            Alimento.tenant_id == tenant_id
+        ).delete(synchronize_session=False)
+        
+        db.commit()
+        
+        # Registra auditoria
+        await registrar_auditoria(
+            db=db,
+            usuario_id=current_user.id,
+            tenant_id=tenant_id,
+            acao="LIMPEZA_TOTAL_PRODUTOS",
+            detalhes=f"Deletados: {movimentacoes_count} movimentações, {lotes_count} lotes, {alimentos_count} produtos",
+            ip=request.client.host if request.client else "desconhecido"
+        )
+        
+        return {
+            "sucesso": True,
+            "mensagem": "Sistema limpo com sucesso!",
+            "deletados": {
+                "movimentacoes": movimentacoes_count,
+                "lotes": lotes_count,
+                "produtos": alimentos_count
+            }
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao limpar produtos: {str(e)}"
+        )
