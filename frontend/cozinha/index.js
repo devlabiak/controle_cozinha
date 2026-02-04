@@ -1045,18 +1045,22 @@ async function confirmarExclusaoProduto() {
 
 // ==================== UTILITÁRIOS ====================
 function showNotification(message, type = 'success', duration = 3000) {
-    const notif = document.getElementById('notification');
-    notif.innerHTML = message; // Suporta HTML
+    const container = document.getElementById('notification-container');
+    if (!container) return;
+    const notif = document.createElement('div');
     notif.className = `notification ${type}`;
+    notif.innerHTML = message;
     notif.style.display = 'block';
-    notif.style.right = '30px';
-    notif.style.bottom = '30px';
-    notif.style.position = 'fixed';
-    notif.style.zIndex = '9999';
+    notif.style.marginTop = '0';
     notif.style.animation = 'fadeInNotif 0.3s';
+    container.appendChild(notif);
     if (duration > 0) {
         setTimeout(() => {
-            notif.style.display = 'none';
+            notif.style.animation = '';
+            notif.style.opacity = '0';
+            setTimeout(() => {
+                if (notif.parentNode) notif.parentNode.removeChild(notif);
+            }, 400);
         }, duration);
     }
 }
