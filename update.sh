@@ -8,9 +8,8 @@
 set -e  # Parar se algum comando falhar
 
 APP_DIR="/var/www/controle_cozinha"
-SERVICE_NAME="controle_cozinha"
 
-echo "🚀 Iniciando atualização da aplicação Controle Cozinha..."
+echo "🚀 Iniciando atualização da aplicação Controle Cozinha (Docker)..."
 echo "📁 Diretório: $APP_DIR"
 echo "📅 Data: $(date)"
 echo ""
@@ -31,63 +30,56 @@ if [ -f ".env" ]; then
     echo "✅ Backup de .env criado"
 fi
 
-# 4. Parar a aplicação
-echo "⏹️  Parando serviço $SERVICE_NAME..."
-sudo systemctl stop $SERVICE_NAME
-echo "✅ Serviço parado"
-
-# 5. Fazer pull do repositório
+# 4. Fazer pull do repositório
 echo "📥 Fazendo pull do repositório..."
 git pull origin main
 echo "✅ Pull concluído"
 
-# 6. Ativar virtual environment
-if [ ! -d "venv" ]; then
-    echo "📦 Criando virtual environment..."
-    python3 -m venv venv
-fi
-
-source venv/bin/activate
-echo "✅ Virtual environment ativado"
-
-# 7. Instalar/atualizar dependências
-echo "📚 Instalando dependências..."
-pip install -r requirements.txt --upgrade
-echo "✅ Dependências instaladas"
-
-# 8. Executar migrações
-echo "🗄️  Executando migrações do banco de dados..."
-alembic upgrade head
-echo "✅ Migrações concluídas"
-
-# 9. Limpar cache Python
-echo "🧹 Limpando cache Python..."
-find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
-echo "✅ Cache limpo"
-
-# 10. Reiniciar aplicação
-echo "🔄 Reiniciando serviço $SERVICE_NAME..."
-sudo systemctl start $SERVICE_NAME
-sleep 2
-
-# 11. Verificar status do serviço
-if sudo systemctl is-active --quiet $SERVICE_NAME; then
-    echo "✅ Serviço iniciado com sucesso"
-else
-    echo "❌ Erro ao iniciar serviço"
-    echo "   Verifique com: sudo systemctl status $SERVICE_NAME"
+# 5. Verificar se docker-compose.yml existe
+if [ ! -f "docker-compose.yml" ]; then
+    echo "❌ Erro: docker-compose.yml não encontrado"
     exit 1
 fi
 
-# 12. Health check
-echo "🏥 Realizando health check..."
-sleep 2
+# 6. Parar containers antigos
+echo "⏹️  Parando containers antigos..."
+docker-compose down
+echo "✅ Containers parados"
 
-if curl -s https://app.wlsolucoes.eti.br/docs > /dev/null; then
+# 7. Rebuild da imagem
+echo "🔨 Fazendo rebuild da imagem Docker..."
+docker-compose build
+echo "✅ Image buildada"
+
+# 8. Iniciar containers
+echo "🚀 Iniciando containers..."
+docker-compose up -d
+echo "✅ Containers iniciados"
+
+# 9. Executar migrações
+echo "🗄️  Executando migrações do banco de dados..."
+docker-compose exec -T app alembic upgrade head
+echo "✅ Migrações concluídas"
+
+# 10. Health check
+echo "🏥 Realizando health check..."
+sleep 3
+
+if docker-compose ps app | grep -q "Up"; then
+    echo "✅ Container app está rodando"
+else
+    echo "❌ Erro: Container app não está respondendo"
+    echo "   Verifique com: docker-compose logs app"
+    exit 1
+fi
+
+# 11. Verificar aplicação
+echo "🔗 Testando conexão com aplicação..."
+if docker-compose exec -T app curl -s http://localhost:8000/docs > /dev/null 2>&1; then
     echo "✅ Aplicação respondendo corretamente"
 else
-    echo "⚠️  Aviso: Não foi possível conectar à aplicação"
-    echo "   Verifique com: curl -s https://app.wlsolucoes.eti.br/docs"
+    echo "⚠️  Aviso: Não foi possível conectar à aplicação via curl interno"
+    echo "   Verifique com: docker-compose logs app"
 fi
 
 echo ""
@@ -95,10 +87,12 @@ echo "🎉 ======================== ATUALIZAÇÃO CONCLUÍDA ===================
 echo "✅ Data: $(date)"
 echo "✅ Versão: $(git log -1 --pretty=%h)"
 echo "✅ Mensagem: $(git log -1 --pretty=%B | head -1)"
-echo "✅ Serviço $SERVICE_NAME está rodando"
+echo "✅ Containers rodando:"
+echo ""
+docker-compose ps
 echo ""
 echo "📊 Próximos passos:"
-echo "   1. Verificar logs: sudo journalctl -u $SERVICE_NAME -f"
+echo "   1. Verificar logs: docker-compose logs -f app"
 echo "   2. Testar em: https://app.wlsolucoes.eti.br"
-echo "   3. Em caso de erro, reverter com: git reset --hard HEAD~1"
+echo "   3. Em caso de erro, reverter com: git reset --hard HEAD~1 && docker-compose down && docker-compose up -d"
 echo "=========================================================================="
