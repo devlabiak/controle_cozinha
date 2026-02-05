@@ -62,12 +62,49 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept"],
     max_age=3600,
 )
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """Adiciona headers de segurança às respostas"""
+    response = await call_next(request)
+    
+    # Previne clickjacking
+    response.headers["X-Frame-Options"] = "DENY"
+    
+    # Desabilita MIME sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Ativa proteção contra XSS
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    
+    # Content Security Policy (CSP)
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' https://cdn.jsdelivr.net; "
+        "connect-src 'self' https:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    
+    # HSTS (se em HTTPS)
+    if settings.ENABLE_HTTPS_REDIRECT or request.url.scheme == "https":
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    
+    # Referrer Policy
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    return response
 
 # Middleware de Tenant
 app.add_middleware(TenantMiddleware)

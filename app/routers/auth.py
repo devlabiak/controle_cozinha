@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Response
 from sqlalchemy.orm import Session
 import logging
 
@@ -10,6 +10,7 @@ from app.rate_limit import limiter
 from datetime import timedelta
 from app.config import settings
 from app.services.audit import registrar_auditoria
+from app.security_helpers import validate_user_tenant_access, get_user_tenants
 
 logger = logging.getLogger(__name__)
 
@@ -234,4 +235,155 @@ def registrar_consentimento(
     db.commit()
 
     return {"message": "Consentimento registrado com sucesso."}
+
+
+@router.post("/logout", status_code=status.HTTP_200_OK)
+def logout(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Faz logout do usuário.
+    Remove o token dos cookies e registra na auditoria.
+    """
+    response = Response(
+        content='{"message": "Logout realizado com sucesso"}',
+        status_code=status.HTTP_200_OK,
+        media_type="application/json"
+    )
+    
+    # Remove token do cookie HttpOnly
+    response.delete_cookie(
+        key="access_token",
+        path="/",
+        domain=f".{settings.BASE_DOMAIN}" if settings.BASE_DOMAIN else None,
+        secure=settings.COOKIE_SECURE,
+        httponly=True,
+        samesite=settings.COOKIE_SAMESITE
+    )
+    
+    # Registra logout na auditoria
+    registrar_auditoria(
+        db,
+        user_id=current_user.id,
+        tenant_id=None,
+        action="LOGOUT",
+        resource="auth",
+        resource_id=current_user.id,
+        details=f"Logout de {current_user.email}",
+        request=request,
+    )
+    db.commit()
+    
+    logger.info(f"✅ Logout bem-sucedido para {current_user.email}")
+    return response
+
+
+@router.post("/refresh", response_model=Token)
+@limiter.limit("60/minute")
+def refresh_token(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Renova o token JWT sem exigir email/senha.
+    Valida se o usuário ainda está ativo e tem acesso aos restaurantes.
+    """
+    # Revalida se usuário ainda está ativo
+    if not current_user.ativo:
+        logger.warning(f"❌ Tentativa de refresh com usuário inativo: {current_user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuário inativo"
+        )
+    
+    # Revalida se cliente ainda está ativo
+    if current_user.cliente_id:
+        from app.models import Cliente
+        cliente = db.query(Cliente).filter(Cliente.id == current_user.cliente_id).first()
+        if cliente and not cliente.ativo:
+            logger.warning(f"❌ Tentativa de refresh com cliente bloqueado: {current_user.cliente_id}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Empresa bloqueada"
+            )
+    
+    # Regenera lista de tenants (revalida contra BD)
+    tenant_ids = get_user_tenants(current_user, db)
+    
+    if not current_user.is_admin and len(tenant_ids) == 0:
+        logger.warning(f"❌ Usuário sem restaurantes ativos no refresh: {current_user.email}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nenhum restaurante disponível"
+        )
+    
+    # Cria novo token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={
+            "sub": current_user.email,
+            "user_id": current_user.id,
+            "cliente_id": current_user.cliente_id,
+            "tenant_ids": tenant_ids,
+            "is_admin": current_user.is_admin,
+        },
+        expires_delta=access_token_expires
+    )
+    
+    # Prepara resposta com cookie
+    response_data = {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": current_user.id,
+            "nome": current_user.nome,
+            "email": current_user.email,
+            "is_admin": current_user.is_admin,
+            "cliente_id": current_user.cliente_id,
+            "restaurantes": [
+                {
+                    "id": t.id,
+                    "nome": t.nome,
+                    "slug": t.slug,
+                    "ativo": t.ativo
+                }
+                for t in current_user.tenants
+            ],
+            "lgpd_consent": current_user.lgpd_consent,
+        }
+    }
+    
+    logger.info(f"✅ Token renovado para {current_user.email}")
+    return response_data
+
+
+@router.get("/verify", response_model=dict)
+def verify_token_endpoint(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica se o token é válido e revalida acesso.
+    Útil para verificar sessão no frontend.
+    """
+    # Revalida se usuário está ativo
+    if not current_user.ativo:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Usuário inativo"
+        )
+    
+    tenant_ids = get_user_tenants(current_user, db)
+    
+    return {
+        "valid": True,
+        "user_id": current_user.id,
+        "email": current_user.email,
+        "is_admin": current_user.is_admin,
+        "tenant_ids": tenant_ids
+    }
+
 

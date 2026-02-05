@@ -10,8 +10,8 @@ ENV/
 *.egg-info/
 dist/
 build/
-.env
 .env.local
+.env.production.local
 *.log
 .DS_Store
 .idea/
