@@ -7,21 +7,21 @@
 
 set -e  # Parar se algum comando falhar
 
-APP_DIR="/var/www/controle_cozinha"
+# Detectar diretório atual (onde o script está rodando)
+APP_DIR="$(pwd)"
 
 echo "🚀 Iniciando atualização da aplicação Controle Cozinha (Docker)..."
 echo "📁 Diretório: $APP_DIR"
 echo "📅 Data: $(date)"
 echo ""
 
-# 1. Verificar se diretório existe
-if [ ! -d "$APP_DIR" ]; then
-    echo "❌ Erro: Diretório $APP_DIR não encontrado"
+# 1. Verificar se docker-compose.yml existe no diretório atual
+if [ ! -f "docker-compose.yml" ]; then
+    echo "❌ Erro: docker-compose.yml não encontrado em $APP_DIR"
+    echo "   Execute este script no diretório raiz da aplicação"
     exit 1
 fi
 
-# 2. Mudar para diretório da aplicação
-cd "$APP_DIR"
 echo "✅ Entrando em $APP_DIR"
 
 # 3. Fazer backup do .env (por segurança)
@@ -35,13 +35,11 @@ echo "📥 Fazendo pull do repositório..."
 git pull origin main
 echo "✅ Pull concluído"
 
-# 5. Verificar se docker-compose.yml existe
+# 5. Verificar se docker-compose.yml existe (já verificado acima)
 if [ ! -f "docker-compose.yml" ]; then
     echo "❌ Erro: docker-compose.yml não encontrado"
     exit 1
 fi
-
-# 6. Parar containers antigos
 echo "⏹️  Parando containers antigos..."
 docker-compose down
 echo "✅ Containers parados"
