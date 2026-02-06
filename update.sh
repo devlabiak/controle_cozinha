@@ -41,43 +41,43 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 echo "⏹️  Parando containers antigos..."
-docker-compose down
+docker compose down
 echo "✅ Containers parados"
 
 # 7. Rebuild da imagem
 echo "🔨 Fazendo rebuild da imagem Docker..."
-docker-compose build
+docker compose build
 echo "✅ Image buildada"
 
 # 8. Iniciar containers
 echo "🚀 Iniciando containers..."
-docker-compose up -d
+docker compose up -d
 echo "✅ Containers iniciados"
 
 # 9. Executar migrações
 echo "🗄️  Executando migrações do banco de dados..."
-docker-compose exec -T app alembic upgrade head
+docker compose exec -T app alembic upgrade head
 echo "✅ Migrações concluídas"
 
 # 10. Health check
 echo "🏥 Realizando health check..."
 sleep 3
 
-if docker-compose ps app | grep -q "Up"; then
+if docker compose ps app | grep -q "Up"; then
     echo "✅ Container app está rodando"
 else
     echo "❌ Erro: Container app não está respondendo"
-    echo "   Verifique com: docker-compose logs app"
+    echo "   Verifique com: docker compose logs app"
     exit 1
 fi
 
 # 11. Verificar aplicação
 echo "🔗 Testando conexão com aplicação..."
-if docker-compose exec -T app curl -s http://localhost:8000/docs > /dev/null 2>&1; then
+if docker compose exec -T app curl -s http://localhost:8000/docs > /dev/null 2>&1; then
     echo "✅ Aplicação respondendo corretamente"
 else
     echo "⚠️  Aviso: Não foi possível conectar à aplicação via curl interno"
-    echo "   Verifique com: docker-compose logs app"
+    echo "   Verifique com: docker compose logs app"
 fi
 
 echo ""
@@ -87,10 +87,10 @@ echo "✅ Versão: $(git log -1 --pretty=%h)"
 echo "✅ Mensagem: $(git log -1 --pretty=%B | head -1)"
 echo "✅ Containers rodando:"
 echo ""
-docker-compose ps
+docker compose ps
 echo ""
 echo "📊 Próximos passos:"
-echo "   1. Verificar logs: docker-compose logs -f app"
+echo "   1. Verificar logs: docker compose logs -f app"
 echo "   2. Testar em: https://app.wlsolucoes.eti.br"
-echo "   3. Em caso de erro, reverter com: git reset --hard HEAD~1 && docker-compose down && docker-compose up -d"
+echo "   3. Em caso de erro, reverter com: git reset --hard HEAD~1 && docker compose down && docker compose up -d"
 echo "=========================================================================="
