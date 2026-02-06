@@ -18,6 +18,32 @@ if (user.is_admin) {
     throw new Error('Redirecionando para dashboard'); // Para a execução
 }
 
+// ==================== HELPER FETCH COM TRATAMENTO DE 401 ====================
+async function apiFetch(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            ...options.headers
+        }
+    });
+    
+    // Se token inválido/expirado, limpa e redireciona
+    if (response.status === 401) {
+        console.error('Token inválido ou expirado. Redirecionando para login...');
+        localStorage.clear();
+        alert('Sessão expirada! Faça login novamente.');
+        window.location.href = '/painelfoods/login.html';
+        throw new Error('Token inválido');
+    }
+    
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response;
+}
+
 // ==================== PROTEÇÃO DE NAVEGAÇÃO ====================
 // Previne que o botão voltar saia da aplicação
 window.addEventListener('beforeunload', (e) => {
@@ -81,15 +107,8 @@ function showSelector() {
     document.getElementById('selector').classList.add('active');
     document.getElementById('main-area').classList.remove('active');
     
-    fetch('/api/auth/me', { 
-        headers: { 'Authorization': 'Bearer ' + token } 
-    })
-    .then(r => {
-        if (!r.ok) {
-            throw new Error(`HTTP ${r.status}: ${r.statusText}`);
-        }
-        return r.json();
-    })
+    apiFetch('/api/auth/me')
+    .then(r => r.json())
     .then(data => {
         console.log('Dados recebidos:', data);
         const restos = data.restaurantes || [];
@@ -135,21 +154,7 @@ function selectRestaurant(id, nome, ativo) {
 
 async function checkPermissionsAndShowMain() {
     try {
-        const response = await fetch('/api/auth/me', {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        
-        if (!response.ok) {
-            if (response.status === 401) {
-                // Token inválido ou expirado
-                console.error('Token inválido ou expirado');
-                localStorage.clear();
-                window.location.href = '/painelfoods/login.html';
-                return;
-            }
-            throw new Error(`HTTP ${response.status}`);
-        }
-        
+        const response = await apiFetch('/api/auth/me');
         const data = await response.json();
         
         const resto = data.restaurantes.find(r => r.id == tenantId);
@@ -440,14 +445,7 @@ async function loadHistorico() {
         if (dataInicio) url += `data_inicio=${dataInicio}&`;
         if (dataFim) url += `data_fim=${dataFim}&`;
         
-        const response = await fetch(url, {
-            headers: { 'Authorization': 'Bearer ' + token }
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
+        const response = await apiFetch(url);
         const movimentacoes = await response.json();
         
         const tbody = document.getElementById('tbody-historico');
