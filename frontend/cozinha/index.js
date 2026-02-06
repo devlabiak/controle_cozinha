@@ -379,7 +379,7 @@ async function loadEstoque() {
             const isLow = estoqueMinimo > 0 && estoqueAtual <= estoqueMinimo;
             
             // Calcula embalagens se aplicável
-            let displayEstoque = `<strong>${estoqueAtual.toFixed(2)}</strong>`;
+            let displayEstoque = `<strong>${formatQuantidade(estoqueAtual, p.unidade_medida)}</strong>`;
             if (p.tipo_embalagem && p.unidades_por_embalagem > 0) {
                 const pacotesCompletos = Math.floor(estoqueAtual / p.unidades_por_embalagem);
                 const avulsos = estoqueAtual % p.unidades_por_embalagem;
@@ -415,7 +415,7 @@ async function loadEstoque() {
                         ${displayEstoque}
                     </td>
                     <td>${p.unidade_medida || 'un'}</td>
-                    <td>${estoqueMinimo > 0 ? estoqueMinimo.toFixed(2) : '-'}</td>
+                    <td>${estoqueMinimo > 0 ? formatQuantidade(estoqueMinimo, p.unidade_medida) : '-'}</td>
                     <td>${loteDisplay}</td>
                     <td>
                         ${isLow ? '<span class="badge badge-danger">⚠️ Baixo</span>' : '<span class="badge badge-success">✅ OK</span>'}
@@ -544,7 +544,7 @@ document.getElementById('ajuste-produto')?.addEventListener('change', function()
                 select.innerHTML = '<option value="">Selecione um produto...</option>' +
                     produtos.map(p => {
                         const emb = p.tipo_embalagem ? ` data-embalagem="${p.tipo_embalagem}" data-unidadesemb="${p.unidades_por_embalagem || 0}"` : '';
-                        return `<option value="${p.id}" data-estoque="${p.quantidade_estoque || 0}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.quantidade_minima || 0}"${emb}>${p.nome} (${(p.quantidade_estoque || 0).toFixed(2)} ${p.unidade_medida})</option>`;
+                        return `<option value="${p.id}" data-estoque="${p.quantidade_estoque || 0}" data-unidade="${p.unidade_medida}" data-nome="${p.nome}" data-categoria="${p.categoria}" data-minimo="${p.quantidade_minima || 0}"${emb}>${p.nome} (${formatQuantidade(p.quantidade_estoque || 0, p.unidade_medida)} ${p.unidade_medida})</option>`;
                     }).join('');
             }
         });
@@ -1042,6 +1042,18 @@ async function confirmarExclusaoProduto() {
 }
 
 // ==================== UTILITÁRIOS ====================
+// Formatar quantidade baseado na unidade de medida
+function formatQuantidade(quantidade, unidade) {
+    // Se a unidade é kg, g, l, ml, mostra com 2 decimais
+    const unidadesPeso = ['kg', 'g', 'l', 'ml', 'litro', 'litros', 'kilo', 'kilos', 'grama', 'gramas'];
+    if (unidadesPeso.some(u => unidade?.toLowerCase().includes(u))) {
+        return parseFloat(quantidade).toFixed(2);
+    }
+    // Para unidades (un, caixa, pacote, etc), mostra inteiro ou 1 decimal
+    const valorNum = parseFloat(quantidade);
+    return Number.isInteger(valorNum) ? valorNum.toString() : valorNum.toFixed(1);
+}
+
 function showNotification(message, type = 'success', duration = 3000) {
     const container = document.getElementById('notification-container');
     if (!container) return;
