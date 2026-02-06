@@ -1218,10 +1218,28 @@ let currentQRDataUtilizar = null;
 let currentLoteUtilizar = null;
 
 // Função para tocar bipe de sucesso
+let audioContextGlobal = null;
+
+function initAudioContext() {
+    if (!audioContextGlobal) {
+        try {
+            audioContextGlobal = new (window.AudioContext || window.webkitAudioContext)();
+        } catch (err) {
+            console.error('Erro ao criar AudioContext:', err);
+        }
+    }
+    return audioContextGlobal;
+}
+
 function playBeep() {
     try {
-        // Cria um contexto de áudio
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const audioContext = initAudioContext();
+        if (!audioContext) return;
+        
+        // Resume o contexto caso esteja suspenso (mobile)
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
         
         // Primeiro bipe (200ms)
         const oscillator1 = audioContext.createOscillator();
@@ -1253,6 +1271,8 @@ function playBeep() {
 
 // Auto-start scanner quando a aba é ativada
 document.querySelector('[data-tab="utilizar"]')?.addEventListener('click', () => {
+    // Inicializa áudio ao clicar na aba (permite áudio em mobile)
+    initAudioContext();
     setTimeout(() => {
         if (!html5QrScannerUtilizar) {
             initScannerUtilizar();
