@@ -31,6 +31,15 @@ function api(url, options = {}) {
         const data = text ? JSON.parse(text) : null;
         
         if (!r.ok) {
+            // Se 401, token inválido - redirecionar para login
+            if (r.status === 401) {
+                console.error('Token inválido ou expirado. Redirecionando para login...');
+                localStorage.removeItem('token');
+                alert('Sessão expirada! Faça login novamente.');
+                window.location.href = '/admin/login.html';
+                return;
+            }
+            
             const msg = data?.detail || `HTTP ${r.status}`;
             console.error('API Error:', msg, data);
             throw new Error(msg);
