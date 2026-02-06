@@ -246,7 +246,18 @@ async function addRest(e) {
                 slug: document.getElementById('rest-slug').value,
                 cnpj: document.getElementById('rest-cnpj').value || null,
                 email: document.getElementById('rest-email').value || null,
-                telefone: document.getElementById('rest-tel').value || null
+                telefone: document.getElementById('rest-tel').value || null,
+                rua: document.getElementById('rest-rua').value || null,
+                numero: document.getElementById('rest-numero').value || null,
+                complemento: document.getElementById('rest-complemento').value || null,
+                bairro: document.getElementById('rest-bairro').value || null,
+                cidade: document.getElementById('rest-cidade').value || null,
+                estado: document.getElementById('rest-estado').value || null,
+                cep: document.getElementById('rest-cep').value || null,
+                responsavel_nome: document.getElementById('rest-responsavel-nome').value || null,
+                responsavel_cargo: document.getElementById('rest-responsavel-cargo').value || null,
+                responsavel_telefone: document.getElementById('rest-responsavel-telefone').value || null,
+                responsavel_email: document.getElementById('rest-responsavel-email').value || null
             })
         });
         notify('Restaurante criado!');
@@ -269,6 +280,17 @@ async function editRest(id) {
         document.getElementById('edit-rest-cnpj').value = r.cnpj || '';
         document.getElementById('edit-rest-email').value = r.email || '';
         document.getElementById('edit-rest-tel').value = r.telefone || '';
+        document.getElementById('edit-rest-rua').value = r.rua || '';
+        document.getElementById('edit-rest-numero').value = r.numero || '';
+        document.getElementById('edit-rest-complemento').value = r.complemento || '';
+        document.getElementById('edit-rest-bairro').value = r.bairro || '';
+        document.getElementById('edit-rest-cidade').value = r.cidade || '';
+        document.getElementById('edit-rest-estado').value = r.estado || '';
+        document.getElementById('edit-rest-cep').value = r.cep || '';
+        document.getElementById('edit-rest-responsavel-nome').value = r.responsavel_nome || '';
+        document.getElementById('edit-rest-responsavel-cargo').value = r.responsavel_cargo || '';
+        document.getElementById('edit-rest-responsavel-telefone').value = r.responsavel_telefone || '';
+        document.getElementById('edit-rest-responsavel-email').value = r.responsavel_email || '';
         
         // Abrir modal
         document.getElementById('modal-edit-rest').classList.add('active');
@@ -290,7 +312,18 @@ async function salvarRestEdit(e) {
                 slug: document.getElementById('edit-rest-slug').value,
                 cnpj: document.getElementById('edit-rest-cnpj').value || null,
                 email: document.getElementById('edit-rest-email').value || null,
-                telefone: document.getElementById('edit-rest-tel').value || null
+                telefone: document.getElementById('edit-rest-tel').value || null,
+                rua: document.getElementById('edit-rest-rua').value || null,
+                numero: document.getElementById('edit-rest-numero').value || null,
+                complemento: document.getElementById('edit-rest-complemento').value || null,
+                bairro: document.getElementById('edit-rest-bairro').value || null,
+                cidade: document.getElementById('edit-rest-cidade').value || null,
+                estado: document.getElementById('edit-rest-estado').value || null,
+                cep: document.getElementById('edit-rest-cep').value || null,
+                responsavel_nome: document.getElementById('edit-rest-responsavel-nome').value || null,
+                responsavel_cargo: document.getElementById('edit-rest-responsavel-cargo').value || null,
+                responsavel_telefone: document.getElementById('edit-rest-responsavel-telefone').value || null,
+                responsavel_email: document.getElementById('edit-rest-responsavel-email').value || null
             })
         });
         
