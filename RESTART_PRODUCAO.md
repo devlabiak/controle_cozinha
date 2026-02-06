@@ -12,6 +12,7 @@
 ## 🚨 Restart Rápido (Problema Comum)
 
 ### Opção 1: Restart Completo (Recomendado)
+acessar via SSH
 ```bash
 cd /root/controle_cozinha
 docker compose restart

@@ -710,16 +710,16 @@ def gerar_etiqueta_pdf(
     # CNPJ do restaurante
     if tenant.cnpj:
         c.setFont("Helvetica", 6)
-        c.drawString(35*mm, 52*mm, f"CNPJ: {tenant.cnpj}")
+        c.drawString(35*mm, 51*mm, f"CNPJ: {tenant.cnpj}")
     
     # Nome do produto (fonte maior e bold)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(35*mm, 47*mm, alimento.nome[:25])
+    c.drawString(35*mm, 46*mm, alimento.nome[:25])
     
-    # Lote manual (letra + 6 dígitos) - logo abaixo do nome
+    # Lote manual (letra + 6 dígitos)
     c.setFont("Helvetica-Bold", 9)
     lote_numero = movimentacao.qr_code_usado or "N/A"
-    c.drawString(35*mm, 42*mm, f"Lote: {lote_numero}")
+    c.drawString(35*mm, 40*mm, f"Lote: {lote_numero}")
     
     # Quantidade
     c.setFont("Helvetica", 8)
@@ -729,26 +729,26 @@ def gerar_etiqueta_pdf(
             quantidade_etiqueta = int(qtd)
         except Exception:
             pass
-    c.drawString(35*mm, 41*mm, f"Qtd: {quantidade_etiqueta} {alimento.unidade_medida or 'un'}")
+    c.drawString(35*mm, 36*mm, f"Qtd: {quantidade_etiqueta} {alimento.unidade_medida or 'un'}")
     
     # Data de produção
     if movimentacao.data_producao:
-        c.drawString(35*mm, 36*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
+        c.drawString(35*mm, 32*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
     
     # Data de validade (destaque com *** mas ainda preto)
     if movimentacao.data_validade:
         c.setFont("Helvetica-Bold", 8)
-        c.drawString(35*mm, 31*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
+        c.drawString(35*mm, 28*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
     
     # Responsável (se houver)
     if tenant.responsavel_nome:
         c.setFont("Helvetica", 6)
-        c.drawString(5*mm, 20*mm, f"Resp: {tenant.responsavel_nome[:30]}")
+        c.drawString(5*mm, 18*mm, f"Resp: {tenant.responsavel_nome[:30]}")
     
     # Rodapé - categoria se houver
     c.setFont("Helvetica", 6)
     if alimento.categoria:
-        c.drawString(5*mm, 15*mm, f"Cat: {alimento.categoria}")
+        c.drawString(5*mm, 13*mm, f"Cat: {alimento.categoria}")
     
     # UUID simplificado no rodapé (para debug)
     c.setFont("Courier", 5)
