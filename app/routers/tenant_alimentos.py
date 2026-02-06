@@ -681,6 +681,11 @@ def gerar_etiqueta_pdf(
     
     # Busca informações do restaurante
     tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if not tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Restaurante não encontrado"
+        )
     
     # Gera QR code
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
@@ -700,7 +705,7 @@ def gerar_etiqueta_pdf(
     
     # Nome do restaurante no topo
     c.setFont("Helvetica-Bold", 8)
-    c.drawString(35*mm, 55*mm, tenant.nome[:30])
+    c.drawString(35*mm, 55*mm, (tenant.nome or "Restaurante")[:30])
     
     # CNPJ do restaurante
     if tenant.cnpj:
