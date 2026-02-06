@@ -1211,7 +1211,7 @@ function playBeep() {
         // Cria um contexto de áudio
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         
-        // Primeiro bipe
+        // Primeiro bipe (200ms)
         const oscillator1 = audioContext.createOscillator();
         const gainNode1 = audioContext.createGain();
         oscillator1.connect(gainNode1);
@@ -1219,21 +1219,21 @@ function playBeep() {
         oscillator1.frequency.value = 800;
         oscillator1.type = 'sine';
         gainNode1.gain.setValueAtTime(0.5, audioContext.currentTime);
-        gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
         oscillator1.start(audioContext.currentTime);
-        oscillator1.stop(audioContext.currentTime + 0.1);
+        oscillator1.stop(audioContext.currentTime + 0.2);
         
-        // Segundo bipe (após 150ms)
+        // Segundo bipe (200ms, após 250ms do início)
         const oscillator2 = audioContext.createOscillator();
         const gainNode2 = audioContext.createGain();
         oscillator2.connect(gainNode2);
         gainNode2.connect(audioContext.destination);
         oscillator2.frequency.value = 800;
         oscillator2.type = 'sine';
-        gainNode2.gain.setValueAtTime(0.5, audioContext.currentTime + 0.15);
-        gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
-        oscillator2.start(audioContext.currentTime + 0.15);
-        oscillator2.stop(audioContext.currentTime + 0.25);
+        gainNode2.gain.setValueAtTime(0.5, audioContext.currentTime + 0.25);
+        gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.45);
+        oscillator2.start(audioContext.currentTime + 0.25);
+        oscillator2.stop(audioContext.currentTime + 0.45);
     } catch (err) {
         console.error('Erro ao tocar bipe:', err);
     }

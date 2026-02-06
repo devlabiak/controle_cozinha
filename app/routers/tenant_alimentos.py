@@ -679,6 +679,9 @@ def gerar_etiqueta_pdf(
     
     alimento = movimentacao.alimento
     
+    # Busca informações do restaurante
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    
     # Gera QR code
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(movimentacao.qr_code_gerado)
@@ -695,17 +698,26 @@ def gerar_etiqueta_pdf(
     # Adiciona texto - APENAS PRETO (impressora térmica)
     c.setFillColorRGB(0, 0, 0)
     
+    # Nome do restaurante no topo
+    c.setFont("Helvetica-Bold", 8)
+    c.drawString(35*mm, 55*mm, tenant.nome[:30])
+    
+    # CNPJ do restaurante
+    if tenant.cnpj:
+        c.setFont("Helvetica", 6)
+        c.drawString(35*mm, 52*mm, f"CNPJ: {tenant.cnpj}")
+    
     # Nome do produto (fonte maior e bold)
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(35*mm, 52*mm, alimento.nome[:25])
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(35*mm, 47*mm, alimento.nome[:25])
     
     # Lote manual (letra + 6 dígitos) - logo abaixo do nome
-    c.setFont("Helvetica-Bold", 10)
+    c.setFont("Helvetica-Bold", 9)
     lote_numero = movimentacao.qr_code_usado or "N/A"
-    c.drawString(35*mm, 47*mm, f"Lote: {lote_numero}")
+    c.drawString(35*mm, 42*mm, f"Lote: {lote_numero}")
     
     # Quantidade
-    c.setFont("Helvetica", 9)
+    c.setFont("Helvetica", 8)
     quantidade_etiqueta = movimentacao.quantidade
     if qtd is not None:
         try:
@@ -716,17 +728,22 @@ def gerar_etiqueta_pdf(
     
     # Data de produção
     if movimentacao.data_producao:
-        c.drawString(35*mm, 35*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
+        c.drawString(35*mm, 36*mm, f"Prod: {movimentacao.data_producao.strftime('%d/%m/%Y')}")
     
     # Data de validade (destaque com *** mas ainda preto)
     if movimentacao.data_validade:
-        c.setFont("Helvetica-Bold", 9)
-        c.drawString(35*mm, 29*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
+        c.setFont("Helvetica-Bold", 8)
+        c.drawString(35*mm, 31*mm, f"*** VAL: {movimentacao.data_validade.strftime('%d/%m/%Y')} ***")
+    
+    # Responsável (se houver)
+    if tenant.responsavel_nome:
+        c.setFont("Helvetica", 6)
+        c.drawString(5*mm, 20*mm, f"Resp: {tenant.responsavel_nome[:30]}")
     
     # Rodapé - categoria se houver
-    c.setFont("Helvetica", 7)
+    c.setFont("Helvetica", 6)
     if alimento.categoria:
-        c.drawString(35*mm, 23*mm, f"Cat: {alimento.categoria}")
+        c.drawString(5*mm, 15*mm, f"Cat: {alimento.categoria}")
     
     # UUID simplificado no rodapé (para debug)
     c.setFont("Courier", 5)
