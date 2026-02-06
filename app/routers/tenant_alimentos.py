@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import logging
 
 from app.database import get_db
-from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType, ProdutoLote
+from app.models import Alimento, User, MovimentacaoEstoque, TipoMovimentacao, user_tenants_association, RoleType, ProdutoLote, Tenant
 from app.schemas import AlimentoCreate, AlimentoUpdate, AlimentoResponse
 from app.auth import get_current_user
 from app.middleware import get_tenant_id
