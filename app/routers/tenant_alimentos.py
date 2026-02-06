@@ -721,15 +721,30 @@ def gerar_etiqueta_pdf(
     lote_numero = movimentacao.qr_code_usado or "N/A"
     c.drawString(35*mm, 40*mm, f"Lote: {lote_numero}")
     
-    # Quantidade
+    # Quantidade - formatação inteligente
     c.setFont("Helvetica", 8)
     quantidade_etiqueta = movimentacao.quantidade
     if qtd is not None:
         try:
-            quantidade_etiqueta = int(qtd)
+            quantidade_etiqueta = float(qtd)
         except Exception:
             pass
-    c.drawString(35*mm, 36*mm, f"Qtd: {quantidade_etiqueta} {alimento.unidade_medida or 'un'}")
+    
+    # Formatar quantidade: inteiro para unidades, decimal para peso/volume
+    unidade = (alimento.unidade_medida or 'un').lower()
+    unidades_peso = ['kg', 'g', 'l', 'ml', 'litro', 'litros', 'kilo', 'kilos', 'grama', 'gramas']
+    
+    if any(u in unidade for u in unidades_peso):
+        # Para pesos/volumes: 2 decimais
+        qtd_formatada = f"{quantidade_etiqueta:.2f}"
+    else:
+        # Para unidades: inteiro ou 1 decimal
+        if quantidade_etiqueta == int(quantidade_etiqueta):
+            qtd_formatada = f"{int(quantidade_etiqueta)}"
+        else:
+            qtd_formatada = f"{quantidade_etiqueta:.1f}"
+    
+    c.drawString(35*mm, 36*mm, f"Qtd: {qtd_formatada} {alimento.unidade_medida or 'un'}")
     
     # Data de produção
     if movimentacao.data_producao:
